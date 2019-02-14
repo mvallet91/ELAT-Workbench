@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="utf-8" />
-    <title>JsStore Example</title>
+    <title>Testing JsStore + SqlWeb + File Manager</title>
     <meta name="viewport" content="width=device-width,initial-scale=1.0">
     <script src="scripts/jquery.js"></script>
     <link rel="stylesheet" type="text/css" href="style/bootstrap.css" />
@@ -12,6 +12,7 @@
     <script src="scripts/jsstore.js "></script>
     <script src="scripts/sqlweb.js"></script>
     <script src="scripts/index.js"></script>
+    <script src="brython/brython.js"></script>
 </head>
 
 <body>
@@ -38,11 +39,35 @@
             </table>
         </div>
     </div>
+    <!-- FILE SYSTEM FIELDS /////////////////////////////////////////////////////////////////////// -->
     <div>
         Select a text file:
         <input type="file" id="fileInput">
     </div>
     <pre id="fileDisplayArea"></pre>
+
+    <!-- BRYTHON SCRIPT /////////////////////////////////////////////////////////////////////// -->
+    <script type="text/python">
+        from browser import document, alert
+
+        # bind event 'click' on button to function echo
+
+        def echo(ev):
+            # message = document["zone"].value
+            # message = message * 5
+            # message = document["fileDisplayArea"].innerText
+            message = fileContent
+            message = message.split()
+            size = len(message[0])
+            message = "Python read your file, the first word is: '" + str(message[0]) + \
+                      "'\nand it is " + str(size) + " characters long"
+            alert(message)
+
+        document["mybutton"].bind("click", echo)
+    </script>
+    <!--<input id="zone">-->
+    <button id="mybutton">click to process file!</button>
+    <!-- BRYTHON SCRIPT /////////////////////////////////////////////////////////////////////// -->
     <link href="style/main.css " rel="stylesheet " type="text/css " />
 </body>
 

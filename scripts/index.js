@@ -1,9 +1,11 @@
 var connection = new JsStore.Instance(new Worker('scripts/jsstore.worker.js'));
 window.onload = function () {
+    brython();
+    //// DATABASE INITIALIZATION SCRIPTS //////////////////////////////////////////////////////////////////////////////
     initiateDb();
     $('#btnAddStudent').click(function () {
         window.location.href = 'add.html';
-    })
+    });
     $('#tblGrid tbody').on('click', '.edit', function () {
         var StudentId = $(this).parents().eq(1).attr('itemid');
         window.location.href = 'add.html?id=' + StudentId;
@@ -15,10 +17,10 @@ window.onload = function () {
             deleteData(StudentId);
         }
     });
-    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    //// FILE SYSTEM SCRIPTS ///////////////////////////////////////////////////////////////////////////
     var fileInput = document.getElementById('fileInput');
     var fileDisplayArea = document.getElementById('fileDisplayArea');
-
+    var fileContent;
     fileInput.addEventListener('change', function(e) {
         var file = fileInput.files[0];
         var textType = /text.*/;
@@ -29,14 +31,12 @@ window.onload = function () {
             reader.onload = function(e) {
                 fileDisplayArea.innerText = reader.result;
             };
-
+            fileContent = reader.result;
             reader.readAsText(file);
         } else {
             fileDisplayArea.innerText = "File not supported!"
         }
     });
-    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
 };
 
 function deleteData(studentId) {
@@ -116,7 +116,7 @@ function showTableData() {
                 student.City + "</td><td>" +
                 "<a href='#' class='edit'>Edit</a></td>" +
                 "<td><a href='#' class='delete''>Delete</a></td>";
-        })
+        });
         $('#tblGrid tbody').html(HtmlString);
     }).catch(function (error) {
         console.log(error);
@@ -149,6 +149,7 @@ function getStudents() {
             Country: 'Canada',
             City: 'qwe'
         },
-    ]
+    ];
     return Students;
 }
+

@@ -55,8 +55,8 @@
         def echo(ev):
             # message = document["zone"].value
             # message = message * 5
-            # message = document["fileDisplayArea"].innerText
-            message = fileContent
+            message = document["fileDisplayArea"].innerText
+            # message = fileContent
             message = message.split()
             size = len(message[0])
             message = "Python read your file, the first word is: '" + str(message[0]) + \

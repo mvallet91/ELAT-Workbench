@@ -1,4 +1,7 @@
 var connection = new JsStore.Instance(new Worker('scripts/jsstore.worker.js'));
+define(function (require) {
+    pako = require('pako');
+});
 window.onload = function () {
     brython();
     //// DATABASE INITIALIZATION SCRIPTS //////////////////////////////////////////////////////////////////////////////
@@ -21,18 +24,34 @@ window.onload = function () {
     var fileInput = document.getElementById('fileInput');
     var fileDisplayArea = document.getElementById('fileDisplayArea');
     var fileContent;
+
+
+
     fileInput.addEventListener('change', function(e) {
         var file = fileInput.files[0];
+        console.log(file.type);
         var textType = /text.*/;
+
+        var gzipType = /gzip/;
+
 
         if (file.type.match(textType)) {
             var reader = new FileReader();
-
-            reader.onload = function(e) {
+            reader.onload = function (e) {
                 fileDisplayArea.innerText = reader.result;
             };
             fileContent = reader.result;
             reader.readAsText(file);
+
+        } else if (file.type.match(gzipType)) {
+            var reader = new FileReader();
+            reader.onload = function(event) {
+                var result = pako.inflate(event.target.result, { to: 'string' });
+                console.log(result);
+                fileDisplayArea.innerText = result;
+            };
+            reader.readAsArrayBuffer(file);
+
         } else {
             fileDisplayArea.innerText = "File not supported!"
         }

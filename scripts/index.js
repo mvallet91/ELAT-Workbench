@@ -145,11 +145,11 @@ function showTableData() {
 function getStudents() {
     //Student Array
     var Students = [{
-            Name: 'Alfreds',
-            Gender: 'male',
-            Country: 'Germany',
-            City: 'Berlin'
-        },
+        Name: 'Alfreds',
+        Gender: 'male',
+        Country: 'Germany',
+        City: 'Berlin'
+    },
         {
             Name: 'george',
             Gender: 'male',

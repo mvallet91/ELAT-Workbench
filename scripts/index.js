@@ -47,10 +47,20 @@ window.onload = function () {
             var reader = new FileReader();
             reader.onload = function(event) {
                 var result = pako.inflate(event.target.result, { to: 'string' });
-                console.log(result);
-                fileDisplayArea.innerText = result;
+                // console.log(result);
+                var message = result.split('\n');
+                fileDisplayArea.innerText = 'This document is '.concat(result.length, ' characters long' +
+                    ' and the first line is: \n', message[0]);
             };
             reader.readAsArrayBuffer(file);
+
+        } else if (file.name.endsWith('sql')) {
+            var reader = new FileReader();
+            reader.onload = function (e) {
+                fileDisplayArea.innerText = reader.result;
+            };
+            fileContent = reader.result;
+            reader.readAsText(file);
 
         } else {
             fileDisplayArea.innerText = "File not supported!"

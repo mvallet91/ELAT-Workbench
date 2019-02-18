@@ -69,8 +69,8 @@
             message = document["fileDisplayArea"].innerText
             # message = fileContent
             message = message.split()
-            size = len(message[0])
-            message = "Python read your file, the first word is: '" + str(message[0]) + \
+            size = len(message[-1])
+            message = "Python read your file, the last word is: '" + str(message[-1]) + \
                       "'\nand it is " + str(size) + " characters long"
             alert(message)
 

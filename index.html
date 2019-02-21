@@ -89,8 +89,8 @@
             db = window.connection
             promise = db.runSql(query_text)
 
-            message = promise['[[PromiseValue]]']
-            window.console.log(message)
+            # message = promise['[[PromiseValue]]']
+            window.console.log(promise)
 
         document["action_button"].bind("click", echo_db)
     </script>

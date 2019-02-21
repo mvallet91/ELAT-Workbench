@@ -3,7 +3,7 @@ define(function (require) {
     pako = require('pako');
 });
 window.onload = function () {
-    brython();
+    brython({debug: 1});
     //// DATABASE INITIALIZATION SCRIPTS //////////////////////////////////////////////////////////////////////////////
     initiateDb();
     $('#btnAddStudent').click(function () {
@@ -24,8 +24,6 @@ window.onload = function () {
     var fileInput = document.getElementById('fileInput');
     var fileDisplayArea = document.getElementById('fileDisplayArea');
     var fileContent;
-
-
 
     fileInput.addEventListener('change', function(e) {
         var file = fileInput.files[0];

@@ -82,24 +82,32 @@
     <!-- BRYTHON SCRIPT /////////////////////////////////////////////////////////////////////// -->
     <script type="text/python" id="dbToMsg">
         from browser import window, document, alert
+        import json
         def echo_db(ev):
-            # window.connection.runSql("SELECT * FROM Student").then(function(result) {answer = result})
+            #window.connection.runSql("SELECT * FROM Student").then(window.function(result) {answer = result})
             query_text =  document["query_zone"].value
+            window.sqlQuery(query_text)
 
-            db = window.connection
-            promise = db.runSql(query_text)
-
-            # message = promise['[[PromiseValue]]']
-            window.console.log(promise)
+        def getResult(result):
+            query_result = json.loads(result.detail)
+            text_result = ''
+            for x in query_result:
+                for key in x:
+                    text_result = text_result + str(x[key]) + ', '
+                text_result = text_result + '\n'
+            document["queryDisplayArea"].innerText = text_result
 
         document["action_button"].bind("click", echo_db)
+        document.bind("finishedQuery", getResult)
     </script>
 
     <div>
-        <input id="query_zone" value="SELECT * FROM Student">
+        <input id="query_zone" value="SELECT * FROM Student WHERE Country = 'Canada'" size="50">
         <button id="action_button">Click to run query in db</button>
     </div>
     <!-- BRYTHON SCRIPT /////////////////////////////////////////////////////////////////////// -->
+
+    <pre id="queryDisplayArea"></pre>
     <link href="style/main.css " rel="stylesheet " type="text/css " />
 </body>
 

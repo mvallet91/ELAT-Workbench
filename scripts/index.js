@@ -117,6 +117,16 @@ function insertStudents() {
     });
 }
 
+
+function sqlQuery(query){
+    connection.runSql(query).then(function(result) {
+        answer = JSON.stringify(result);
+        var event = new CustomEvent("finishedQuery", {"detail": answer});
+        document.dispatchEvent(event);
+    });
+}
+
+
 function getDbQuery() {
     var db = "DEFINE DB Students;";
     var tblStudent = `DEFINE TABLE Student(

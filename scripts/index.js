@@ -32,7 +32,6 @@ window.onload = function () {
 
         var gzipType = /gzip/;
 
-
         if (file.type.match(textType)) {
             var reader = new FileReader();
             reader.onload = function (e) {
@@ -64,7 +63,66 @@ window.onload = function () {
             fileDisplayArea.innerText = "File not supported!"
         }
     });
+    //// MULTI FILE SYSTEM SCRIPTS ///////////////////////////////////////////////////////////////////////////
+    var multiFileInput = document.getElementById('filesInput');
+    var output = [];
+    var gzipType = /gzip/;
+    var sqlType = 'sql';
+    var readFiles = {};
+    var processedFiles = [];
+
+    multiFileInput.addEventListener('change', function (e) {
+        var files = multiFileInput.files;
+        var fileNames = '';
+        for (let i = 0; i < files.length; i++) {
+            let f = files[i];
+            output.push('<li><strong>', f.name, '</strong> (', f.type || 'n/a', ') - ',
+                         f.size, ' bytes', '</li>');
+
+            if (f.type.match(gzipType)) {
+                var reader = new FileReader();
+                reader.onload = function(event) {
+                    var result = pako.inflate(event.target.result, { to: 'string' });
+                    var message = result.split('\n');
+                    // fileDisplayArea.innerText = 'This document is '.concat(result.length, ' characters long' +
+                    //     ' and the first line is: \n', message[0]);
+                    console.log('This document is '.concat(result.length, ' characters long' +
+                        ' and the first line is: \n', message[0]));
+                };
+                reader.readAsArrayBuffer(f);
+            }
+            if (f.name.includes(sqlType)) {
+                var reader = new FileReader();
+                reader.onload = function (e) {
+                    readFiles[f.name] = reader.result;
+                    processedFiles.push({
+                        key: f.name,
+                        value: reader.result
+                    });
+                    fileNames = fileNames + f.name + '\n';
+                    console.log('This document is '.concat(reader.result.length, ' characters long ', f.name));
+                };
+                reader.readAsText(f);
+            }
+        }
+        console.log('names:', fileNames);
+        let answer = JSON.stringify(fileNames);
+        let readerEvent = new CustomEvent("studentMetaReader", {"detail": answer});
+        console.log('answer:', answer);
+        document.dispatchEvent(readerEvent);
+        document.getElementById('list').innerHTML = '<ul>' + output.join('') + '</ul>';
+    });
 };
+
+////////////////////////////////////////////////////////////////////////////////////////////////
+function sqlQuery(query){
+    connection.runSql(query).then(function(result) {
+        let answer = JSON.stringify(result);
+        let event = new CustomEvent("finishedQuery", {"detail": answer});
+        document.dispatchEvent(event);
+    });
+}
+////////////////////////////////////////////////////////////////////////////////////////////////
 
 function deleteData(studentId) {
     var query = new SqlWeb.Query("DELETE FROM Student WHERE Id='@studentId'");
@@ -113,19 +171,9 @@ function insertStudents() {
         }
     }).catch(function (err) {
         console.log(err);
-        alert('Error Occured while adding data')
+        alert('Error Occurred while adding data')
     });
 }
-
-
-function sqlQuery(query){
-    connection.runSql(query).then(function(result) {
-        answer = JSON.stringify(result);
-        var event = new CustomEvent("finishedQuery", {"detail": answer});
-        document.dispatchEvent(event);
-    });
-}
-
 
 function getDbQuery() {
     var db = "DEFINE DB Students;";
@@ -163,16 +211,16 @@ function showTableData() {
 function getStudents() {
     //Student Array
     var Students = [{
-        Name: 'Alfreds',
+        Name: 'Alfred',
         Gender: 'male',
         Country: 'Germany',
         City: 'Berlin'
-    },
+        },
         {
-            Name: 'george',
+            Name: 'George',
             Gender: 'male',
             Country: 'America',
-            City: 'xyx'
+            City: 'Detroit'
         },
         {
             Name: 'Berglunds',
@@ -184,7 +232,7 @@ function getStudents() {
             Name: 'Eastern',
             Gender: 'male',
             Country: 'Canada',
-            City: 'qwe'
+            City: 'QWE'
         },
     ];
     return Students;

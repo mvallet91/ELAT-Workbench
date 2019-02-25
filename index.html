@@ -53,9 +53,21 @@
     <!-- FILE SYSTEM FIELDS /////////////////////////////////////////////////////////////////////// -->
     <div>
         Select a text file:
-        <input type="file" id="fileInput">
+        <input type="file" id="fileInput" multiple>
+        <button id="mybutton">Click to process text file!</button>
+        <pre id="fileDisplayArea"></pre>
     </div>
-    <pre id="fileDisplayArea"></pre>
+
+    <div>
+        <input id="query_zone" value="SELECT * FROM Student WHERE Country = 'Canada'" size="50">
+        <button id="action_button">Click to run query in db</button>
+        <pre id="queryDisplayArea"></pre>
+    </div>
+
+
+    Select all metadata files:
+    <input type="file" id="filesInput" multiple >
+    <output id="list"></output>
 
     <!-- BRYTHON SCRIPT /////////////////////////////////////////////////////////////////////// -->
     <script type="text/python" id="fileToMsg">
@@ -77,14 +89,13 @@
 
         document["mybutton"].bind("click", echo)
     </script>
-    <!--<input id="zone">-->
-    <button id="mybutton">click to process file!</button>
+
     <!-- BRYTHON SCRIPT /////////////////////////////////////////////////////////////////////// -->
     <script type="text/python" id="dbToMsg">
         from browser import window, document, alert
         import json
         def echo_db(ev):
-            #window.connection.runSql("SELECT * FROM Student").then(window.function(result) {answer = result})
+            # window.connection.runSql("SELECT * FROM Student").then(window.function(result) {answer = result})
             query_text =  document["query_zone"].value
             window.sqlQuery(query_text)
 
@@ -100,14 +111,50 @@
         document["action_button"].bind("click", echo_db)
         document.bind("finishedQuery", getResult)
     </script>
+    <!-- BRYTHON SCRIPT /////////////////////////////////////////////////////////////////////// -->
+    <script type="text/python" id="fileToDb">
+        from browser import window, document, alert
+        import datetime, json
 
-    <div>
-        <input id="query_zone" value="SELECT * FROM Student WHERE Country = 'Canada'" size="50">
-        <button id="action_button">Click to run query in db</button>
-    </div>
+        def cmp_datetime(a_datetime, b_datetime):
+            if a_datetime < b_datetime:
+                return -1
+            elif a_datetime > b_datetime:
+                return 1
+            else:
+                return 0
+
+        def readStudentMeta(result):
+            # files = json.loads(result.detail)
+            # alert(result.detail)
+
+            '''
+            file = result.detail
+            lines = file.split('\n')
+            window.console.log(lines[0])
+
+            for line in lines[1:]:
+                record = line.split("\t")
+                global_learner_id = record[1]
+                course_id = record[2]
+                time = datetime.datetime.strptime(record[3], "%Y-%m-%d %H:%M:%S")
+                course_learner_id = course_id + "_" + global_learner_id
+
+                if cmp_datetime(course_metadata_map["end_time"], time):
+                    enrolled_learner_set.add(global_learner_id)
+
+                    array = [global_learner_id, course_id, course_learner_id]
+                    learner_index_record.append(array)
+
+                    course_learner_map[global_learner_id] = course_learner_id
+                    learner_enrollment_time_map[global_learner_id] = time
+            alert("The number of enrolled learners is: ", str(len(enrolled_learner_set)), "\n")
+            '''
+
+        document.bind("studentMetaReader", readStudentMeta)
+    </script>
     <!-- BRYTHON SCRIPT /////////////////////////////////////////////////////////////////////// -->
 
-    <pre id="queryDisplayArea"></pre>
     <link href="style/main.css " rel="stylesheet " type="text/css " />
 </body>
 

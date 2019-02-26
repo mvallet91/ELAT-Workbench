@@ -64,56 +64,131 @@ window.onload = function () {
         }
     });
     //// MULTI FILE SYSTEM SCRIPTS ///////////////////////////////////////////////////////////////////////////
-    var multiFileInput = document.getElementById('filesInput');
-    var output = [];
-    var gzipType = /gzip/;
-    var sqlType = 'sql';
-    var readFiles = {};
-    var processedFiles = [];
+    let  multiFileInput = document.getElementById('filesInput');
 
     multiFileInput.addEventListener('change', function (e) {
-        var files = multiFileInput.files;
-        var fileNames = '';
-        for (let i = 0; i < files.length; i++) {
-            let f = files[i];
-            output.push('<li><strong>', f.name, '</strong> (', f.type || 'n/a', ') - ',
-                         f.size, ' bytes', '</li>');
+        let files = multiFileInput.files;
+        // let result = readFiles(files);
+        // passFiles(result[0], result[1]);
 
-            if (f.type.match(gzipType)) {
-                var reader = new FileReader();
-                reader.onload = function(event) {
-                    var result = pako.inflate(event.target.result, { to: 'string' });
-                    var message = result.split('\n');
-                    // fileDisplayArea.innerText = 'This document is '.concat(result.length, ' characters long' +
-                    //     ' and the first line is: \n', message[0]);
-                    console.log('This document is '.concat(result.length, ' characters long' +
-                        ' and the first line is: \n', message[0]));
-                };
-                reader.readAsArrayBuffer(f);
-            }
-            if (f.name.includes(sqlType)) {
-                var reader = new FileReader();
-                reader.onload = function (e) {
-                    readFiles[f.name] = reader.result;
-                    processedFiles.push({
-                        key: f.name,
-                        value: reader.result
-                    });
-                    fileNames = fileNames + f.name + '\n';
-                    console.log('This document is '.concat(reader.result.length, ' characters long ', f.name));
-                };
-                reader.readAsText(f);
+// returns a promise
+        async function wrapperFunc() {
+            try {
+                let result = await readFiles(files);
+                passFiles(result[0], result[1]);
+            } catch(e) {
+                console.log(e);
+                throw e;      // let caller know the promise was rejected with this reason
             }
         }
-        console.log('names:', fileNames);
-        let answer = JSON.stringify(fileNames);
-        let readerEvent = new CustomEvent("studentMetaReader", {"detail": answer});
-        console.log('answer:', answer);
-        document.dispatchEvent(readerEvent);
-        document.getElementById('list').innerHTML = '<ul>' + output.join('') + '</ul>';
+
+        wrapperFunc().then(result => {
+            // got final result
+        }).catch(err => {
+            // got error
+        });
     });
 };
 
+function readFiles(files){
+    let output = [];
+    let readFiles = {};
+    let processedFiles = [];
+    let fileNames = 'Names: ';
+    let fileCount = 1;
+    let gzipType = /gzip/;
+    let sqlType = 'sql';
+
+    for (const f of files) {
+    // Array.from(files).forEach(f => {
+
+        output.push('<li><strong>', f.name, '</strong> (', f.type || 'n/a', ') - ',
+            f.size, ' bytes', '</li>');
+        fileCount++;
+
+        if (f.type.match(gzipType)) {
+            const reader = new FileReader();
+            reader.onload = function (event) {
+                var result = pako.inflate(event.target.result, {to: 'string'});
+                var message = result.split('\n');
+                console.log('This document is '.concat(result.length, ' characters long' +
+                    ' and the first line is: \n', message[0]));
+            };
+            reader.readAsArrayBuffer(f);
+
+        } if (f.name.includes(sqlType)) {
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                // readFiles[f.name] = reader.result;
+                // processedFiles.push({
+                //     key: f.name,
+                //     value: reader.result
+                // });
+                fileNames = fileNames + f.name + '\n';
+                console.log('This document is '.concat(reader.result.length, ' characters long ', f.name));
+            };
+            reader.readAsText(f);
+
+            // function read(callback) {
+            //     let reader = new FileReader();
+            //     reader.onload = function() {
+            //         callback(reader.result);
+            //     };
+            //     reader.readAsText(f);
+            // }
+            // let content = read();
+            // readFiles[f.name] = content;
+            // console.log('This document is '.concat(content.length, ' characters long ', f.name));
+
+            // readFile(f, function(e) {
+            //     let content = e.target.result;
+            //     fileNames = fileNames + f.name + '\n';
+            //     console.log('This document is '.concat(content.length, ' characters long ', f.name));
+            // });
+            //
+            // function readFile(file, onLoadCallback) {
+            //     let reader = new FileReader();
+            //     reader.onload = onLoadCallback;
+            //     reader.readAsText(file);
+            // }
+
+            // const readUploadedFileAsText = (inputFile) => {
+            //     const temporaryFileReader = new FileReader();
+            //
+            //     return new Promise((resolve, reject) => {
+            //         temporaryFileReader.onerror = () => {
+            //             temporaryFileReader.abort();
+            //             reject(new DOMException("Problem parsing input file."));
+            //         };
+            //
+            //         temporaryFileReader.onload = () => {
+            //             resolve(temporaryFileReader.result);
+            //         };
+            //         temporaryFileReader.readAsText(inputFile);
+            //     });
+            // };
+            //
+            // const handleUpload = async (event) => {
+            //     try {
+            //         const fileContents = await readUploadedFileAsText(f);
+            //         console.log(fileContents);
+            //     } catch (e) {
+            //         console.warn(e.message)
+            //     }
+            // };
+            // handleUpload();
+        }
+    }
+    // );
+    return [fileNames, output];
+}
+////////////////////////////////////////////////////////////////////////////////////////////////
+function passFiles(names, output){
+    document.getElementById('list').innerHTML = '<ul>' + output.join('') + '</ul>';
+    let answer = JSON.stringify(names);
+    let readerEvent = new CustomEvent("studentMetaReader", {"detail": answer});
+    document.dispatchEvent(readerEvent);
+}
 ////////////////////////////////////////////////////////////////////////////////////////////////
 function sqlQuery(query){
     connection.runSql(query).then(function(result) {
@@ -122,8 +197,7 @@ function sqlQuery(query){
         document.dispatchEvent(event);
     });
 }
-////////////////////////////////////////////////////////////////////////////////////////////////
-
+///////////////////////////////////////////////////////////////////////////////////////////////
 function deleteData(studentId) {
     var query = new SqlWeb.Query("DELETE FROM Student WHERE Id='@studentId'");
     query.map("@studentId", Number(studentId));

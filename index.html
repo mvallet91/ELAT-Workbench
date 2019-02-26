@@ -83,8 +83,7 @@
             message = message.split()
             size = len(message[-1])
             message = "Python read your file, the last word is: '" + str(message[-1]) + \
-                      "'\nand it is " + str(size) + " characters long" + \
-                      "\n testing content" + file_content
+                      "'\nand it is " + str(size) + " characters long"
             alert(message)
 
         document["mybutton"].bind("click", echo)
@@ -126,7 +125,9 @@
 
         def readStudentMeta(result):
             # files = json.loads(result.detail)
-            # alert(result.detail)
+            lines = result.detail
+            window.console.log(lines)
+            alert('asd')
 
             '''
             file = result.detail

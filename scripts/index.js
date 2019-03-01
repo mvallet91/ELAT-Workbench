@@ -6,6 +6,7 @@ window.onload = function () {
     brython({debug: 1});
     //// DATABASE INITIALIZATION SCRIPTS //////////////////////////////////////////////////////////////////////////////
     initiateDb();
+    initiateEdxDb();
     $('#btnAddStudent').click(function () {
         window.location.href = 'add.html';
     });
@@ -65,138 +66,120 @@ window.onload = function () {
     });
     //// MULTI FILE SYSTEM SCRIPTS ///////////////////////////////////////////////////////////////////////////
     let  multiFileInput = document.getElementById('filesInput');
-
     multiFileInput.addEventListener('change', function (e) {
         let files = multiFileInput.files;
-        // let result = readFiles(files);
-        // passFiles(result[0], result[1]);
-
-// returns a promise
-        async function wrapperFunc() {
-            try {
-                let result = await readFiles(files);
-                passFiles(result[0], result[1]);
-            } catch(e) {
-                console.log(e);
-                throw e;      // let caller know the promise was rejected with this reason
-            }
-        }
-
-        wrapperFunc().then(result => {
-            // got final result
-        }).catch(err => {
-            // got error
-        });
+        readFiles(files, passFiles);
     });
 };
 
-function readFiles(files){
+function readFiles(files, callback){
     let output = [];
-    let readFiles = {};
+    let checkedFiles = {};
     let processedFiles = [];
     let fileNames = 'Names: ';
-    let fileCount = 1;
+    let counter = 1;
     let gzipType = /gzip/;
     let sqlType = 'sql';
+    let jsonType = 'json';
 
     for (const f of files) {
-    // Array.from(files).forEach(f => {
-
         output.push('<li><strong>', f.name, '</strong> (', f.type || 'n/a', ') - ',
             f.size, ' bytes', '</li>');
-        fileCount++;
 
         if (f.type.match(gzipType)) {
             const reader = new FileReader();
             reader.onload = function (event) {
-                var result = pako.inflate(event.target.result, {to: 'string'});
-                var message = result.split('\n');
-                console.log('This document is '.concat(result.length, ' characters long' +
-                    ' and the first line is: \n', message[0]));
+                let result = pako.inflate(event.target.result, {to: 'string'});
+                console.log('This document is '.concat(result.length, ' characters long'));
+                // passLogFiles(result);
             };
             reader.readAsArrayBuffer(f);
 
-        } if (f.name.includes(sqlType)) {
+        } if (f.name.includes(sqlType) || (f.name.includes(jsonType))) {
             const reader = new FileReader();
-            reader.onload = function (e) {
-                // readFiles[f.name] = reader.result;
-                // processedFiles.push({
-                //     key: f.name,
-                //     value: reader.result
-                // });
-                fileNames = fileNames + f.name + '\n';
-                console.log('This document is '.concat(reader.result.length, ' characters long ', f.name));
+            reader.onload = function () {
+                let content = reader.result;
+                checkedFiles[f.name] = reader.result;
+                processedFiles.push({
+                    key: f.name,
+                    value: reader.result
+                });
+                fileNames = fileNames + f.name + ' size: ' + content.length + ' bytes \n';
+                let result = [processedFiles, output];
+                if (counter === files.length) {
+                    callback(result);
+                }
+                counter++;
             };
             reader.readAsText(f);
-
-            // function read(callback) {
-            //     let reader = new FileReader();
-            //     reader.onload = function() {
-            //         callback(reader.result);
-            //     };
-            //     reader.readAsText(f);
-            // }
-            // let content = read();
-            // readFiles[f.name] = content;
-            // console.log('This document is '.concat(content.length, ' characters long ', f.name));
-
-            // readFile(f, function(e) {
-            //     let content = e.target.result;
-            //     fileNames = fileNames + f.name + '\n';
-            //     console.log('This document is '.concat(content.length, ' characters long ', f.name));
-            // });
-            //
-            // function readFile(file, onLoadCallback) {
-            //     let reader = new FileReader();
-            //     reader.onload = onLoadCallback;
-            //     reader.readAsText(file);
-            // }
-
-            // const readUploadedFileAsText = (inputFile) => {
-            //     const temporaryFileReader = new FileReader();
-            //
-            //     return new Promise((resolve, reject) => {
-            //         temporaryFileReader.onerror = () => {
-            //             temporaryFileReader.abort();
-            //             reject(new DOMException("Problem parsing input file."));
-            //         };
-            //
-            //         temporaryFileReader.onload = () => {
-            //             resolve(temporaryFileReader.result);
-            //         };
-            //         temporaryFileReader.readAsText(inputFile);
-            //     });
-            // };
-            //
-            // const handleUpload = async (event) => {
-            //     try {
-            //         const fileContents = await readUploadedFileAsText(f);
-            //         console.log(fileContents);
-            //     } catch (e) {
-            //         console.warn(e.message)
-            //     }
-            // };
-            // handleUpload();
         }
     }
-    // );
-    return [fileNames, output];
 }
+
+// function fileReader(file){
+//     return new Promise( function (resolve, reject) {
+//         let reader = new FileReader();
+//         reader.onloadend = function (e) {
+//             if (reader.readyState === 2){
+//                 resolve(reader.result);
+//             }
+//         };
+//         reader.readAsText(file);
+//         reader.onerror = reject;
+//     });
+// }
+
 ////////////////////////////////////////////////////////////////////////////////////////////////
-function passFiles(names, output){
+function passFiles(result){
+    let names = result[0];
+    let output = result[1];
     document.getElementById('list').innerHTML = '<ul>' + output.join('') + '</ul>';
     let answer = JSON.stringify(names);
-    let readerEvent = new CustomEvent("studentMetaReader", {"detail": answer});
+    let readerEvent = new CustomEvent("studentMetaReader", {
+        "detail": answer
+    });
     document.dispatchEvent(readerEvent);
+    }
+
+function passLogFiles(result){
+    let answer = JSON.stringify(result);
+    let logReaderEvent = new CustomEvent("logFileReader", {
+        "detail": answer
+    });
+    document.dispatchEvent(logReaderEvent);
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////
 function sqlQuery(query){
     connection.runSql(query).then(function(result) {
         let answer = JSON.stringify(result);
-        let event = new CustomEvent("finishedQuery", {"detail": answer});
-        document.dispatchEvent(event);
+        let passData = new CustomEvent("finishedQuery", {
+            "detail": answer
+        });
+        document.dispatchEvent(passData);
     });
 }
+
+function sqlInsert(table, data) {
+    let query = new SqlWeb.Query("INSERT INTO " + table + " values='@val'");
+    for (let v of data) {
+        for (let field of Object.keys(v)) {
+            if (field.includes('time')){
+                let date = v[field];
+                v[field] = new Date(date);
+            }
+        }
+    }
+    query.map("@val", data);
+    connection.runSql(query).then(function (rowsAdded) {
+        if (rowsAdded > 0) {
+            alert('Successfully added');
+        }
+    }).catch(function (err) {
+        console.log(err);
+        alert('Error Occurred while adding data')
+    });
+}
+
 ///////////////////////////////////////////////////////////////////////////////////////////////
 function deleteData(studentId) {
     var query = new SqlWeb.Query("DELETE FROM Student WHERE Id='@studentId'");
@@ -235,18 +218,56 @@ function initiateDb() {
     });
 }
 
-function insertStudents() {
-    var students = getStudents();
-    var query = new SqlWeb.Query("INSERT INTO Student values='@val'");
-    query.map("@val", students);
-    connection.runSql(query).then(function (rowsAdded) {
-        if (rowsAdded > 0) {
-            alert('Successfully added');
+function initiateEdxDb() {
+    var dbName = "edx";
+    connection.runSql('ISDBEXIST ' + dbName).then(function (isExist) {
+        if (isExist) {
+            connection.runSql('OPENDB ' + dbName).then(function () {
+                console.log('edx db opened');
+            });
+            showTableData();
+        } else {
+            let dbQuery = getEdxDbQuery();
+            connection.runSql(dbQuery).then(function (tables) {
+                console.log(tables);
+            });
+            // insertStudents();
+            // showTableData();
         }
     }).catch(function (err) {
         console.log(err);
-        alert('Error Occurred while adding data')
+        alert(err.message);
     });
+}
+
+function getEdxDbQuery() {
+    let db = "DEFINE DB edxdb;";
+
+    let courses = `DEFINE TABLE courses(        
+        course_id PRIMARYKEY STRING,
+        course_name STRING,
+        start_time date_time,
+        end_time date_time
+        )
+    `;
+    let demographic = `DEFINE TABLE learner_demographic (
+        course_learner_id PRIMARYKEY STRING,
+        gender STRING,
+        year_of_birth NUMBER,
+        level_of_education STRING,
+        country STRING,
+        email STRING
+        )
+    `;
+
+    let elements = `DEFINE TABLE course_elements (
+        element_id PRIMARYKEY STRING,
+        element_type STRING,
+        week NUMBER,
+        course_id STRING
+        )
+    `;
+    return db + courses + demographic + elements;
 }
 
 function getDbQuery() {
@@ -261,6 +282,20 @@ function getDbQuery() {
     `;
     var dbQuery = db + tblStudent;
     return dbQuery;
+}
+
+function insertStudents() {
+    var students = getStudents();
+    var query = new SqlWeb.Query("INSERT INTO Student values='@val'");
+    query.map("@val", students);
+    connection.runSql(query).then(function (rowsAdded) {
+        if (rowsAdded > 0) {
+            alert('Successfully added');
+        }
+    }).catch(function (err) {
+        console.log(err);
+        alert('Error Occurred while adding data')
+    });
 }
 
 //This function refreshes the table

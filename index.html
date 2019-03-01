@@ -123,36 +123,414 @@
             else:
                 return 0
 
-        def readStudentMeta(result):
-            # files = json.loads(result.detail)
-            lines = result.detail
-            window.console.log(lines)
-            alert('asd')
+
+        def getDayDiff(beginDate,endDate):
+            oneday = datetime.timedelta(days=1)
+            count = 0
+            while (endDate - beginDate) >= oneday:
+                endDate = endDate - oneday
+                count += 1
+            return count
+
+
+        def getNextDay(current_day_string):
+            format="%Y-%m-%d";
+            current_day = datetime.datetime.strptime(current_day_string,format)
+            oneday = datetime.timedelta(days=1)
+            next_day = current_day + oneday
+            return str(next_day)[0:10]
+
+        def process_null(inputString):
+            if isinstance(inputString, str):
+                if len(inputString)==0 or inputString=='NULL':
+                    return None
+                else:
+                    return inputString
+            return inputString
+
+
+        def ExtractCourseInformation(files):
+            course_metadata_map = {}
+
+            ##### Edit for Brython #####
+            for file_name in files:
+                if "course_structure" in file_name:
+                    course_structure_file = files[file_name]
+                    ##### Edit for Brython #####
+
+                    child_parent_map = {}
+                    element_time_map = {}
+                    # Add and element_time_map_due to record the due of sequential
+                    element_time_map_due = {}
+                    element_type_map = {}
+                    element_without_time = []
+
+                    quiz_question_map = {}
+                    block_type_map = {}
+
+                    ##### Edit for Brython #####
+                    jsonObject = json.loads(course_structure_file)
+                    ##### Edit for Brython #####
+
+                    for record in jsonObject:
+
+                        if jsonObject[record]["category"] == "course":
+
+                            # Course ID
+                            course_id = record
+                            if course_id.startswith("block-"):
+                                course_id = course_id.replace("block-","course-")
+                                course_id = course_id.replace("+type@course+block@course", "")
+                            if course_id.startswith("i4x://"):
+                                course_id = course_id.replace("i4x://", "")
+                                course_id = course_id.replace("course/", "")
+                            course_metadata_map["course_id"] = course_id
+
+                            # Course name
+                            course_name = jsonObject[record]["metadata"]["display_name"]
+                            course_metadata_map["course_name"] = course_name
+
+                            start_time = jsonObject[record]["metadata"]["start"]
+                            end_time = jsonObject[record]["metadata"]["end"]
+
+                            # Start & End data
+                            start_date = start_time[0:start_time.index("T")]
+                            end_date = end_time[0:end_time.index("T")]
+                            course_metadata_map["start_date"] = start_date
+                            course_metadata_map["end_date"] = end_date
+
+                            # Start & End time
+                            format="%Y-%m-%d %H:%M:%S"
+
+                            start_time = start_time[0:19]
+                            start_time = start_time.replace("T", " ")
+                            start_time = datetime.datetime.strptime(start_time,format)
+
+                            end_time = end_time[0:19]
+                            end_time = end_time.replace("T", " ")
+                            end_time = datetime.datetime.strptime(end_time,format)
+
+                            course_metadata_map["start_time"] = start_time
+                            course_metadata_map["end_time"] = end_time
+
+                            for child in jsonObject[record]["children"]:
+                                child_parent_map[child] = record
+                            element_time_map[record] = start_time
+
+                            element_type_map[record] = jsonObject[record]["category"]
+
+                        else:
+
+                            element_id = record
+
+                            # Child to parent relation
+                            for child in jsonObject[element_id]["children"]:
+                                child_parent_map[child] = element_id
+
+                            # Element time
+                            if "start" in jsonObject[element_id]["metadata"]:
+                                element_start_time = jsonObject[element_id]["metadata"]["start"]
+                                element_start_time = element_start_time[0:19]
+                                element_start_time = element_start_time.replace("T", " ")
+                                element_start_time = datetime.datetime.strptime(element_start_time,"%Y-%m-%d %H:%M:%S")
+                                element_time_map[element_id] = element_start_time
+                            else:
+                                element_without_time.append(element_id)
+
+                            # Element due time
+                            if "due" in jsonObject[element_id]["metadata"]:
+                                element_due_time = jsonObject[element_id]["metadata"]["due"]
+                                element_due_time = element_due_time[0:19]
+                                element_due_time = element_due_time.replace("T", " ")
+                                element_due_time = datetime.datetime.strptime(element_due_time,"%Y-%m-%d %H:%M:%S")
+                                element_time_map_due[element_id] = element_due_time
+
+                            # Element type
+                            element_type_map[element_id] = jsonObject[element_id]["category"]
+
+                            # Quiz questions
+                            if jsonObject[element_id]["category"] == "problem":
+                                # quiz_question_map.append(element_id)
+                                if "weight" in jsonObject[element_id]["metadata"]:
+                                    quiz_question_map[element_id] = jsonObject[element_id]["metadata"]["weight"]
+                                else:
+                                    # By default the weight is 1?
+                                    quiz_question_map[element_id] = 1.0
+
+                            # Types of blocks to which quiz questions belong
+                            if jsonObject[element_id]["category"] == "sequential":
+                                if "display_name" in jsonObject[element_id]["metadata"]:
+                                    block_type = jsonObject[element_id]["metadata"]["display_name"]
+                                    block_type_map[element_id] = block_type
+
+                    # Decide the start time for each element
+                    for element_id in element_without_time:
+                        element_start_time = ""
+                        while element_start_time == "":
+                            element_parent = child_parent_map[element_id]
+                            while not element_parent in element_time_map:
+                                element_parent = child_parent_map[element_parent]
+                            element_start_time = element_time_map[element_parent]
+                        element_time_map[element_id] = element_start_time
+
+                    ######################################################
+                    ############## Removing deleted elements #############
+                    ######################################################
+                    # Here is a problem.
+                    # Some contents set before course start time are deleted
+                    # But some of them are reserved.
+                    #
+                    # Therefore, we cannot justify if an element deleted or not
+                    # just based on their creation time.
+                    # If there is a clear tag which shows whether
+                    # those elements are deleted or not, it would be better.
+                    #
+                    # For now, we keep all of them
+                    # and treat them as elements created in the 1st week.
+                    # -- Yue
+                    ######################################################
+
+                    # for element_id in element_time_map.keys():
+                    #     if element_time_map[element_id] < course_metadata_map["start_time"]:
+                    #         element_time_map.pop(element_id)
+
+                    course_metadata_map["element_time_map"] = element_time_map
+                    course_metadata_map["element_time_map_due"] = element_time_map_due
+                    course_metadata_map["element_type_map"] = element_type_map
+                    course_metadata_map["quiz_question_map"] = quiz_question_map
+                    course_metadata_map["child_parent_map"] = child_parent_map
+                    course_metadata_map["block_type_map"] = block_type_map
+
+                    window.console.log('Metadata map ready')
+                    return course_metadata_map
+                else:
+                    window.console.log('Course structure file not found')
+
+
+        def learner_mode(files):
+
+            ##### Edit for Brython #####
+
+            course_record = []
+            course_element_record = []
+            learner_index_record = []
+            course_learner_record = []
+            learner_demographic_record = []
+
+            # Collect course information
+            course_metadata_map = ExtractCourseInformation(files)
+            course_record.append(
+                [course_metadata_map["course_id"], course_metadata_map["course_name"],
+                course_metadata_map["start_time"], course_metadata_map["end_time"]])
+
+            # Course_element table
+            window.console.log('Processing ' + str(len(course_metadata_map["element_time_map"].keys())) + \
+                               ' elements in metadata map')
+            counter = 0
+            for element_id in course_metadata_map["element_time_map"].keys():
+                element_start_time = course_metadata_map["element_time_map"][element_id]
+                # Some contents released just one hour earlier than the hour of start time.
+                # For example, start time is 2015-10-15 09:00:00, while 2nd week contents'
+                # release time is 2015-10-22 08:00:00.
+                # However, those 2nd week contents are count as 1st week.
+                # In order to avoid above situation, I use date to replace datetime here.
+                week = getDayDiff(course_metadata_map["start_time"].date(), element_start_time.date()) / 7 + 1
+
+                array = [element_id, course_metadata_map["element_type_map"][element_id], week,
+                         course_metadata_map["course_id"]]
+                course_element_record.append(array)
+
+                if counter % (len(course_metadata_map["element_time_map"].keys())/5) == 0:
+                    window.console.log(counter, ' lines processed')
+                counter += 1
+
+
+            window.console.log('Finished processing elements in metadata map')
 
             '''
-            file = result.detail
-            lines = file.split('\n')
-            window.console.log(lines[0])
 
-            for line in lines[1:]:
-                record = line.split("\t")
-                global_learner_id = record[1]
-                course_id = record[2]
-                time = datetime.datetime.strptime(record[3], "%Y-%m-%d %H:%M:%S")
-                course_learner_id = course_id + "_" + global_learner_id
+            # Learner_demographic table
+            learner_mail_map = {}
 
-                if cmp_datetime(course_metadata_map["end_time"], time):
-                    enrolled_learner_set.add(global_learner_id)
+            # Course_learner table
+            course_learner_map = {}
+            learner_enrollment_time_map = {}
 
-                    array = [global_learner_id, course_id, course_learner_id]
-                    learner_index_record.append(array)
+            # Enrolled learners set
+            enrolled_learner_set = set()
 
-                    course_learner_map[global_learner_id] = course_learner_id
-                    learner_enrollment_time_map[global_learner_id] = time
-            alert("The number of enrolled learners is: ", str(len(enrolled_learner_set)), "\n")
+            course_id = ""
+
+            # Processing student_courseenrollment data
+            ##### Edit for Brython #####
+
+            for file_name in files:
+                if "student_courseenrollment" in file_name:
+                    input_file = files[file_name]
+
+                    lines = input_file.split('\n')
+                    window.console.log('Starting course enrollment processing, for ' + str(len(lines)) + ' lines')
+
+                    counter = 0
+                    for line in lines[1:]:
+
+                        record = line.split("\t")
+
+                        if len(record) < 2:
+                            continue
+
+                        global_learner_id = record[1]
+                        course_id = record[2]
+                        time = datetime.datetime.strptime(record[3], "%Y-%m-%d %H:%M:%S")
+                        course_learner_id = course_id + "_" + global_learner_id
+
+                        if cmp_datetime(course_metadata_map["end_time"], time):
+                            enrolled_learner_set.add(global_learner_id)
+
+                            array = [global_learner_id, course_id, course_learner_id]
+                            learner_index_record.append(array)
+
+                            course_learner_map[global_learner_id] = course_learner_id
+                            learner_enrollment_time_map[global_learner_id] = time
+
+                        if counter % (len(lines)/5) == 0:
+                            window.console.log(counter, ' lines processed')
+                        counter += 1
+
+                    window.console.log("The number of enrolled learners is: ", str(len(enrolled_learner_set)), "\n")
+
+                # Processing auth_user data ################################################################
+                if "auth_user-" in file_name:
+                    input_file = files[file_name]
+                    lines = input_file.split('\n')
+                    window.console.log('Starting auth user processing, for ' + str(len(lines)) + ' lines')
+
+                    for line in lines:
+                        record = line.split("\t")
+                        if record[0] in enrolled_learner_set:
+                            learner_mail_map[record[0]] = record[4]
+                    window.console.log('Done with auth user processing')
+
+                # Processing certificates_generatedcertificate data ########################################
+                num_uncertifiedLearners = 0
+                num_certifiedLearners = 0
+                counter = 0
+                if "certificates_generatedcertificate" in file_name:
+                    input_file = files[file_name]
+                    lines = input_file.split('\n')
+                    window.console.log('Starting certificate processing, for ' + str(len(lines)) + ' lines')
+                    for line in lines:
+                        record = line.split("\t")
+                        if len(record) < 10:
+                            continue
+                        global_learner_id = record[1]
+
+                        final_grade = record[3]
+                        enrollment_mode = record[14].replace("\n", "")
+                        certificate_status = record[7]
+
+                        register_time = ""
+                        if global_learner_id in course_learner_map:
+                            register_time = learner_enrollment_time_map[global_learner_id]
+
+                        if global_learner_id in course_learner_map:
+                            num_certifiedLearners += 1
+                            array = [course_learner_map[global_learner_id], final_grade, enrollment_mode,
+                                    certificate_status, register_time]
+                            course_learner_record.append(array)
+                        else:
+                            num_uncertifiedLearners += 1
+
+                        if counter % (len(lines)/5) == 0:
+                            window.console.log(counter, ' lines processed')
+                        counter += 1
+
+                    window.console.log("The number of uncertified & certified learners is: ", \
+                                        str(num_uncertifiedLearners), "\t", \
+                                        str(num_certifiedLearners), "\n")
+
+
+                # Processing auth_userprofile data #######################################################
+                if "auth_userprofile" in file_name:
+                    input_file = files[file_name]
+                    lines = input_file.split('\n')
+                    window.console.log('Starting auth userprofile processing, for ' + str(len(lines)) + ' lines')
+                    counter = 0
+                    for line in lines:
+                        record = line.split("\t")
+                        if len(record) < 10:
+                            continue
+                        global_learner_id = record[1]
+                        gender = record[7]
+                        year_of_birth = record[9]
+                        level_of_education = record[10]
+                        country = record[13]
+
+                        course_learner_id = course_id + "_" + global_learner_id
+
+                        if global_learner_id in enrolled_learner_set:
+                            array = [course_learner_id, gender, year_of_birth, level_of_education, country,
+                                     learner_mail_map[global_learner_id]]
+                            learner_demographic_record.append(array)
+
+                        if counter % (len(lines)/5) == 0:
+                            window.console.log(counter, ' lines processed')
+                        counter += 1
+
+                window.console.log("Done with auth_userprofile")
+
             '''
 
-        document.bind("studentMetaReader", readStudentMeta)
+            window.console.log('All metadata ready')
+            data = []
+            for array in course_record:
+                course_id = course_metadata_map["course_id"]
+                course_name = course_metadata_map["course_name"]
+                start_time = course_metadata_map["start_time"]
+                end_time = course_metadata_map["end_time"]
+                values = {'course_id': course_id, 'course_name': course_name,
+                        'start_time': start_time.isoformat(),
+                        'end_time': end_time.isoformat()}
+                data.append(values)
+
+            window.sqlInsert('courses', data) if len(data) > 0 else window.console.log('no courses info')
+
+            data = []
+            for array in course_element_record:
+                element_id = array[0]
+                element_type = array[1]
+                week = process_null(array[2])
+                course_id = array[3]
+                values = {'element_id': element_id, 'element_type':element_type,
+                          'week': week, 'course_id': course_id}
+                data.append(values)
+
+            window.sqlInsert('course_elements', data) if len(data) > 0 else window.console.log('no course element info')
+
+
+        def getFiles(result):
+            files = {}
+            pairs = json.loads(result.detail)
+            for pair in pairs:
+                file_name = pair['key']
+                file = pair['value']
+                files[file_name] = file
+            return files
+
+
+        def metadata_processing(results):
+            files = getFiles(results)
+            window.console.log('Files ready')
+            learner_mode(files)
+
+
+        def process_log(result):
+            content = json.loads(result.detail)
+            window.console.log('This file is: ', len(content.split()), ' units long')
+
+        document.bind("studentMetaReader", metadata_processing)
+        document.bind("logFileReader", process_log)
+
     </script>
     <!-- BRYTHON SCRIPT /////////////////////////////////////////////////////////////////////// -->
 

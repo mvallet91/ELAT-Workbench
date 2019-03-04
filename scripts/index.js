@@ -5,7 +5,7 @@ define(function (require) {
 window.onload = function () {
     brython({debug: 1});
     //// DATABASE INITIALIZATION SCRIPTS //////////////////////////////////////////////////////////////////////////////
-    initiateDb();
+    // initiateDb();
     initiateEdxDb();
     $('#btnAddStudent').click(function () {
         window.location.href = 'add.html';
@@ -22,57 +22,53 @@ window.onload = function () {
         }
     });
     //// FILE SYSTEM SCRIPTS ///////////////////////////////////////////////////////////////////////////
-    var fileInput = document.getElementById('fileInput');
-    var fileDisplayArea = document.getElementById('fileDisplayArea');
-    var fileContent;
+    // const fileInput = document.getElementById('fileInput');
+    // const fileDisplayArea = document.getElementById('fileDisplayArea');
+    //
+    // fileInput.addEventListener('change', function(e) {
+    //     let file = fileInput.files[0];
+    //     let textType = /text.*/;
+    //     let gzipType = /gzip/;
+    //
+    //     if (file.type.match(textType)) {
+    //         let reader = new FileReader();
+    //         reader.onload = function (e) {
+    //             fileDisplayArea.innerText = reader.result;
+    //         };
+    //         reader.readAsText(file);
+    //
+    //     } else if (file.type.match(gzipType)) {
+    //         let reader = new FileReader();
+    //         reader.onload = function(event) {
+    //             let result = pako.inflate(event.target.result, { to: 'string' });
+    //             // console.log(result);
+    //             let message = result.split('\n');
+    //             fileDisplayArea.innerText = 'This document is '.concat(result.length, ' characters long' +
+    //                 ' and the first line is: \n', message[0]);
+    //         };
+    //         reader.readAsArrayBuffer(file);
+    //
+    //     } else if (file.name.endsWith('sql')) {
+    //         let reader = new FileReader();
+    //         reader.onload = function (e) {
+    //             fileDisplayArea.innerText = reader.result;
+    //         };
+    //         reader.readAsText(file);
+    //
+    //     } else {
+    //         fileDisplayArea.innerText = "File not supported!"
+    //     }
+    // });
 
-    fileInput.addEventListener('change', function(e) {
-        var file = fileInput.files[0];
-        console.log(file.type);
-        var textType = /text.*/;
-
-        var gzipType = /gzip/;
-
-        if (file.type.match(textType)) {
-            var reader = new FileReader();
-            reader.onload = function (e) {
-                fileDisplayArea.innerText = reader.result;
-            };
-            fileContent = reader.result;
-            reader.readAsText(file);
-
-        } else if (file.type.match(gzipType)) {
-            var reader = new FileReader();
-            reader.onload = function(event) {
-                var result = pako.inflate(event.target.result, { to: 'string' });
-                // console.log(result);
-                var message = result.split('\n');
-                fileDisplayArea.innerText = 'This document is '.concat(result.length, ' characters long' +
-                    ' and the first line is: \n', message[0]);
-            };
-            reader.readAsArrayBuffer(file);
-
-        } else if (file.name.endsWith('sql')) {
-            var reader = new FileReader();
-            reader.onload = function (e) {
-                fileDisplayArea.innerText = reader.result;
-            };
-            fileContent = reader.result;
-            reader.readAsText(file);
-
-        } else {
-            fileDisplayArea.innerText = "File not supported!"
-        }
-    });
     //// MULTI FILE SYSTEM SCRIPTS ///////////////////////////////////////////////////////////////////////////
     let  multiFileInput = document.getElementById('filesInput');
     multiFileInput.addEventListener('change', function (e) {
         let files = multiFileInput.files;
-        readFiles(files, passFiles);
+        readMetaFiles(files, passFiles);
     });
 };
 
-function readFiles(files, callback){
+function readMetaFiles(files, callback){
     let output = [];
     let checkedFiles = {};
     let processedFiles = [];
@@ -86,18 +82,19 @@ function readFiles(files, callback){
         output.push('<li><strong>', f.name, '</strong> (', f.type || 'n/a', ') - ',
             f.size, ' bytes', '</li>');
 
-        if (f.type.match(gzipType)) {
-            const reader = new FileReader();
-            reader.onload = function (event) {
-                let result = pako.inflate(event.target.result, {to: 'string'});
-                console.log('This document is '.concat(result.length, ' characters long'));
-                // passLogFiles(result);
-            };
-            reader.readAsArrayBuffer(f);
+        // if (f.type.match(gzipType)) {
+        //     const reader = new FileReader();
+        //     reader.onloadend = function (event) {
+        //         let result = pako.inflate(event.target.result, {to: 'string'});
+        //         console.log('This document is '.concat(result.length, ' characters long'));
+        //         passLogFiles(result);
+        //         counter++;
+        //     };
+        //     reader.readAsArrayBuffer(f);
 
-        } if (f.name.includes(sqlType) || (f.name.includes(jsonType))) {
+        if (f.name.includes(sqlType) || (f.name.includes(jsonType))) {
             const reader = new FileReader();
-            reader.onload = function () {
+            reader.onloadend = function () {
                 let content = reader.result;
                 checkedFiles[f.name] = reader.result;
                 processedFiles.push({
@@ -112,6 +109,8 @@ function readFiles(files, callback){
                 counter++;
             };
             reader.readAsText(f);
+        } else {
+            counter ++;
         }
     }
 }
@@ -131,6 +130,7 @@ function readFiles(files, callback){
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
 function passFiles(result){
+    const reader = new FileReader();
     let names = result[0];
     let output = result[1];
     document.getElementById('list').innerHTML = '<ul>' + output.join('') + '</ul>';
@@ -160,6 +160,7 @@ function sqlQuery(query){
 }
 
 function sqlInsert(table, data) {
+    connection.runSql('DELETE FROM ' + table);
     let query = new SqlWeb.Query("INSERT INTO " + table + " values='@val'");
     for (let v of data) {
         for (let field of Object.keys(v)) {
@@ -172,54 +173,16 @@ function sqlInsert(table, data) {
     query.map("@val", data);
     connection.runSql(query).then(function (rowsAdded) {
         if (rowsAdded > 0) {
-            alert('Successfully added');
+            console.log('Successfully added: ', table);
         }
     }).catch(function (err) {
         console.log(err);
-        alert('Error Occurred while adding data')
     });
 }
 
-///////////////////////////////////////////////////////////////////////////////////////////////
-function deleteData(studentId) {
-    var query = new SqlWeb.Query("DELETE FROM Student WHERE Id='@studentId'");
-    query.map("@studentId", Number(studentId));
-    connection.runSql(query).
-    then(function (rowsDeleted) {
-        console.log(rowsDeleted + ' rows deleted');
-        if (rowsDeleted > 0) {
-            showTableData();
-        }
-    }).catch(function (error) {
-        console.log(err);
-        alert(error.message);
-    });
-}
-
-function initiateDb() {
-    var dbName = "Students";
-    connection.runSql('ISDBEXIST ' + dbName).then(function (isExist) {
-        if (isExist) {
-            connection.runSql('OPENDB ' + dbName).then(function () {
-                console.log('db opened');
-            });
-            showTableData();
-        } else {
-            var dbQuery = getDbQuery();
-            connection.runSql(dbQuery).then(function (tables) {
-                console.log(tables);
-            });
-            insertStudents();
-            showTableData();
-        }
-    }).catch(function (err) {
-        console.log(err);
-        alert(err.message);
-    });
-}
 
 function initiateEdxDb() {
-    var dbName = "edx";
+    let dbName = "edx";
     connection.runSql('ISDBEXIST ' + dbName).then(function (isExist) {
         if (isExist) {
             connection.runSql('OPENDB ' + dbName).then(function () {
@@ -232,7 +195,7 @@ function initiateEdxDb() {
                 console.log(tables);
             });
             // insertStudents();
-            // showTableData();
+            showCoursesTableDataExtra();
         }
     }).catch(function (err) {
         console.log(err);
@@ -250,6 +213,16 @@ function getEdxDbQuery() {
         end_time date_time
         )
     `;
+
+    let learners = `DEFINE TABLE course_learner ( 
+        course_learner_id PRIMARYKEY STRING,
+        final_grade NUMBER,
+        enrollment_mode STRING,
+        certificate_status STRING,
+        register_time date_time
+        )
+    `;
+
     let demographic = `DEFINE TABLE learner_demographic (
         course_learner_id PRIMARYKEY STRING,
         gender STRING,
@@ -267,49 +240,19 @@ function getEdxDbQuery() {
         course_id STRING
         )
     `;
-    return db + courses + demographic + elements;
+    return db + courses + demographic + elements + learners;
 }
 
-function getDbQuery() {
-    var db = "DEFINE DB Students;";
-    var tblStudent = `DEFINE TABLE Student(
-        Id PRIMARYKEY AUTOINCREMENT,
-        Name NOTNULL STRING,
-        GENDER STRING DEFAULT 'male',
-        Country NOTNULL STRING,
-        City NOTNULL
-    )
-    `;
-    var dbQuery = db + tblStudent;
-    return dbQuery;
-}
-
-function insertStudents() {
-    var students = getStudents();
-    var query = new SqlWeb.Query("INSERT INTO Student values='@val'");
-    query.map("@val", students);
-    connection.runSql(query).then(function (rowsAdded) {
-        if (rowsAdded > 0) {
-            alert('Successfully added');
-        }
-    }).catch(function (err) {
-        console.log(err);
-        alert('Error Occurred while adding data')
-    });
-}
-
-//This function refreshes the table
-function showTableData() {
-    connection.runSql('select * from Student').then(function (students) {
+function showCoursesTableData() {
+    connection.runSql('select * from courses').then(function (courses) {
         var HtmlString = "";
-        students.forEach(function (student) {
-            HtmlString += "<tr ItemId=" + student.Id + "><td>" +
-                student.Name + "</td><td>" +
-                student.Gender + "</td><td>" +
-                student.Country + "</td><td>" +
-                student.City + "</td><td>" +
-                "<a href='#' class='edit'>Edit</a></td>" +
-                "<td><a href='#' class='delete''>Delete</a></td>";
+        courses.forEach(function (course) {
+            HtmlString += "<tr ItemId=" + course.course_id + "><td>" +
+                course.course_name + "</td><td>" +
+                course.start_time + "</td><td>" +
+                course.end_time + "</td><td>" ;
+                // "<a href='#' class='edit'>Edit</a></td>" +
+                // "<td><a href='#' class='delete''>Delete</a></td>";
         });
         $('#tblGrid tbody').html(HtmlString);
     }).catch(function (error) {
@@ -317,33 +260,139 @@ function showTableData() {
     });
 }
 
-function getStudents() {
-    //Student Array
-    var Students = [{
-        Name: 'Alfred',
-        Gender: 'male',
-        Country: 'Germany',
-        City: 'Berlin'
-        },
-        {
-            Name: 'George',
-            Gender: 'male',
-            Country: 'America',
-            City: 'Detroit'
-        },
-        {
-            Name: 'Berglunds',
-            Gender: 'female',
-            Country: 'Sweden',
-            City: 'Luleå'
-        },
-        {
-            Name: 'Eastern',
-            Gender: 'male',
-            Country: 'Canada',
-            City: 'QWE'
-        },
-    ];
-    return Students;
+function showCoursesTableDataExtra() {
+    connection.runSql('select * from courses').then(function (courses) {
+        let HtmlString = "";
+        courses.forEach(function (course) {
+            HtmlString += "<tr ItemId=" + course.course_id + "><td>" +
+                course.course_name + "</td><td>" +
+                course.start_time + "</td><td>" +
+                course.end_time + "</td><td>" ;
+            connection.runSql('count * from course_elements').then(function (result) {
+                HtmlString += result + "</td><td>" ;
+                connection.runSql('count * from course_learner').then(function (result) {
+                    HtmlString += result + "</td><td>" ;
+                    $('#tblGrid tbody').html(HtmlString);
+                })
+            })
+        });
+    }).catch(function (error) {
+        console.log(error);
+    });
 }
+
+///////////////////////////////////////////////////////////////////////////////////////////////
+// function deleteData(studentId) {
+//     var query = new SqlWeb.Query("DELETE FROM Student WHERE Id='@studentId'");
+//     query.map("@studentId", Number(studentId));
+//     connection.runSql(query).
+//     then(function (rowsDeleted) {
+//         console.log(rowsDeleted + ' rows deleted');
+//         if (rowsDeleted > 0) {
+//             showTableData();
+//         }
+//     }).catch(function (error) {
+//         console.log(err);
+//         alert(error.message);
+//     });
+// }
+
+// function initiateDb() {
+//     var dbName = "Students";
+//     connection.runSql('ISDBEXIST ' + dbName).then(function (isExist) {
+//         if (isExist) {
+//             connection.runSql('OPENDB ' + dbName).then(function () {
+//                 console.log('db opened');
+//             });
+//             showTableData();
+//         } else {
+//             var dbQuery = getDbQuery();
+//             connection.runSql(dbQuery).then(function (tables) {
+//                 console.log(tables);
+//             });
+//             insertStudents();
+//             showTableData();
+//         }
+//     }).catch(function (err) {
+//         console.log(err);
+//         alert(err.message);
+//     });
+// }
+
+// function getDbQuery() {
+//     var db = "DEFINE DB Students;";
+//     var tblStudent = `DEFINE TABLE Student(
+//         Id PRIMARYKEY AUTOINCREMENT,
+//         Name NOTNULL STRING,
+//         GENDER STRING DEFAULT 'male',
+//         Country NOTNULL STRING,
+//         City NOTNULL
+//     )
+//     `;
+//     var dbQuery = db + tblStudent;
+//     return dbQuery;
+// }
+//
+// function insertStudents() {
+//     var students = getStudents();
+//     var query = new SqlWeb.Query("INSERT INTO Student values='@val'");
+//     query.map("@val", students);
+//     connection.runSql(query).then(function (rowsAdded) {
+//         if (rowsAdded > 0) {
+//             alert('Successfully added');
+//         }
+//     }).catch(function (err) {
+//         console.log(err);
+//         alert('Error Occurred while adding data')
+//     });
+// }
+//
+// //This function refreshes the table
+// function showTableData() {
+//     connection.runSql('select * from Student').then(function (students) {
+//         var HtmlString = "";
+//         students.forEach(function (student) {
+//             HtmlString += "<tr ItemId=" + student.Id + "><td>" +
+//                 student.Name + "</td><td>" +
+//                 student.Gender + "</td><td>" +
+//                 student.Country + "</td><td>" +
+//                 student.City + "</td><td>" +
+//                 "<a href='#' class='edit'>Edit</a></td>" +
+//                 "<td><a href='#' class='delete''>Delete</a></td>";
+//         });
+//         $('#tblGrid tbody').html(HtmlString);
+//     }).catch(function (error) {
+//         console.log(error);
+//     });
+// }
+//
+// function getStudents() {
+//     //Student Array
+//     var Students = [{
+//         Name: 'Alfred',
+//         Gender: 'male',
+//         Country: 'Germany',
+//         City: 'Berlin'
+//         },
+//         {
+//             Name: 'George',
+//             Gender: 'male',
+//             Country: 'America',
+//             City: 'Detroit'
+//         },
+//         {
+//             Name: 'Berglunds',
+//             Gender: 'female',
+//             Country: 'Sweden',
+//             City: 'Luleå'
+//         },
+//         {
+//             Name: 'Eastern',
+//             Gender: 'male',
+//             Country: 'Canada',
+//             City: 'QWE'
+//         },
+//     ];
+//     return Students;
+// }
 

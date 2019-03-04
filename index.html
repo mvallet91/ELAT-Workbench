@@ -31,19 +31,18 @@
         <div class="col-xs-12 col-sm-10 col-centered ">
             <div style="text-align:center;">
                 <button id="btnAddStudent" class="btn btn-success">
-                    <i class="fa fa-plus" aria-hidden="true"></i> Add Student</button>
+                    <i class="fa fa-plus" aria-hidden="true"></i> Add Course</button>
             </div>
             <table id="tblGrid" class="table table-hover ">
-                <caption style="text-align:center;padding:7px 0 7px 0;background:#4f4f86;color:white;font-family:cursive;font-size:18px; ">Student's
+                <caption style="text-align:center;padding:7px 0 7px 0;background:#4f4f86;color:white;font-size:18px; ">Course
                     Details</caption>
                 <thead>
                     <tr>
-                        <th>Name</th>
-                        <th>Gender</th>
-                        <th>Country</th>
-                        <th>City</th>
-                        <th></th>
-                        <th></th>
+                        <th>course name</th>
+                        <th>start time</th>
+                        <th>end time</th>
+                        <th>course elements</th>
+                        <th>enrolled students</th>
                     </tr>
                 </thead>
                 <tbody></tbody>
@@ -51,18 +50,18 @@
         </div>
     </div>
     <!-- FILE SYSTEM FIELDS /////////////////////////////////////////////////////////////////////// -->
-    <div>
-        Select a text file:
-        <input type="file" id="fileInput" multiple>
-        <button id="mybutton">Click to process text file!</button>
-        <pre id="fileDisplayArea"></pre>
-    </div>
+    <!--<div>-->
+        <!--Select a text file:-->
+        <!--<input type="file" id="fileInput" multiple>-->
+        <!--<button id="mybutton">Click to process text file!</button>-->
+        <!--<pre id="fileDisplayArea"></pre>-->
+    <!--</div>-->
 
-    <div>
-        <input id="query_zone" value="SELECT * FROM Student WHERE Country = 'Canada'" size="50">
-        <button id="action_button">Click to run query in db</button>
-        <pre id="queryDisplayArea"></pre>
-    </div>
+    <!--<div>-->
+        <!--<input id="query_zone" value="SELECT * FROM Student WHERE Country = 'Canada'" size="50">-->
+        <!--<button id="action_button">Click to run query in db</button>-->
+        <!--<pre id="queryDisplayArea"></pre>-->
+    <!--</div>-->
 
 
     Select all metadata files:
@@ -70,46 +69,46 @@
     <output id="list"></output>
 
     <!-- BRYTHON SCRIPT /////////////////////////////////////////////////////////////////////// -->
-    <script type="text/python" id="fileToMsg">
-        from browser import document, alert
-        import re
-        # bind event 'click' on button to function echo
+    <!--<script type="text/python" id="fileToMsg">-->
+        <!--from browser import document, alert-->
+        <!--import re-->
+        <!--# bind event 'click' on button to function echo-->
 
-        def echo(ev):
-            # message = document["zone"].value
-            # message = message * 5
-            message = document["fileDisplayArea"].innerText
-            # file_content = fileContent
-            message = message.split()
-            size = len(message[-1])
-            message = "Python read your file, the last word is: '" + str(message[-1]) + \
-                      "'\nand it is " + str(size) + " characters long"
-            alert(message)
+        <!--def echo(ev):-->
+            <!--# message = document["zone"].value-->
+            <!--# message = message * 5-->
+            <!--message = document["fileDisplayArea"].innerText-->
+            <!--# file_content = fileContent-->
+            <!--message = message.split()-->
+            <!--size = len(message[-1])-->
+            <!--message = "Python read your file, the last word is: '" + str(message[-1]) + \-->
+                      <!--"'\nand it is " + str(size) + " characters long"-->
+            <!--alert(message)-->
 
-        document["mybutton"].bind("click", echo)
-    </script>
+        <!--document["mybutton"].bind("click", echo)-->
+    <!--</script>-->
 
     <!-- BRYTHON SCRIPT /////////////////////////////////////////////////////////////////////// -->
-    <script type="text/python" id="dbToMsg">
-        from browser import window, document, alert
-        import json
-        def echo_db(ev):
-            # window.connection.runSql("SELECT * FROM Student").then(window.function(result) {answer = result})
-            query_text =  document["query_zone"].value
-            window.sqlQuery(query_text)
+    <!--<script type="text/python" id="dbToMsg">-->
+        <!--from browser import window, document, alert-->
+        <!--import json-->
+        <!--def echo_db(ev):-->
+            <!--# window.connection.runSql("SELECT * FROM Student").then(window.function(result) {answer = result})-->
+            <!--query_text =  document["query_zone"].value-->
+            <!--window.sqlQuery(query_text)-->
 
-        def getResult(result):
-            query_result = json.loads(result.detail)
-            text_result = ''
-            for x in query_result:
-                for key in x:
-                    text_result = text_result + str(x[key]) + ', '
-                text_result = text_result + '\n'
-            document["queryDisplayArea"].innerText = text_result
+        <!--def getResult(result):-->
+            <!--query_result = json.loads(result.detail)-->
+            <!--text_result = ''-->
+            <!--for x in query_result:-->
+                <!--for key in x:-->
+                    <!--text_result = text_result + str(x[key]) + ', '-->
+                <!--text_result = text_result + '\n'-->
+            <!--document["queryDisplayArea"].innerText = text_result-->
 
-        document["action_button"].bind("click", echo_db)
-        document.bind("finishedQuery", getResult)
-    </script>
+        <!--document["action_button"].bind("click", echo_db)-->
+        <!--document.bind("finishedQuery", getResult)-->
+    <!--</script>-->
     <!-- BRYTHON SCRIPT /////////////////////////////////////////////////////////////////////// -->
     <script type="text/python" id="fileToDb">
         from browser import window, document, alert
@@ -139,6 +138,7 @@
             oneday = datetime.timedelta(days=1)
             next_day = current_day + oneday
             return str(next_day)[0:10]
+
 
         def process_null(inputString):
             if isinstance(inputString, str):
@@ -344,10 +344,8 @@
                     window.console.log(counter, ' lines processed')
                 counter += 1
 
-
-            window.console.log('Finished processing elements in metadata map')
-
-            '''
+            window.console.log('Finished processing ' + str(len(course_element_record)) +
+                               ' elements in metadata map')
 
             # Learner_demographic table
             learner_mail_map = {}
@@ -367,13 +365,10 @@
             for file_name in files:
                 if "student_courseenrollment" in file_name:
                     input_file = files[file_name]
-
                     lines = input_file.split('\n')
                     window.console.log('Starting course enrollment processing, for ' + str(len(lines)) + ' lines')
-
                     counter = 0
                     for line in lines[1:]:
-
                         record = line.split("\t")
 
                         if len(record) < 2:
@@ -399,18 +394,21 @@
 
                     window.console.log("The number of enrolled learners is: ", str(len(enrolled_learner_set)), "\n")
 
+            for file_name in files:
                 # Processing auth_user data ################################################################
                 if "auth_user-" in file_name:
                     input_file = files[file_name]
                     lines = input_file.split('\n')
-                    window.console.log('Starting auth user processing, for ' + str(len(lines)) + ' lines')
+                    window.console.log('Starting auth user pre-processing, for ' + str(len(lines)) + ' lines')
 
                     for line in lines:
                         record = line.split("\t")
                         if record[0] in enrolled_learner_set:
                             learner_mail_map[record[0]] = record[4]
-                    window.console.log('Done with auth user processing')
+                    window.console.log('Done with auth user pre-processing with ' + str(len(learner_mail_map)) +
+                                       ' learners with email')
 
+            for file_name in files:
                 # Processing certificates_generatedcertificate data ########################################
                 num_uncertifiedLearners = 0
                 num_certifiedLearners = 0
@@ -445,11 +443,11 @@
                             window.console.log(counter, ' lines processed')
                         counter += 1
 
-                    window.console.log("The number of uncertified & certified learners is: ", \
-                                        str(num_uncertifiedLearners), "\t", \
-                                        str(num_certifiedLearners), "\n")
+                    window.console.log("The number of uncertified & certified learners is: " +
+                                        str(num_uncertifiedLearners) +
+                                        str(num_certifiedLearners))
 
-
+            for file_name in files:
                 # Processing auth_userprofile data #######################################################
                 if "auth_userprofile" in file_name:
                     input_file = files[file_name]
@@ -477,35 +475,81 @@
                             window.console.log(counter, ' lines processed')
                         counter += 1
 
-                window.console.log("Done with auth_userprofile")
-
-            '''
+                    window.console.log("Done with auth_userprofile " + str(len(learner_demographic_record)) +
+                                       " learner demographic records")
 
             window.console.log('All metadata ready')
-            data = []
-            for array in course_record:
-                course_id = course_metadata_map["course_id"]
-                course_name = course_metadata_map["course_name"]
-                start_time = course_metadata_map["start_time"]
-                end_time = course_metadata_map["end_time"]
-                values = {'course_id': course_id, 'course_name': course_name,
-                        'start_time': start_time.isoformat(),
-                        'end_time': end_time.isoformat()}
-                data.append(values)
 
-            window.sqlInsert('courses', data) if len(data) > 0 else window.console.log('no courses info')
+            if len(course_record) > 0:
+                data = []
+                for array in course_record:
+                    course_id = course_metadata_map["course_id"]
+                    course_name = course_metadata_map["course_name"]
+                    start_time = course_metadata_map["start_time"]
+                    end_time = course_metadata_map["end_time"]
+                    values = {'course_id': course_id, 'course_name': course_name,
+                            'start_time': start_time.isoformat(),
+                            'end_time': end_time.isoformat()}
+                    data.append(values)
+                window.sqlInsert('courses', data)
+            else:
+                window.console.log('no courses info')
 
-            data = []
-            for array in course_element_record:
-                element_id = array[0]
-                element_type = array[1]
-                week = process_null(array[2])
-                course_id = array[3]
-                values = {'element_id': element_id, 'element_type':element_type,
-                          'week': week, 'course_id': course_id}
-                data.append(values)
+            if len(course_element_record) > 0:
+                data = []
+                for array in course_element_record:
+                    element_id = array[0]
+                    element_type = array[1]
+                    week = process_null(array[2])
+                    course_id = array[3]
+                    values = {'element_id': element_id, 'element_type':element_type,
+                              'week': week, 'course_id': course_id}
+                    data.append(values)
+                window.sqlInsert('course_elements', data)
+            else:
+                window.console.log('no course element info')
 
-            window.sqlInsert('course_elements', data) if len(data) > 0 else window.console.log('no course element info')
+            if len(course_learner_record) > 0:
+                data = []
+                window.console.log('Storing ' + str(len(course_learner_record)) +
+                                  ' learner records in DB')
+                window.console.log(course_learner_record[0])
+                for array in course_learner_record[:5]:
+                    course_learner_id = array[0]
+                    final_grade = float(array[1])
+                    enrollment_mode = array[2]
+                    certificate_status = array[3]
+                    register_time = process_null(array[4])
+                    window.console.log(values)
+                    values = {'course_learner_id': course_learner_id, 'final_grade': final_grade,
+                              'enrollment_mode':enrollment_mode, 'certificate_status': certificate_status,
+                              'register_time': register_time}
+                    data.append(values)
+                window.sqlInsert('course_learner', data)
+            else:
+                window.console.log('no enrolled students info')
+
+            if len(learner_demographic_record) > 0:
+                data = []
+                window.console.log('Storing ' + str(len(learner_demographic_record)) +
+                                  ' demographic records in DB')
+                window.console.log(learner_demographic_record[0])
+                for array in learner_demographic_record[:5]:
+                    course_learner_id = process_null(array[0])
+                    gender = array[1]
+                    year_of_birth = int(array[2])
+                    level_of_education = array[3]
+                    country = array[4]
+                    email = array[5]
+                    email = email.replace("\'", "")
+                    window.console.log(values)
+                    values = {'course_learner_id': course_learner_id, 'gender': gender,
+                              'year_of_birth': year_of_birth, 'level_of_education': level_of_education,
+                              'country': country, 'email': email}
+                    data.append(values)
+                window.sqlInsert('learner_demographic', data)
+            else:
+                window.console.log('no learner demographic info')
 
 
         def getFiles(result):
@@ -526,7 +570,7 @@
 
         def process_log(result):
             content = json.loads(result.detail)
-            window.console.log('This file is: ', len(content.split()), ' units long')
+            window.console.log('Python says this file is: ', len(content.split()), ' units long')
 
         document.bind("studentMetaReader", metadata_processing)
         document.bind("logFileReader", process_log)

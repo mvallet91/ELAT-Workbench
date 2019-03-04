@@ -66,6 +66,12 @@ window.onload = function () {
         let files = multiFileInput.files;
         readMetaFiles(files, passFiles);
     });
+
+    let  multiFileInputLogs = document.getElementById('logFilesInput');
+    multiFileInputLogs.addEventListener('change', function (e) {
+        let files = multiFileInputLogs.files;
+        readLogFiles(files, passLogFiles);
+    });
 };
 
 function readMetaFiles(files, callback){
@@ -115,6 +121,55 @@ function readMetaFiles(files, callback){
     }
 }
 
+function readLogFiles(files, callback){
+    let output = [];
+    let processedFiles = [];
+    let counter = 1;
+    let gzipType = /gzip/;
+    let sqlType = 'sql';
+    let jsonType = 'json';
+
+    for (const f of files) {
+        output.push('<li><strong>', f.name, '</strong> (', f.type || 'n/a', ') - ',
+            f.size, ' bytes', '</li>');
+
+        if (f.type.match(gzipType)) {
+            const reader = new FileReader();
+            reader.onloadend = function (event) {
+                let content = pako.inflate(event.target.result, {to: 'string'});
+                processedFiles.push({
+                    key: f.name,
+                    value: content
+                });
+                let result = [processedFiles, output];
+                if (counter === files.length) {
+                    callback(result);
+                }
+                counter++;
+            };
+            reader.readAsArrayBuffer(f);
+
+        } else if (f.name.includes(sqlType) || (f.name.includes(jsonType))) {
+            const reader = new FileReader();
+            reader.onloadend = function () {
+                let content = reader.result;
+                processedFiles.push({
+                    key: f.name,
+                    value: content
+                });
+                let result = [processedFiles, output];
+                if (counter === files.length) {
+                    callback(result);
+                }
+                counter++;
+            };
+            reader.readAsText(f);
+        } else {
+            counter ++;
+        }
+    }
+}
+
 // function fileReader(file){
 //     return new Promise( function (resolve, reject) {
 //         let reader = new FileReader();
@@ -139,9 +194,21 @@ function passFiles(result){
         "detail": answer
     });
     document.dispatchEvent(readerEvent);
-    }
+}
 
 function passLogFiles(result){
+    const reader = new FileReader();
+    let files = result[0];
+    let output = result[1];
+    document.getElementById('list').innerHTML = '<ul>' + output.join('') + '</ul>';
+    let answer = JSON.stringify(files);
+    let readerEvent = new CustomEvent("logFileReader", {
+        "detail": answer
+    });
+    document.dispatchEvent(readerEvent);
+}
+
+function passLogFiles_2(result){
     let answer = JSON.stringify(result);
     let logReaderEvent = new CustomEvent("logFileReader", {
         "detail": answer
@@ -240,7 +307,24 @@ function getEdxDbQuery() {
         course_id STRING
         )
     `;
-    return db + courses + demographic + elements + learners;
+
+    let learner_index = `DEFINE TABLE learner_index (
+        global_learner_id PRIMARYKEY NUMBER,
+        course_id STRING NOTNULL,
+        course_learner_id STRING NOTNULL
+        )
+    `;
+
+    let sessions = `DEFINE TABLE sessions (
+        session_id PRIMARYKEY STRING,
+        course_learner_id STRING NOTNULL,
+        start_time date_time,
+        end_time date_time,
+        duration NUMBER
+        )
+    `;
+
+    return db + courses + demographic + elements + learners + learner_index + sessions;
 }
 
 function showCoursesTableData() {

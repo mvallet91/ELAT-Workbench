@@ -68,6 +68,10 @@
     <input type="file" id="filesInput" multiple >
     <output id="list"></output>
 
+    Select log files (IN PROGRESS):
+    <input type="file" id="logFilesInput" multiple >
+    <output id="listLogs"></output>
+
     <!-- BRYTHON SCRIPT /////////////////////////////////////////////////////////////////////// -->
     <!--<script type="text/python" id="fileToMsg">-->
         <!--from browser import document, alert-->
@@ -443,9 +447,10 @@
                             window.console.log(counter, ' lines processed')
                         counter += 1
 
-                    window.console.log("The number of uncertified & certified learners is: " +
-                                        str(num_uncertifiedLearners) +
-                                        str(num_certifiedLearners))
+                    window.console.log(str(num_certifiedLearners) + ' certified learners and '+
+                                       str(num_uncertifiedLearners) + ' uncertified learners')
+
+
 
             for file_name in files:
                 # Processing auth_userprofile data #######################################################
@@ -509,18 +514,32 @@
             else:
                 window.console.log('no course element info')
 
+            if len(learner_index_record) > 0:
+                data = []
+                for array in learner_index_record:
+                    global_learner_id = array[0]
+                    course_id = array[1]
+                    course_learner_id = array[2]
+                    values = {'global_learner_id': global_learner_id, 'course_id':course_id,
+                               'course_learner_id':course_learner_id}
+                    data.append(values)
+                window.sqlInsert('learner_index', data)
+            else:
+                window.console.log('no learner index info')
+
             if len(course_learner_record) > 0:
                 data = []
                 window.console.log('Storing ' + str(len(course_learner_record)) +
                                   ' learner records in DB')
-                window.console.log(course_learner_record[0])
-                for array in course_learner_record[:5]:
+                for array in course_learner_record:
                     course_learner_id = array[0]
-                    final_grade = float(array[1])
+                    try:
+                        final_grade = float(process_null(array[1]))
+                    except TypeError:
+                        final_grade = process_null(array[1])
                     enrollment_mode = array[2]
                     certificate_status = array[3]
                     register_time = process_null(array[4])
-                    window.console.log(values)
                     values = {'course_learner_id': course_learner_id, 'final_grade': final_grade,
                               'enrollment_mode':enrollment_mode, 'certificate_status': certificate_status,
                               'register_time': register_time}
@@ -533,16 +552,17 @@
                 data = []
                 window.console.log('Storing ' + str(len(learner_demographic_record)) +
                                   ' demographic records in DB')
-                window.console.log(learner_demographic_record[0])
-                for array in learner_demographic_record[:5]:
+                for array in learner_demographic_record:
                     course_learner_id = process_null(array[0])
                     gender = array[1]
-                    year_of_birth = int(array[2])
+                    try:
+                        year_of_birth = int(process_null(process_null(array[2])))
+                    except TypeError:
+                        year_of_birth = process_null(process_null(array[2]))
                     level_of_education = array[3]
                     country = array[4]
                     email = array[5]
                     email = email.replace("\'", "")
-                    window.console.log(values)
                     values = {'course_learner_id': course_learner_id, 'gender': gender,
                               'year_of_birth': year_of_birth, 'level_of_education': level_of_education,
                               'country': country, 'email': email}
@@ -551,6 +571,25 @@
             else:
                 window.console.log('no learner demographic info')
 
+        '''
+        def session_mode(files):
+            course_metadata_map = ExtractCourseInformation(files)
+            current_date = course_metadata_map["start_date"]
+            end_next_date = getNextDay(course_metadata_map["end_date"])
+
+            learner_all_event_logs = {}
+            updated_learner_all_event_logs = {}
+            session_record = []
+
+            log_files = files
+
+                if current_date == end_next_date:
+                    break
+
+                for file_name in log_files.keys():
+                    if current_date in file_name:
+                        window.console.log(file_name)
+        '''
 
         def getFiles(result):
             files = {}
@@ -568,12 +607,13 @@
             learner_mode(files)
 
 
-        def process_log(result):
-            content = json.loads(result.detail)
-            window.console.log('Python says this file is: ', len(content.split()), ' units long')
+        def process_logs(result):
+            files = getFiles(result)
+            window.console.log('Files ready')
+            session_mode(files)
 
         document.bind("studentMetaReader", metadata_processing)
-        document.bind("logFileReader", process_log)
+        document.bind("logFileReader", process_logs)
 
     </script>
     <!-- BRYTHON SCRIPT /////////////////////////////////////////////////////////////////////// -->

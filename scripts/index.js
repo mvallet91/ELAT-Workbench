@@ -63,6 +63,7 @@ window.onload = function () {
     //// MULTI FILE SYSTEM SCRIPTS ///////////////////////////////////////////////////////////////////////////
     let  multiFileInput = document.getElementById('filesInput');
     multiFileInput.addEventListener('change', function (e) {
+        $('#loading').show();
         let files = multiFileInput.files;
         readMetaFiles(files, passFiles);
     });
@@ -141,9 +142,8 @@ function readLogFiles(files, callback){
                     key: f.name,
                     value: content
                 });
-                let result = [processedFiles, output];
                 if (counter === files.length) {
-                    callback(result);
+                    callback([processedFiles, output]);
                 }
                 counter++;
             };
@@ -157,9 +157,8 @@ function readLogFiles(files, callback){
                     key: f.name,
                     value: content
                 });
-                let result = [processedFiles, output];
                 if (counter === files.length) {
-                    callback(result);
+                    callback([processedFiles, output]);
                 }
                 counter++;
             };
@@ -197,24 +196,33 @@ function passFiles(result){
 }
 
 function passLogFiles(result){
-    const reader = new FileReader();
     let files = result[0];
     let output = result[1];
     document.getElementById('list').innerHTML = '<ul>' + output.join('') + '</ul>';
-    let answer = JSON.stringify(files);
+    files = JSON.stringify(files);
     let readerEvent = new CustomEvent("logFileReader", {
-        "detail": answer
+        "detail": files
     });
     document.dispatchEvent(readerEvent);
 }
 
-function passLogFiles_2(result){
-    let answer = JSON.stringify(result);
-    let logReaderEvent = new CustomEvent("logFileReader", {
-        "detail": answer
-    });
-    document.dispatchEvent(logReaderEvent);
+function download(filename, content) {
+    let element = document.createElement('a');
+    element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(content));
+    element.setAttribute('download', filename);
+    element.style.display = 'none';
+    document.body.appendChild(element);
+    element.click();
+    document.body.removeChild(element);
 }
+
+// function passLogFiles_2(result){
+//     let answer = JSON.stringify(result);
+//     let logReaderEvent = new CustomEvent("logFileReader", {
+//         "detail": answer
+//     });
+//     document.dispatchEvent(logReaderEvent);
+// }
 ////////////////////////////////////////////////////////////////////////////////////////////////
 function sqlQuery(query){
     connection.runSql(query).then(function(result) {
@@ -247,22 +255,22 @@ function sqlInsert(table, data) {
     });
 }
 
-
 function initiateEdxDb() {
-    let dbName = "edx";
+    let dbName = "edxdb";
     connection.runSql('ISDBEXIST ' + dbName).then(function (isExist) {
         if (isExist) {
             connection.runSql('OPENDB ' + dbName).then(function () {
-                console.log('edx db opened');
+                console.log('edx db ready');
+                showCoursesTableDataExtra();
             });
-            showTableData();
         } else {
+            console.log('Generating edx database');
             let dbQuery = getEdxDbQuery();
             connection.runSql(dbQuery).then(function (tables) {
                 console.log(tables);
+                showCoursesTableDataExtra();
+                alert('Database prepared, please refresh the page');
             });
-            // insertStudents();
-            showCoursesTableDataExtra();
         }
     }).catch(function (err) {
         console.log(err);
@@ -309,7 +317,7 @@ function getEdxDbQuery() {
     `;
 
     let learner_index = `DEFINE TABLE learner_index (
-        global_learner_id PRIMARYKEY NUMBER,
+        global_learner_id PRIMARYKEY STRING,
         course_id STRING NOTNULL,
         course_learner_id STRING NOTNULL
         )
@@ -324,24 +332,105 @@ function getEdxDbQuery() {
         )
     `;
 
-    return db + courses + demographic + elements + learners + learner_index + sessions;
-}
+    let metadata = `DEFINE TABLE metadata (
+        name PRIMARYKEY STRING,
+        object OBJECT
+        )
+    `;
 
-function showCoursesTableData() {
-    connection.runSql('select * from courses').then(function (courses) {
-        var HtmlString = "";
-        courses.forEach(function (course) {
-            HtmlString += "<tr ItemId=" + course.course_id + "><td>" +
-                course.course_name + "</td><td>" +
-                course.start_time + "</td><td>" +
-                course.end_time + "</td><td>" ;
-                // "<a href='#' class='edit'>Edit</a></td>" +
-                // "<td><a href='#' class='delete''>Delete</a></td>";
-        });
-        $('#tblGrid tbody').html(HtmlString);
-    }).catch(function (error) {
-        console.log(error);
-    });
+    let quiz_questions = `DEFINE TABLE quiz_questions (
+        question_id PRIMARYKEY STRING,
+        question_type STRING,
+        question_weight float,
+        question_due date_time,
+        ) 
+    `;
+
+    let submissions = `DEFINE TABLE submissions (
+        submission_id PRIMARYKEY STRING ,
+        course_learner_id STRING NOT NULL,
+        question_id STRING NOT NULL,
+        submission_timestamp date_time
+        )
+    `;
+
+    let assessments = `DEFINE TABLE assessments (
+        assessment_id PRIMARYKEY STRING ,
+        course_learner_id STRING,
+        max_grade float,
+        grade float
+        )
+    `;
+
+    let quiz_sessions = `DEFINE TABLE quiz_sessions (
+        session_id PRIMARYKEY STRING ,
+        course_learner_id STRING NOT NULL,
+        start_time date_time,
+        end_time date_time,
+        duration NUMBER
+        )
+    `;
+
+    let video_interaction = `DEFINE TABLE video_interaction (
+        interaction_id PRIMARYKEY STRING ,
+        course_learner_id STRING NOT NULL,
+        video_id STRING NOT NULL,
+        duration NUMBER,
+        times_forward_seek NUMBER,
+        duration_forward_seek NUMBER,
+        times_backward_seek NUMBER,
+        duration_backward_seek NUMBER,
+        times_speed_up NUMBER,
+        times_speed_down NUMBER,
+        times_pause NUMBER,
+        duration_pause NUMBER,
+        start_time date_time,
+        end_time date_time
+        )
+    `;
+
+    let forum_interaction = `DEFINE TABLE forum_interaction (
+        post_id PRIMARYKEY STRING ,
+        course_learner_id STRING,
+        post_type STRING,
+        post_title text,
+        post_content text,
+        post_timestamp date_time,
+        post_parent_id STRING,
+        post_thread_id STRING
+        )
+    `;
+
+    let forum_sessions = `DEFINE TABLE forum_sessions (
+        session_id PRIMARYKEY STRING,
+        course_learner_id STRING NOT NULL,
+        times_search NUMBER,
+        start_time date_time,
+        end_time date_time,
+        duration NUMBER,
+        relevent_element_id STRING
+        )
+    `;
+
+    let survey_descriptions = `DEFINE TABLE survey_descriptions (
+        question_id PRIMARYKEY STRING,
+        course_id STRING,
+        question_type STRING,
+        question_description text
+        )
+    `;
+
+    let survey_responses = `CREATE TABLE survey_responses (
+        response_id PRIMARYKEY STRING,
+        course_learner_id STRING,
+        question_id STRING,
+        answer STRING
+        )  
+    `;
+
+    return db + metadata + courses + demographic + elements + learners + learner_index +
+           sessions + quiz_questions + submissions + assessments + quiz_sessions + video_interaction +
+        forum_interaction + forum_sessions + survey_descriptions + survey_responses;
 }
 
 function showCoursesTableDataExtra() {

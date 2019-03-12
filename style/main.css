@@ -21,3 +21,13 @@ table tr td {
     /* inline-block space fix */
     margin-right: -4px;
 }
+
+#loading {
+    background: url('../icons/loading-hourglass.gif') no-repeat center center;
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 100%;
+    z-index: 9999999;
+}

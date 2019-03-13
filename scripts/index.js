@@ -70,6 +70,7 @@ window.onload = function () {
 
     let  multiFileInputLogs = document.getElementById('logFilesInput');
     multiFileInputLogs.addEventListener('change', function (e) {
+        $('#loading').show();
         let files = multiFileInputLogs.files;
         readLogFiles(files, passLogFiles);
     });
@@ -169,20 +170,8 @@ function readLogFiles(files, callback){
     }
 }
 
-// function fileReader(file){
-//     return new Promise( function (resolve, reject) {
-//         let reader = new FileReader();
-//         reader.onloadend = function (e) {
-//             if (reader.readyState === 2){
-//                 resolve(reader.result);
-//             }
-//         };
-//         reader.readAsText(file);
-//         reader.onerror = reject;
-//     });
-// }
-
 ////////////////////////////////////////////////////////////////////////////////////////////////
+
 function passFiles(result){
     const reader = new FileReader();
     let names = result[0];
@@ -195,25 +184,28 @@ function passFiles(result){
     document.dispatchEvent(readerEvent);
 }
 
+// function passLogFiles(result){
+//     let files = result[0];
+//     let output = result[1];
+//     document.getElementById('list').innerHTML = '<ul>' + output.join('') + '</ul>';
+//     files = JSON.stringify(files);
+//     let readerEvent = new CustomEvent("logFileReader", {
+//         "detail": files
+//     });
+//     document.dispatchEvent(readerEvent);
+// }
+
 function passLogFiles(result){
     let files = result[0];
     let output = result[1];
-    document.getElementById('list').innerHTML = '<ul>' + output.join('') + '</ul>';
+    document.getElementById('listLogs').innerHTML = '<ul>' + output.join('') + '</ul>';
     files = JSON.stringify(files);
-    let readerEvent = new CustomEvent("logFileReader", {
-        "detail": files
+    connection.runSql('SELECT * FROM metadata').then(function(result) {
+        let readerEvent = new CustomEvent("logFileReader", {
+            "detail": [result, files]
+        });
+        document.dispatchEvent(readerEvent);
     });
-    document.dispatchEvent(readerEvent);
-}
-
-function download(filename, content) {
-    let element = document.createElement('a');
-    element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(content));
-    element.setAttribute('download', filename);
-    element.style.display = 'none';
-    document.body.appendChild(element);
-    element.click();
-    document.body.removeChild(element);
 }
 
 // function passLogFiles_2(result){
@@ -223,11 +215,24 @@ function download(filename, content) {
 //     });
 //     document.dispatchEvent(logReaderEvent);
 // }
+
 ////////////////////////////////////////////////////////////////////////////////////////////////
+// BRYTHON FUNCTIONS
+
 function sqlQuery(query){
     connection.runSql(query).then(function(result) {
         let answer = JSON.stringify(result);
         let passData = new CustomEvent("finishedQuery", {
+            "detail": answer
+        });
+        document.dispatchEvent(passData);
+    });
+}
+
+function getMetaMap(){
+    connection.runSql('SELECT * FROM metadata').then(function(result) {
+        let answer = JSON.stringify(result);
+        let passData = new CustomEvent("metaMapReady", {
             "detail": answer
         });
         document.dispatchEvent(passData);
@@ -255,6 +260,18 @@ function sqlInsert(table, data) {
     });
 }
 
+function download(filename, content) {
+    let element = document.createElement('a');
+    element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(content));
+    element.setAttribute('download', filename);
+    element.style.display = 'none';
+    document.body.appendChild(element);
+    element.click();
+    document.body.removeChild(element);
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////
+// DATABASE FUNCTIONS
 function initiateEdxDb() {
     let dbName = "edxdb";
     connection.runSql('ISDBEXIST ' + dbName).then(function (isExist) {
@@ -267,8 +284,8 @@ function initiateEdxDb() {
             console.log('Generating edx database');
             let dbQuery = getEdxDbQuery();
             connection.runSql(dbQuery).then(function (tables) {
-                console.log(tables);
-                showCoursesTableDataExtra();
+                // console.log(tables);
+                // showCoursesTableDataExtra();
                 alert('Database prepared, please refresh the page');
             });
         }
@@ -279,6 +296,7 @@ function initiateEdxDb() {
 }
 
 function getEdxDbQuery() {
+
     let db = "DEFINE DB edxdb;";
 
     let courses = `DEFINE TABLE courses(        
@@ -318,14 +336,14 @@ function getEdxDbQuery() {
 
     let learner_index = `DEFINE TABLE learner_index (
         global_learner_id PRIMARYKEY STRING,
-        course_id STRING NOTNULL,
-        course_learner_id STRING NOTNULL
+        course_id NOTNULL STRING,
+        course_learner_id NOTNULL STRING
         )
     `;
 
     let sessions = `DEFINE TABLE sessions (
         session_id PRIMARYKEY STRING,
-        course_learner_id STRING NOTNULL,
+        course_learner_id NOTNULL STRING,
         start_time date_time,
         end_time date_time,
         duration NUMBER
@@ -341,15 +359,15 @@ function getEdxDbQuery() {
     let quiz_questions = `DEFINE TABLE quiz_questions (
         question_id PRIMARYKEY STRING,
         question_type STRING,
-        question_weight float,
-        question_due date_time,
+        question_weight NUMBER,
+        question_due date_time
         ) 
     `;
 
     let submissions = `DEFINE TABLE submissions (
         submission_id PRIMARYKEY STRING ,
-        course_learner_id STRING NOT NULL,
-        question_id STRING NOT NULL,
+        course_learner_id NOTNULL STRING,
+        question_id NOTNULL STRING,
         submission_timestamp date_time
         )
     `;
@@ -357,14 +375,14 @@ function getEdxDbQuery() {
     let assessments = `DEFINE TABLE assessments (
         assessment_id PRIMARYKEY STRING ,
         course_learner_id STRING,
-        max_grade float,
-        grade float
+        max_grade NUMBER,
+        grade NUMBER
         )
     `;
 
     let quiz_sessions = `DEFINE TABLE quiz_sessions (
         session_id PRIMARYKEY STRING ,
-        course_learner_id STRING NOT NULL,
+        course_learner_id NOTNULL STRING,
         start_time date_time,
         end_time date_time,
         duration NUMBER
@@ -372,9 +390,9 @@ function getEdxDbQuery() {
     `;
 
     let video_interaction = `DEFINE TABLE video_interaction (
-        interaction_id PRIMARYKEY STRING ,
-        course_learner_id STRING NOT NULL,
-        video_id STRING NOT NULL,
+        interaction_id PRIMARYKEY STRING,
+        course_learner_id NOTNULL STRING,
+        video_id NOTNULL STRING,
         duration NUMBER,
         times_forward_seek NUMBER,
         duration_forward_seek NUMBER,
@@ -390,11 +408,11 @@ function getEdxDbQuery() {
     `;
 
     let forum_interaction = `DEFINE TABLE forum_interaction (
-        post_id PRIMARYKEY STRING ,
+        post_id PRIMARYKEY STRING,
         course_learner_id STRING,
         post_type STRING,
-        post_title text,
-        post_content text,
+        post_title STRING,
+        post_content STRING,
         post_timestamp date_time,
         post_parent_id STRING,
         post_thread_id STRING
@@ -403,7 +421,7 @@ function getEdxDbQuery() {
 
     let forum_sessions = `DEFINE TABLE forum_sessions (
         session_id PRIMARYKEY STRING,
-        course_learner_id STRING NOT NULL,
+        course_learner_id NOTNULL STRING,
         times_search NUMBER,
         start_time date_time,
         end_time date_time,
@@ -416,11 +434,11 @@ function getEdxDbQuery() {
         question_id PRIMARYKEY STRING,
         course_id STRING,
         question_type STRING,
-        question_description text
+        question_description STRING
         )
     `;
 
-    let survey_responses = `CREATE TABLE survey_responses (
+    let survey_responses = `DEFINE TABLE survey_responses (
         response_id PRIMARYKEY STRING,
         course_learner_id STRING,
         question_id STRING,
@@ -428,9 +446,9 @@ function getEdxDbQuery() {
         )  
     `;
 
-    return db + metadata + courses + demographic + elements + learners + learner_index +
+    return (db + metadata + courses + demographic + elements + learners + learner_index +
            sessions + quiz_questions + submissions + assessments + quiz_sessions + video_interaction +
-        forum_interaction + forum_sessions + survey_descriptions + survey_responses;
+           forum_interaction + forum_sessions + survey_descriptions + survey_responses );
 }
 
 function showCoursesTableDataExtra() {
@@ -441,10 +459,12 @@ function showCoursesTableDataExtra() {
                 course.course_name + "</td><td>" +
                 course.start_time + "</td><td>" +
                 course.end_time + "</td><td>" ;
-            connection.runSql('count * from course_elements').then(function (result) {
+            let query = "count from course_elements where course_id = '" + course.course_id + "'";
+            connection.runSql(query).then(function (result) {
                 HtmlString += result + "</td><td>" ;
-                connection.runSql('count * from course_learner').then(function (result) {
-                    HtmlString += result + "</td><td>" ;
+                let query = "count from learner_index where course_id = '" + course.course_id + "'";
+                connection.runSql(query).then(function (result) {
+                    HtmlString += result;
                     $('#tblGrid tbody').html(HtmlString);
                 })
             })
@@ -455,6 +475,20 @@ function showCoursesTableDataExtra() {
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////
+// function fileReader(file){
+//     return new Promise( function (resolve, reject) {
+//         let reader = new FileReader();
+//         reader.onloadend = function (e) {
+//             if (reader.readyState === 2){
+//                 resolve(reader.result);
+//             }
+//         };
+//         reader.readAsText(file);
+//         reader.onerror = reject;
+//     });
+// }
+
+
 // function deleteData(studentId) {
 //     var query = new SqlWeb.Query("DELETE FROM Student WHERE Id='@studentId'");
 //     query.map("@studentId", Number(studentId));

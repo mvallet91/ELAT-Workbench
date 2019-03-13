@@ -31,20 +31,20 @@
     <div id="loading" style="display:none"></div>
     <div class="row row-centered " style="margin-top:10px; ">
         <div class="col-xs-12 col-sm-10 col-centered ">
-            <div style="text-align:center;">
-                <button id="btnAddStudent" class="btn btn-success">
-                    <i class="fa fa-plus" aria-hidden="true"></i> Add Course</button>
-            </div>
+            <!--<div style="text-align:center;">-->
+                <!--<button id="btnAddStudent" class="btn btn-success">-->
+                    <!--<i class="fa fa-plus" aria-hidden="true"></i> Add Course</button>-->
+            <!--</div>-->
             <table id="tblGrid" class="table table-hover ">
                 <caption style="text-align:center;padding:7px 0 7px 0;background:#4f4f86;color:white;font-size:18px; ">Course
                     Details</caption>
                 <thead>
                     <tr>
-                        <th>course name</th>
-                        <th>start time</th>
-                        <th>end time</th>
-                        <th>course elements</th>
-                        <th>enrolled students</th>
+                        <th>Course Name</th>
+                        <th>Start Time</th>
+                        <th>End Time</th>
+                        <th>Course Elements</th>
+                        <th>Enrolled Students</th>
                     </tr>
                 </thead>
                 <tbody></tbody>
@@ -116,6 +116,7 @@
         <!--document.bind("finishedQuery", getResult)-->
     <!--</script>-->
     <!-- BRYTHON SCRIPT /////////////////////////////////////////////////////////////////////// -->
+
     <script type="text/python" id="fileToDb">
         from browser import window, document, alert
         import datetime, json
@@ -611,35 +612,6 @@
                     window.console.log('No report downloaded')
 
 
-
-        def session_mode(log_files):
-            # course_metadata_map = ExtractCourseInformation(log_files)
-            course_metadata_map = window.sqlQuery('SELECT * FROM metadata')
-            current_date = course_metadata_map["start_date"]
-            end_next_date = getNextDay(course_metadata_map["end_date"])
-            window.console.log('Current date: ', current_date, ' end date ', end_next_date)
-            learner_all_event_logs = {}
-            updated_learner_all_event_logs = {}
-            session_record = []
-
-            # if current_date == end_next_date:
-            #     break
-
-            #####################################################################
-            for file_name in log_files:
-                if 'log.gz' in file_name:
-                    # if current_date in file_name:
-                    window.console.log(file_name)
-                    # file = log_files[file_name]
-                    # file = log_files[file_name].split('\n')
-                    # window.console.log(file[0])
-
-                    # jsonObject = json.loads(file)
-                    # window.console.log(jsonObject[0])
-                    # for record in jsonObject:
-            #####################################################################
-
-
         def getFiles(result):
             files = {}
             pairs = json.loads(result.detail)
@@ -656,18 +628,258 @@
             learner_mode(files)
 
 
-        def process_logs(result):
-            files = getFiles(result)
-            window.console.log('Files ready')
-            session_mode(files)
-
         request = IDB.open("edxdb")
 
         document.bind("studentMetaReader", metadata_processing)
-        document.bind("logFileReader", process_logs)
+
 
     </script>
     <!-- BRYTHON SCRIPT /////////////////////////////////////////////////////////////////////// -->
+    <script type="text/python" id="logToDb">
+        from browser import window, document, alert
+        import datetime, json, time
+        from operator import itemgetter
+
+        IDB = window.indexedDB
+        jq = window.jQuery
+
+        def cmp_datetime(a_datetime, b_datetime):
+            if a_datetime < b_datetime:
+                return -1
+            elif a_datetime > b_datetime:
+                return 1
+            else:
+                return 0
+
+
+        def getDayDiff(beginDate,endDate):
+            oneday = datetime.timedelta(days=1)
+            count = 0
+            while (endDate - beginDate) >= oneday:
+                endDate = endDate - oneday
+                count += 1
+            return count
+
+
+        def getNextDay(current_day_string):
+            format="%Y-%m-%d";
+            current_day = datetime.datetime.strptime(current_day_string,format)
+            oneday = datetime.timedelta(days=1)
+            next_day = current_day + oneday
+            return str(next_day)[0:10]
+
+
+        def process_null(inputString):
+            if isinstance(inputString, str):
+                if len(inputString)==0 or inputString=='NULL':
+                    return None
+                else:
+                    return inputString
+            return inputString
+
+
+        def session_mode(log_files, course_metadata_map):
+
+            jq('#loading').hide()
+
+            current_date = course_metadata_map["start_date"]
+            end_next_date = getNextDay(course_metadata_map["end_date"])
+
+            learner_all_event_logs = {}
+            updated_learner_all_event_logs = {}
+            session_record = []
+
+            # if current_date == end_next_date:
+            #     break
+
+            #####################################################################
+            for file_name in log_files:
+                if 'log.gz' in file_name:
+                    counter = 0
+                    # if current_date in file_name:
+                    window.console.log(file_name)
+
+                    learner_all_event_logs.clear()
+                    learner_all_event_logs = updated_learner_all_event_logs.copy()
+                    updated_learner_all_event_logs.clear()
+
+                    # Course_learner_id set
+                    course_learner_id_set = set()
+                    for course_learner_id in learner_all_event_logs.keys():
+                        course_learner_id_set.add(course_learner_id)
+
+                    input_file = log_files[file_name]
+                    lines = input_file.split('\n')
+                    window.console.log(str(len(lines)) + ' lines to process in file')
+                    start = time.time()
+
+                    for line in lines[:5000]:
+                        if len(line) < 10:
+                            window.console.log('Skipped line')
+                            continue
+                        jsonObject = json.loads(line)
+                        if "user_id" not in jsonObject["context"]:
+                            window.console.log('no userid')
+                            continue
+
+                        global_learner_id = jsonObject["context"]["user_id"]
+                        event_type = str(jsonObject["event_type"])
+
+                        if global_learner_id != "":
+                            course_id = jsonObject["context"]["course_id"]
+                            course_learner_id = course_id + "_" + str(global_learner_id)
+
+                            event_time = jsonObject["time"]
+                            event_time = event_time[0:19]
+                            event_time = event_time.replace("T", " ")
+                            event_time = datetime.datetime.strptime(event_time,"%Y-%m-%d %H:%M:%S")
+
+                            if course_learner_id in course_learner_id_set:
+                                learner_all_event_logs[course_learner_id].append({"event_time":event_time, "event_type":event_type})
+                            else:
+                                learner_all_event_logs[course_learner_id] = [{"event_time":event_time, "event_type":event_type}]
+                                course_learner_id_set.add(course_learner_id)
+
+
+                        ### Counter #############################################
+                        if counter % 1000 == 0:
+                            window.console.log(str(counter) + ' lines processed in ' +
+                                               str(time.time() - start))
+
+                        counter += 1
+                        ### Counter #############################################
+
+
+                    window.console.log('id list ready')
+
+                    for course_learner_id in learner_all_event_logs.keys():
+
+                        event_logs = learner_all_event_logs[course_learner_id]
+
+                        # Sorting
+                        # REVISED from #event_logs.sort(cmp=cmp_datetime, key=operator.itemgetter('event_time'))
+
+                        event_logs = sorted(event_logs, key=itemgetter('event_time'))
+
+                        session_id = ""
+                        start_time = ""
+                        end_time = ""
+
+                        final_time = ""
+
+                        for i in range(len(event_logs)):
+
+                            if start_time == "":
+
+                                # Initialization
+                                start_time = event_logs[i]["event_time"]
+                                end_time = event_logs[i]["event_time"]
+
+                            else:
+
+                                if event_logs[i]["event_time"] > end_time + datetime.timedelta(hours=0.5):
+
+                                    session_id = course_learner_id + "_" + str(start_time) + "_" + str(end_time)
+                                    duration = (end_time - start_time).days * 24 * 60 * 60 + (end_time - start_time).seconds
+
+                                    if duration > 5:
+                                        array = [session_id, course_learner_id, start_time, end_time, duration]
+                                        session_record.append(array)
+
+                                    final_time = event_logs[i]["event_time"]
+
+                                    # Re-initialization
+                                    session_id = ""
+                                    start_time = event_logs[i]["event_time"]
+                                    end_time = event_logs[i]["event_time"]
+
+                                else:
+
+                                    if event_logs[i]["event_type"] == "page_close":
+
+                                        end_time = event_logs[i]["event_time"]
+
+                                        session_id = course_learner_id + "_" + str(start_time) + "_" + str(end_time)
+                                        duration = (end_time - start_time).days * 24 * 60 * 60 + (end_time - start_time).seconds
+
+                                        if duration > 5:
+                                            array = [session_id, course_learner_id, start_time, end_time, duration]
+                                            session_record.append(array)
+
+                                        # Re-initialization
+                                        session_id = ""
+                                        start_time = ""
+                                        end_time = ""
+
+                                        final_time = event_logs[i]["event_time"]
+
+                                    else:
+
+                                        end_time = event_logs[i]["event_time"]
+
+                        if final_time != "":
+                            new_logs = []
+                            for log in event_logs:
+                                if log["event_time"] >= final_time:
+                                    new_logs.append(log)
+
+                            updated_learner_all_event_logs[course_learner_id] = new_logs
+
+
+                current_date = getNextDay(current_date)
+
+                # Filter duplicated records
+                updated_session_record = []
+                session_id_set = set()
+                for array in session_record:
+                    session_id = array[0]
+                    if session_id not in session_id_set:
+                        session_id_set.add(session_id)
+                        updated_session_record.append(array)
+
+                session_record = updated_session_record
+
+                window.console.log('Session data processed')
+                if len(session_record) > 0:
+                    data = []
+                    for array in session_record:
+                        session_id = array[0]
+                        course_learner_id = array[1]
+                        start_time = array[2]
+                        end_time = array[3]
+                        duration = process_null(array[4])
+                        values = {'session_id':session_id, 'course_learner_id':course_learner_id,
+                                  'start_time':start_time.isoformat(),
+                                  'end_time': end_time.isoformat(), 'duration':duration}
+                        data.append(values)
+                    window.sqlInsert('sessions', data)
+                else:
+                    window.console.log('no session info')
+
+            jq('#loading').hide()
+
+
+        def getFiles(result):
+            meta_map = result.detail[0]
+            meta_map = meta_map[0]["object"]
+            files = {}
+            pairs = json.loads(result.detail[1])
+            for pair in pairs:
+                file_name = pair['key']
+                file = pair['value']
+                files[file_name] = file
+            return files, meta_map
+
+
+        def process_logs(result):
+            files, meta_map = getFiles(result)
+            window.console.log('Files ready')
+            session_mode(files, meta_map)
+
+
+        document.bind("logFileReader", process_logs)
+
+    </script>
 
     <link href="style/main.css " rel="stylesheet " type="text/css " />
 </body>

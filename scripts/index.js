@@ -70,9 +70,10 @@ window.onload = function () {
 
     let  multiFileInputLogs = document.getElementById('logFilesInput');
     multiFileInputLogs.addEventListener('change', function (e) {
-        $('#loading').show();
+        // $('#loading').show();
         let files = multiFileInputLogs.files;
-        readLogFiles(files, passLogFiles);
+        // readLogFiles(files, passLogFiles);
+        processLogFiles(files)
     });
 };
 
@@ -150,23 +151,57 @@ function readLogFiles(files, callback){
             };
             reader.readAsArrayBuffer(f);
 
-        } else if (f.name.includes(sqlType) || (f.name.includes(jsonType))) {
-            const reader = new FileReader();
-            reader.onloadend = function () {
-                let content = reader.result;
-                processedFiles.push({
-                    key: f.name,
-                    value: content
-                });
-                if (counter === files.length) {
-                    callback([processedFiles, output]);
-                }
-                counter++;
-            };
-            reader.readAsText(f);
+        // } else if (f.name.includes(sqlType) || (f.name.includes(jsonType))) {
+        //     const reader = new FileReader();
+        //     reader.onloadend = function () {
+        //         let content = reader.result;
+        //         processedFiles.push({
+        //             key: f.name,
+        //             value: content
+        //         });
+        //         if (counter === files.length) {
+        //             callback([processedFiles, output]);
+        //         }
+        //         counter++;
+        //     };
+        //     reader.readAsText(f);
+
         } else {
             counter ++;
         }
+    }
+}
+
+function processLogFiles(files){
+    const reader = new FileReader();
+    for (const f of files) {
+        readAndPassLog(f, reader, passLogFiles)
+    }
+}
+
+
+function readAndPassLog(f, reader, callback){
+    let output = [];
+    let processedFiles = [];
+    let gzipType = /gzip/;
+    // Continue here! The idea is to reuse the reader, but we have to wait until it's done.
+    // Otherwise there's an error that it's already busy reading.
+    output.push('<li><strong>', f.name, '</strong> (', f.type || 'n/a', ') - ',
+        f.size, ' bytes', '</li>');
+
+    if (f.type.match(gzipType)) {
+        // const reader = new FileReader();
+        reader.onloadend = function (event) {
+            let content = pako.inflate(event.target.result, {to: 'string'});
+            processedFiles.push({
+                key: f.name,
+                value: content
+            });
+            callback([processedFiles, output]);
+        };
+        reader.readAsArrayBuffer(f);
+    } else {
+        alert(f.name + ' is not a log file');
     }
 }
 
@@ -198,23 +233,15 @@ function passFiles(result){
 function passLogFiles(result){
     let files = result[0];
     let output = result[1];
-    document.getElementById('listLogs').innerHTML = '<ul>' + output.join('') + '</ul>';
-    files = JSON.stringify(files);
-    connection.runSql('SELECT * FROM metadata').then(function(result) {
-        let readerEvent = new CustomEvent("logFileReader", {
-            "detail": [result, files]
-        });
-        document.dispatchEvent(readerEvent);
-    });
+    let list = document.getElementById('listLogs').innerHTML;
+    document.getElementById('listLogs').innerHTML = list +'<ul>' + output.join('') + '</ul>';
+    // connection.runSql('SELECT * FROM metadata').then(function(result) {
+    //     let readerEvent = new CustomEvent("logFileReader", {
+    //         "detail": [result, files]
+    //     });
+    //     document.dispatchEvent(readerEvent);
+    // });
 }
-
-// function passLogFiles_2(result){
-//     let answer = JSON.stringify(result);
-//     let logReaderEvent = new CustomEvent("logFileReader", {
-//         "detail": answer
-//     });
-//     document.dispatchEvent(logReaderEvent);
-// }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
 // BRYTHON FUNCTIONS
@@ -260,6 +287,26 @@ function sqlInsert(table, data) {
     });
 }
 
+function sqlLogInsert(table, data) {
+    let query = new SqlWeb.Query("INSERT INTO " + table + " values='@val'");
+    for (let v of data) {
+        for (let field of Object.keys(v)) {
+            if (field.includes('time')){
+                let date = v[field];
+                v[field] = new Date(date);
+            }
+        }
+    }
+    query.map("@val", data);
+    connection.runSql(query).then(function (rowsAdded) {
+        if (rowsAdded > 0) {
+            console.log('Successfully added: ', table);
+        }
+    }).catch(function (err) {
+        console.log(err);
+    });
+}
+
 function download(filename, content) {
     let element = document.createElement('a');
     element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(content));
@@ -268,6 +315,14 @@ function download(filename, content) {
     document.body.appendChild(element);
     element.click();
     document.body.removeChild(element);
+}
+
+function progress_display(content){
+    let table = document.getElementById("progress_tab");
+    let row = table.insertRow();
+    let cell1 = row.insertCell();
+    cell1.innerHTML = content
+    //document.getElementById("progress").innerHTML = content;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////

@@ -7,20 +7,22 @@ window.onload = function () {
     //// DATABASE INITIALIZATION SCRIPTS //////////////////////////////////////////////////////////////////////////////
     // initiateDb();
     initiateEdxDb();
-    $('#btnAddStudent').click(function () {
-        window.location.href = 'add.html';
-    });
-    $('#tblGrid tbody').on('click', '.edit', function () {
-        var StudentId = $(this).parents().eq(1).attr('itemid');
-        window.location.href = 'add.html?id=' + StudentId;
-    });
-    $('#tblGrid tbody').on('click', '.delete', function () {
-        var Result = confirm('Are you sure, you want to delete?');
-        if (Result) {
-            var StudentId = $(this).parents().eq(1).attr('itemid');
-            deleteData(StudentId);
-        }
-    });
+
+    // $('#btnAddStudent').click(function () {
+    //     window.location.href = 'add.html';
+    // });
+    // $('#tblGrid tbody').on('click', '.edit', function () {
+    //     var StudentId = $(this).parents().eq(1).attr('itemid');
+    //     window.location.href = 'add.html?id=' + StudentId;
+    // });
+    // $('#tblGrid tbody').on('click', '.delete', function () {
+    //     let Result = confirm('Are you sure, you want to delete?');
+    //     if (Result) {
+    //         let StudentId = $(this).parents().eq(1).attr('itemid');
+    //         deleteData(StudentId);
+    //     }
+    // });
+
     //// FILE SYSTEM SCRIPTS ///////////////////////////////////////////////////////////////////////////
     // const fileInput = document.getElementById('fileInput');
     // const fileDisplayArea = document.getElementById('fileDisplayArea');
@@ -71,11 +73,14 @@ window.onload = function () {
     let  multiFileInputLogs = document.getElementById('logFilesInput');
     multiFileInputLogs.addEventListener('change', function (e) {
         // $('#loading').show();
-        let files = multiFileInputLogs.files;
+        //let files = multiFileInputLogs.files;
         // readLogFiles(files, passLogFiles);
-        processLogFiles(files)
+        // processLogFiles(files, 0)
+        processLogFiles(0)
     });
 };
+
+var reader = new FileReader();
 
 function readMetaFiles(files, callback){
     let output = [];
@@ -103,7 +108,7 @@ function readMetaFiles(files, callback){
 
         if (f.name.includes(sqlType) || (f.name.includes(jsonType))) {
             const reader = new FileReader();
-            reader.onloadend = function () {
+            reader.onload = function () {
                 let content = reader.result;
                 checkedFiles[f.name] = reader.result;
                 processedFiles.push({
@@ -172,22 +177,28 @@ function readLogFiles(files, callback){
     }
 }
 
-function processLogFiles(files){
-    const reader = new FileReader();
+function processLogFiles(index){
+    let  multiFileInputLogs = document.getElementById('logFilesInput');
+    let files = multiFileInputLogs.files;
+
+    let counter = 0;
+    let total = files.length;
     for (const f of files) {
-        readAndPassLog(f, reader, passLogFiles)
+        if (counter === index){
+            readAndPassLog(f, reader, index, total, passLogFiles)
+        }
+        counter += 1;
     }
 }
 
 
-function readAndPassLog(f, reader, callback){
+function readAndPassLog(f, reader, index, total, callback){
     let output = [];
     let processedFiles = [];
     let gzipType = /gzip/;
-    // Continue here! The idea is to reuse the reader, but we have to wait until it's done.
-    // Otherwise there's an error that it's already busy reading.
+
     output.push('<li><strong>', f.name, '</strong> (', f.type || 'n/a', ') - ',
-        f.size, ' bytes', '</li>');
+                f.size, ' bytes', '</li>');
 
     if (f.type.match(gzipType)) {
         // const reader = new FileReader();
@@ -197,7 +208,7 @@ function readAndPassLog(f, reader, callback){
                 key: f.name,
                 value: content
             });
-            callback([processedFiles, output]);
+            callback([processedFiles, output, index, total]);
         };
         reader.readAsArrayBuffer(f);
     } else {
@@ -233,14 +244,16 @@ function passFiles(result){
 function passLogFiles(result){
     let files = result[0];
     let output = result[1];
+    let index = result[2];
+    let total = result[3];
     let list = document.getElementById('listLogs').innerHTML;
     document.getElementById('listLogs').innerHTML = list +'<ul>' + output.join('') + '</ul>';
-    // connection.runSql('SELECT * FROM metadata').then(function(result) {
-    //     let readerEvent = new CustomEvent("logFileReader", {
-    //         "detail": [result, files]
-    //     });
-    //     document.dispatchEvent(readerEvent);
-    // });
+    connection.runSql('SELECT * FROM metadata').then(function(result) {
+        let readerEvent = new CustomEvent("logFileReader", {
+            "detail": [result, files, index, total]
+        });
+        document.dispatchEvent(readerEvent);
+    });
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////

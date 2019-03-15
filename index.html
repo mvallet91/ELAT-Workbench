@@ -682,7 +682,7 @@
             return inputString
 
 
-        def session_mode(log_files, course_metadata_map):
+        def session_mode(log_files, course_metadata_map, index, total):
 
             current_date = course_metadata_map["start_date"]
             end_next_date = getNextDay(course_metadata_map["end_date"])
@@ -717,7 +717,7 @@
                     window.console.log(str(len(lines)) + ' lines to process in file')
                     start = time.time()
 
-                    for line in lines[:500]:
+                    for line in lines[:100]:
                         if len(line) < 10:
                             window.console.log('Skipped line')
                             continue
@@ -865,7 +865,11 @@
                               'start_time':start_time.isoformat(),
                               'end_time': end_time.isoformat(), 'duration':duration}
                     data.append(values)
-                window.sqlLogInsert('sessions', data)
+                # window.sqlLogInsert('sessions', data)
+                window.console.log('not storing for test, CHANGE', index, total)
+                if index < total:
+                    window.processLogFiles(index)
+
             else:
                 window.console.log('no session info')
 
@@ -878,17 +882,19 @@
             files = {}
             # pairs = json.loads(result.detail[1])
             pairs = result.detail[1]
+            index = result.detail[2] + 1
+            total = result.detail[3]
             for pair in pairs:
                 file_name = pair['key']
                 file = pair['value']
                 files[file_name] = file
-            return files, meta_map
+            return files, meta_map, index, total
 
 
         def process_logs(result):
-            files, meta_map = getFiles(result)
+            files, meta_map, index, total = getFiles(result)
             window.console.log('Files ready')
-            session_mode(files, meta_map)
+            session_mode(files, meta_map, index, total)
 
         document.bind("logFileReader", process_logs)
 

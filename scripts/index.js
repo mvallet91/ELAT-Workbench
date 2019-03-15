@@ -76,7 +76,7 @@ window.onload = function () {
         //let files = multiFileInputLogs.files;
         // readLogFiles(files, passLogFiles);
         // processLogFiles(files, 0)
-        processLogFiles(0)
+        processLogFiles(0, 0)
     });
 };
 
@@ -177,7 +177,7 @@ function readLogFiles(files, callback){
     }
 }
 
-function processLogFiles(index){
+function processLogFiles(index, chunk){
     let  multiFileInputLogs = document.getElementById('logFilesInput');
     let files = multiFileInputLogs.files;
 
@@ -185,18 +185,18 @@ function processLogFiles(index){
     let total = files.length;
     for (const f of files) {
         if (counter === index){
-            readAndPassLog(f, reader, index, total, passLogFiles)
+            readAndPassLog(f, reader, index, total, chunk, passLogFiles)
         }
         counter += 1;
     }
 }
 
 
-function readAndPassLog(f, reader, index, total, callback){
+function readAndPassLog(f, reader, index, total, chunk, callback){
     let output = [];
     let processedFiles = [];
     let gzipType = /gzip/;
-
+    let chunk_size = 1000;
     output.push('<li><strong>', f.name, '</strong> (', f.type || 'n/a', ') - ',
                 f.size, ' bytes', '</li>');
 
@@ -204,11 +204,17 @@ function readAndPassLog(f, reader, index, total, callback){
         // const reader = new FileReader();
         reader.onloadend = function (event) {
             let content = pako.inflate(event.target.result, {to: 'string'});
+            let lines = content.split('\n');
+            if (chunk == 0){
+                document.getElementById('progress_bar').innerHTML = 'Processing: ';
+                progress_display('Working on file ' + (index + 1) + ' out of ' + total +
+                    ' with ' + Math.ceil(lines.length/chunk_size) + ' stages');
+            }
             processedFiles.push({
                 key: f.name,
-                value: content
+                value: lines.slice((chunk * chunk_size), chunk_size + (chunk*chunk_size)).join('\n')
             });
-            callback([processedFiles, output, index, total]);
+            callback([processedFiles, output, index, total, chunk]);
         };
         reader.readAsArrayBuffer(f);
     } else {
@@ -246,11 +252,12 @@ function passLogFiles(result){
     let output = result[1];
     let index = result[2];
     let total = result[3];
+    let chunk = result[4];
     let list = document.getElementById('listLogs').innerHTML;
-    document.getElementById('listLogs').innerHTML = list +'<ul>' + output.join('') + '</ul>';
+    // document.getElementById('listLogs').innerHTML = list +'<ul>' + output.join('') + '</ul>';
     connection.runSql('SELECT * FROM metadata').then(function(result) {
         let readerEvent = new CustomEvent("logFileReader", {
-            "detail": [result, files, index, total]
+            "detail": [result, files, index, total, chunk]
         });
         document.dispatchEvent(readerEvent);
     });

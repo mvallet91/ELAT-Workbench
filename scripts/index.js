@@ -91,6 +91,7 @@ function readMetaFiles(files, callback){
     let gzipType = /gzip/;
     let sqlType = 'sql';
     let jsonType = 'json';
+    let mongoType = 'mongo';
 
     for (const f of files) {
         output.push('<li><strong>', f.name, '</strong> (', f.type || 'n/a', ') - ',
@@ -106,7 +107,7 @@ function readMetaFiles(files, callback){
         //     };
         //     reader.readAsArrayBuffer(f);
 
-        if (f.name.includes(sqlType) || (f.name.includes(jsonType))) {
+        if (f.name.includes(sqlType) || (f.name.includes(jsonType)) || (f.name.includes(mongoType))) {
             const reader = new FileReader();
             reader.onload = function () {
                 let content = reader.result;
@@ -180,11 +181,14 @@ function readLogFiles(files, callback){
 function processLogFiles(index, chunk){
     let  multiFileInputLogs = document.getElementById('logFilesInput');
     let files = multiFileInputLogs.files;
-
     let counter = 0;
     let total = files.length;
     for (const f of files) {
         if (counter === index){
+            let today = new Date();
+            let time = (today.getHours() + ":" + today.getMinutes() + ":" +
+                        today.getSeconds() + '.' + today.getMilliseconds());
+            console.log('Starting with file ' + index + ' at ' + time);
             readAndPassLog(f, reader, index, total, chunk, passLogFiles)
         }
         counter += 1;
@@ -196,7 +200,7 @@ function readAndPassLog(f, reader, index, total, chunk, callback){
     let output = [];
     let processedFiles = [];
     let gzipType = /gzip/;
-    let chunk_size = 1000;
+    let chunk_size = 5000;
     output.push('<li><strong>', f.name, '</strong> (', f.type || 'n/a', ') - ',
                 f.size, ' bytes', '</li>');
 
@@ -206,9 +210,13 @@ function readAndPassLog(f, reader, index, total, chunk, callback){
             let content = pako.inflate(event.target.result, {to: 'string'});
             let lines = content.split('\n');
             if (chunk == 0){
-                document.getElementById('progress_bar').innerHTML = 'Processing: ';
+                let today = new Date();
+                let starting = (today.getHours() + ":" + today.getMinutes() +
+                                ":" + today.getSeconds() + '.' + today.getMilliseconds());
+                document.getElementById('progress_time').innerHTML = 'Processing - Started at ' + starting + ' ';
                 progress_display('Working on file ' + (index + 1) + ' out of ' + total +
-                    ' with ' + Math.ceil(lines.length/chunk_size) + ' stages');
+                                  ' with ' + Math.ceil(lines.length/chunk_size) + ' stages');
+                document.getElementById('progress_bar').innerHTML = 'Processing: ';
             }
             processedFiles.push({
                 key: f.name,
@@ -256,6 +264,9 @@ function passLogFiles(result){
     let list = document.getElementById('listLogs').innerHTML;
     // document.getElementById('listLogs').innerHTML = list +'<ul>' + output.join('') + '</ul>';
     connection.runSql('SELECT * FROM metadata').then(function(result) {
+        let today = new Date();
+        let time = today.getHours() + ":" + today.getMinutes() + ":" + today.getSeconds() + '.' + today.getMilliseconds();
+        console.log('Passing file ' + index + ' chunk ' + chunk + ' to Brython at ' + time);
         let readerEvent = new CustomEvent("logFileReader", {
             "detail": [result, files, index, total, chunk]
         });
@@ -300,7 +311,9 @@ function sqlInsert(table, data) {
     query.map("@val", data);
     connection.runSql(query).then(function (rowsAdded) {
         if (rowsAdded > 0) {
-            console.log('Successfully added: ', table);
+            let today = new Date();
+            let time = today.getHours() + ":" + today.getMinutes() + ":" + today.getSeconds() + '.' + today.getMilliseconds();
+            console.log('Successfully added: ', table, ' at ', time);
         }
     }).catch(function (err) {
         console.log(err);
@@ -320,7 +333,9 @@ function sqlLogInsert(table, data) {
     query.map("@val", data);
     connection.runSql(query).then(function (rowsAdded) {
         if (rowsAdded > 0) {
-            console.log('Successfully added: ', table);
+            let today = new Date();
+            let time = today.getHours() + ":" + today.getMinutes() + ":" + today.getSeconds() + '.' + today.getMilliseconds();
+            console.log('Successfully added: ', table, ' at ', time);
         }
     }).catch(function (err) {
         console.log(err);

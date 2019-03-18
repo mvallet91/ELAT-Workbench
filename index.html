@@ -77,6 +77,8 @@
     Progress Table
     <table id="progress_tab">
     </table>
+    <table id="progress_time">
+    </table>
     <table id="progress_bar">
     </table>
 
@@ -339,6 +341,9 @@
             course_metadata_map = ExtractCourseInformation(files)
 
             if course_metadata_map:
+
+                '''
+
                 report.append('Metadata map ready')
                 course_record.append(
                     [course_metadata_map["course_id"], course_metadata_map["course_name"],
@@ -369,6 +374,8 @@
 
                 report.append('Finished processing ' + str(len(course_element_record)) +
                                    ' elements in metadata map')
+
+                '''
 
                 # Learner_demographic table
                 learner_mail_map = {}
@@ -502,7 +509,68 @@
                         report.append("Done with auth_userprofile " + str(len(learner_demographic_record)) +
                                            " learner demographic records")
 
+                for file_name in files:
+                    # Processing forum data #######################################################
+                    if ".mongo" in file_name:
+                        window.console.log('Starting forum interaction records')
+                        forum_interaction_records = []
+                        forum_file = files[file_name]
+                        lines = forum_file.split('\n')
+
+                        for line in lines:
+                            if len(line) < 9:
+                                continue
+                            jsonObject = json.loads(line)
+
+                            post_id = jsonObject["_id"]["$oid"]
+                            course_learner_id = jsonObject["course_id"] + "_" + jsonObject["author_id"]
+
+                            post_type = jsonObject["_type"]
+                            if post_type == "CommentThread":
+                                post_type += "_" + jsonObject["thread_type"]
+                            if "parent_id" in jsonObject and jsonObject["parent_id"] != "":
+                                post_type = "Comment_Reply"
+
+                            post_title = ""
+                            if "title" in jsonObject:
+                                post_title=jsonObject["title"]
+
+                            post_content = jsonObject["body"]
+
+                            post_timestamp = jsonObject["created_at"]["$date"]
+                            if type(post_timestamp) == type(100):
+                                post_timestamp = strftime("%Y-%m-%d %H:%M:%S",gmtime(post_timestamp/1000))
+                                post_timestamp = datetime.datetime.strptime(post_timestamp,"%Y-%m-%d %H:%M:%S")
+                            if isinstance(post_timestamp, str):
+                                post_timestamp = post_timestamp[0:19]
+                                post_timestamp = post_timestamp.replace("T", " ")
+                                post_timestamp = datetime.datetime.strptime(post_timestamp,"%Y-%m-%d %H:%M:%S")
+
+                            post_parent_id = ""
+                            if "parent_id" in jsonObject:
+                                post_parent_id = jsonObject["parent_id"]["$oid"]
+
+                            post_thread_id = ""
+                            if "comment_thread_id" in jsonObject:
+                                post_thread_id = jsonObject["comment_thread_id"]["$oid"]
+
+                            post_title = post_title.replace("\n", " ")
+                            post_title = post_title.replace("\\", "\\\\")
+                            post_title = post_title.replace("\'", "\\'")
+
+                            post_content = post_content.replace("\n", " ")
+                            post_content = post_content.replace("\\", "\\\\")
+                            post_content = post_content.replace("\'", "\\'")
+
+                            if post_timestamp < course_metadata_map["end_time"]:
+                                array = [post_id, course_learner_id, post_type, post_title, post_content, post_timestamp, post_parent_id, post_thread_id]
+                                forum_interaction_records.append(array)
+
+                        report.append("Done with forum_interaction " + str(len(forum_interaction_records)) +
+                                       " forum records")
+
                 report.append('All metadata ready')
+
                 if len(course_record) > 0:
                     data = []
                     for array in course_record:
@@ -589,6 +657,29 @@
                 else:
                     report.append('no learner demographic info')
 
+                if len(forum_interaction_records) > 0:
+                    data = []
+                    report.append('Storing ' + str(len(forum_interaction_records)) +
+                                      ' forum interaction records in DB')
+                    for array in forum_interaction_records:
+                        post_id = array[0]
+                        course_learner_id = array[1]
+                        post_type = array[2]
+                        post_title = cleanUnicode(array[3])
+                        post_content = cleanUnicode(array[4])
+                        post_timestamp = array[5]
+                        post_parent_id = array[6]
+                        post_thread_id = array[7]
+                        values = {'post_id': post_id, 'course_learner_id': course_learner_id,
+                                  'post_type': post_type, 'post_title': post_title,
+                                  'post_content': post_content, 'post_timestamp':post_timestamp,
+                                  'post_parent_id': post_parent_id, 'post_thread_id':post_thread_id}
+                        data.append(values)
+                    window.sqlInsert('forum_interaction', data)
+                else:
+                    report.append('no forum interaction info')
+
+
                 map_to_store = course_metadata_map
                 map_to_store['start_time'] = start_time.isoformat()
                 map_to_store['end_time'] = end_time.isoformat()
@@ -635,6 +726,54 @@
             window.console.log('Files ready')
             learner_mode(files)
 
+
+        def cleanUnicode(text):
+            #return text;
+            if isinstance(text, str):
+                return unicodedata.normalize('NFC', text);
+            else:
+                return text
+            #return unicodedata.normalize('NFKD', text).encode('utf8', 'ignore');
+
+
+        # for detecting mentioned element info in the log
+        def courseElementsFinder(eventlog, course_id):
+            elementsID = ""
+            elementsID = coucourseElementsFinder_string(eventlog["event_type"], course_id)
+            if elementsID == "":
+                elementsID = coucourseElementsFinder_string(eventlog["path"], course_id)
+            if elementsID == "":
+                elementsID = coucourseElementsFinder_string(eventlog["page"], course_id)
+            if elementsID == "":
+                elementsID = coucourseElementsFinder_string(eventlog["referer"], course_id)
+            return elementsID
+
+
+        def coucourseElementsFinder_string(eventlog_item, course_id):
+            elementsID = ""
+            courseId_filtered = course_id.split(":")[1]
+
+            if elementsID == "" and "+type@" in eventlog_item and "block-v1:" in eventlog_item:
+                templist = eventlog_item.split("/")
+                for tempstring in templist:
+                    if "+type@" in tempstring and "block-v1:" in tempstring:
+                        elementsID = tempstring
+
+            if elementsID == "" and "courseware/" in eventlog_item:
+                templist = eventlog_item.split("/")
+                tempflag = False
+                for tempstring in templist:
+                    if tempstring == "courseware":
+                        tempflag = True
+                    else:
+                        if tempflag is True and tempstring != "":
+                            elementsID = ("block-v1:" +
+                                          courseId_filtered +
+                                          "+type@chapter+block@" +
+                                          tempstring)
+                            break
+
+            return elementsID
 
         request = IDB.open("edxdb")
 
@@ -703,7 +842,7 @@
                 if 'log.gz' in file_name:
                     counter = 0
                     # if current_date in file_name:
-                    window.console.log(file_name)
+                    window.console.log('Starting chunk ' + str(chunk) + ' in Python at ' + str(datetime.datetime.now().time()))
                     # document['progress_tab'] <= file_name + '\n'
                     # window.progress_display(file_name)
 
@@ -718,7 +857,7 @@
 
                     input_file = log_files[file_name]
                     lines = input_file.split('\n')
-                    window.console.log(str(len(lines)) + ' lines to process in file')
+                    # window.console.log(str(len(lines)) + ' lines to process in file')
                     start = time.time()
 
                     for line in lines:
@@ -749,16 +888,17 @@
                                 course_learner_id_set.add(course_learner_id)
 
                         ### Counter #############################################
-                        if counter % 10000 == 0:
-                            counter_message = (str(counter) + ' lines processed in ' +
-                                               str(time.time() - start))
-                            # window.console.log(counter_message)
-                            # document['progress_tab'] <= counter_message + '\n'
-                            # window.progress_display(counter_message)
-                        counter += 1
+                        # if counter % 10000 == 0:
+                        #     counter_message = (str(counter) + ' lines processed in ' +
+                        #                        str(time.time() - start))
+                        #     window.console.log(counter_message)
+                        #     document['progress_tab'] <= counter_message + '\n'
+                        #     window.progress_display(counter_message)
+                        # counter += 1
                         ### Counter #############################################
 
-                    window.console.log('id list ready, with size: ', len(learner_all_event_logs))
+                    window.console.log('id list ready, with size: ', len(learner_all_event_logs),
+                                        ' at ', str(datetime.datetime.now().time()) )
 
                     counter = 0
                     for course_learner_id in learner_all_event_logs.keys():
@@ -835,16 +975,16 @@
                             updated_learner_all_event_logs[course_learner_id] = new_logs
 
                         ### Counter #############################################
-                        if counter % 1000 == 0:
-                            window.console.log(str(counter) + ' lines processed in ' +
-                                               str(time.time() - start))
-                        counter += 1
+                        # if counter % 1000 == 0:
+                        #     window.console.log(str(counter) + ' lines processed in ' +
+                        #                        str(time.time() - start))
+                        # counter += 1
                         ### Counter #############################################
 
             current_date = getNextDay(current_date)
 
             # Filter duplicated records
-            window.console.log('Filter duplicated records')
+            window.console.log('Filtering duplicated records at ' + str(datetime.datetime.now().time()))
             updated_session_record = []
             session_id_set = set()
             for array in session_record:
@@ -855,7 +995,7 @@
 
             session_record = updated_session_record
 
-            window.console.log('Session data processed')
+            window.console.log('Session data processed at ' + str(datetime.datetime.now().time()))
             if len(session_record) > 0:
                 window.console.log('Session data to store: ', len(session_record))
                 data = []
@@ -869,15 +1009,17 @@
                               'start_time':start_time.isoformat(),
                               'end_time': end_time.isoformat(), 'duration':duration}
                     data.append(values)
+                window.console.log('Send to storage at ' + str(datetime.datetime.now().time()))
                 window.sqlLogInsert('sessions', data)
                 # window.console.log('not storing for test, CHANGE', index, total, chunk)
                 chunk = chunk + 1
                 document['progress_bar'] <= str(chunk) + ' - '
-                if len(lines) < 1000:
+                if len(lines) < 5000:
                     chunk = 0
                     window.progress_display('Done with file ' + str(index + 1))
                     index = index + 1
                 if index < total:
+                    window.console.log('Back to JS at ' + str(datetime.datetime.now().time()))
                     window.processLogFiles(index, chunk)
                 else:
                     alert('Done')

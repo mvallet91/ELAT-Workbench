@@ -3,7 +3,7 @@ define(function (require) {
     pako = require('pako');
 });
 window.onload = function () {
-    brython({debug: 1});
+    brython();
     //// DATABASE INITIALIZATION SCRIPTS //////////////////////////////////////////////////////////////////////////////
     // initiateDb();
     initiateEdxDb();
@@ -200,7 +200,7 @@ function readAndPassLog(f, reader, index, total, chunk, callback){
     let output = [];
     let processedFiles = [];
     let gzipType = /gzip/;
-    let chunk_size = 5000;
+    let chunk_size = 10000;
     output.push('<li><strong>', f.name, '</strong> (', f.type || 'n/a', ') - ',
                 f.size, ' bytes', '</li>');
 
@@ -225,6 +225,27 @@ function readAndPassLog(f, reader, index, total, chunk, callback){
             callback([processedFiles, output, index, total, chunk]);
         };
         reader.readAsArrayBuffer(f);
+    } else if (f.name.includes('log')) {
+        // const reader = new FileReader();
+        reader.onload = function () {
+            let content = reader.result;
+            let lines = content.split('\n');
+            if (chunk == 0){
+                let today = new Date();
+                let starting = (today.getHours() + ":" + today.getMinutes() +
+                    ":" + today.getSeconds() + '.' + today.getMilliseconds());
+                document.getElementById('progress_time').innerHTML = 'Processing - Started at ' + starting + ' ';
+                progress_display('Working on file ' + (index + 1) + ' out of ' + total +
+                    ' with ' + Math.ceil(lines.length/chunk_size) + ' stages');
+                document.getElementById('progress_bar').innerHTML = 'Processing: ';
+            }
+            processedFiles.push({
+                key: f.name,
+                value: lines.slice((chunk * chunk_size), chunk_size + (chunk*chunk_size)).join('\n')
+            });
+            callback([processedFiles, output, index, total, chunk]);
+        };
+        reader.readAsText(f);
     } else {
         alert(f.name + ' is not a log file');
     }
@@ -264,13 +285,14 @@ function passLogFiles(result){
     let list = document.getElementById('listLogs').innerHTML;
     // document.getElementById('listLogs').innerHTML = list +'<ul>' + output.join('') + '</ul>';
     connection.runSql('SELECT * FROM metadata').then(function(result) {
-        let today = new Date();
-        let time = today.getHours() + ":" + today.getMinutes() + ":" + today.getSeconds() + '.' + today.getMilliseconds();
-        console.log('Passing file ' + index + ' chunk ' + chunk + ' to Brython at ' + time);
-        let readerEvent = new CustomEvent("logFileReader", {
-            "detail": [result, files, index, total, chunk]
-        });
-        document.dispatchEvent(readerEvent);
+        // let today = new Date();
+        // let time = today.getHours() + ":" + today.getMinutes() + ":" + today.getSeconds() + '.' + today.getMilliseconds();
+        // console.log('Passing file ' + index + ' chunk ' + chunk + ' to Brython at ' + time);
+        // let readerEvent = new CustomEvent("logFileReader", {
+        //     "detail": [result, files, index, total, chunk]
+        // });
+        // document.dispatchEvent(readerEvent);
+        session_mode(result, files, index, total, chunk)
     });
 }
 
@@ -693,3 +715,87 @@ function showCoursesTableDataExtra() {
 //     return Students;
 // }
 
+function session_mode(course_metadata_map, log_files, index, total, chunk){
+    // let zero_start = performance.now();
+    let zero_start = new Date();
+    let current_date = course_metadata_map["start_date"];
+    // let end_next_date  = getNextDay(course_metadata_map["end_date"]);
+    let learner_all_event_logs = [];
+    let updated_learner_all_event_logs = {};
+    let session_record = [];
+
+    for (const f in log_files){
+        let file_name = log_files[f]['key'];
+        let file = log_files[f]['value'];
+        if (file_name.includes('log')){
+            let today = new Date();
+            let start = today.getHours() + ":" + today.getMinutes() + ":" + today.getSeconds() + '.' + today.getMilliseconds();
+
+            let counter = 0;
+            console.log('Starting chunk', chunk, 'at', start);
+            learner_all_event_logs = [];
+            learner_all_event_logs = updated_learner_all_event_logs;
+            updated_learner_all_event_logs = [];
+
+            let course_learner_id_set = new Set();
+            for (const course_learner_id in learner_all_event_logs){
+                course_learner_id_set.add(course_learner_id)
+            }
+            let input_file = file;
+            let lines = input_file.split('\n');
+            console.log(lines.length + ' lines to process in file');
+
+            let new_line_reader = [];
+            let existing_line_reader = [];
+            for (let x in lines.slice(0, 10000)){
+                let line = lines[x];
+                let start = performance.now();
+                if (line.length < 10) { continue; }
+                let jsonObject = JSON.parse(line);
+                if (jsonObject['context'].hasOwnProperty('user_id') === false ){continue;}
+                let global_learner_id = jsonObject["context"]["user_id"];
+                let event_type = jsonObject["event_type"];
+
+                if (global_learner_id !== ''){
+                    let course_id = jsonObject["context"]["course_id"];
+                    let course_learner_id = course_id + "_" + global_learner_id;
+
+                    let event_time = jsonObject["time"];
+                    event_time = event_time.slice(0,19);
+                    event_time = event_time.replace("T", " ");
+                    // event_time = datetime.datetime.strptime(event_time,"%Y-%m-%d %H:%M:%S")
+                    if (course_learner_id_set.has(course_learner_id)){
+                        learner_all_event_logs[course_learner_id].push({"event_time":event_time, "event_type":event_type});
+                        existing_line_reader.push(performance.now() - start)
+                    } else {
+                        learner_all_event_logs[course_learner_id] = [{"event_time":event_time, "event_type":event_type}];
+                        course_learner_id_set.add(course_learner_id);
+                        new_line_reader.push(performance.now() - start)
+                    }
+                }
+            }
+            let sorter = ['sorter'];
+            let starting_event = ['starting_event'];
+            let cont_event_a = ['cont_event_a'];
+            let cont_event_b = ['cont_event_b'];
+
+            for (let course_learner_id in learner_all_event_logs){
+                let start = performance.now();
+                let event_logs = learner_all_event_logs[course_learner_id];
+                event_logs.sort(function(a, b) {
+                    return new Date(a.event_time) - new Date(b.event_time) ;
+                });
+                sorter.push(performance.now() - start);
+                let session_id = "";
+                let start_time = "";
+                let end_time = "";
+                let final_time = "";
+            }
+            let end = new Date();
+            console.log(zero_start, end);
+            console.log(end - zero_start);
+            // console.log(performance.now() - zero_start)
+            // download('js_list', [new_line_reader, 'break', existing_line_reader, sorter] )
+        }
+    }
+}

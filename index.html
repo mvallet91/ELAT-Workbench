@@ -15,13 +15,14 @@
 
     <script src="brython/brython.js"></script>
 
-    <!--<script data-main="scripts/index" src="scripts/require.js"></script>-->
-    <script data-main="scripts/index" src="https://cdn.jsdelivr.net/gh/mvallet91/untitled/scripts/require.js"></script>
+    <script data-main="scripts/index" src="scripts/require.js"></script>
+    <!--<script data-main="scripts/index" src="https://cdn.jsdelivr.net/gh/mvallet91/untitled/scripts/require.js"></script>-->
 
     <script type="text/javascript" src="brython/brython_stdlib.js"></script>
+    <!--<script type="text/javascript" src="https://cdn.jsdelivr.net/gh/mvallet91/untitled/brython/brython_stdlib.js"></script>-->
 
-    <!--<script src="scripts/pako.js"></script>-->
-    <script src="https://cdn.jsdelivr.net/gh/mvallet91/untitled/scripts/pako.js"></script>
+    <script src="scripts/pako.js"></script>
+    <!--<script src="https://cdn.jsdelivr.net/gh/mvallet91/untitled/scripts/pako.js"></script>-->
 
     <script src="scripts/index.js"></script>
 </head>
@@ -128,6 +129,7 @@
     <script type="text/python" id="fileToDb">
         from browser import window, document, alert
         import datetime, json
+        # import unicodedata
 
         IDB = window.indexedDB
         jq = window.jQuery
@@ -341,9 +343,6 @@
             course_metadata_map = ExtractCourseInformation(files)
 
             if course_metadata_map:
-
-                '''
-
                 report.append('Metadata map ready')
                 course_record.append(
                     [course_metadata_map["course_id"], course_metadata_map["course_name"],
@@ -374,8 +373,6 @@
 
                 report.append('Finished processing ' + str(len(course_element_record)) +
                                    ' elements in metadata map')
-
-                '''
 
                 # Learner_demographic table
                 learner_mail_map = {}
@@ -477,7 +474,6 @@
                                            str(num_uncertifiedLearners) + ' uncertified learners')
 
 
-
                 for file_name in files:
                     # Processing auth_userprofile data #######################################################
                     if "auth_userprofile" in file_name:
@@ -509,11 +505,14 @@
                         report.append("Done with auth_userprofile " + str(len(learner_demographic_record)) +
                                            " learner demographic records")
 
+
                 for file_name in files:
                     # Processing forum data #######################################################
                     if ".mongo" in file_name:
-                        window.console.log('Starting forum interaction records')
                         forum_interaction_records = []
+                        continue
+                        window.console.log('Starting forum interaction records')
+
                         forum_file = files[file_name]
                         lines = forum_file.split('\n')
 
@@ -839,10 +838,13 @@
 
             #####################################################################
             for file_name in log_files:
-                if 'log.gz' in file_name:
+                if 'log' in file_name:
+                    start = datetime.datetime.now()
                     counter = 0
                     # if current_date in file_name:
-                    window.console.log('Starting chunk ' + str(chunk) + ' in Python at ' + str(datetime.datetime.now().time()))
+
+                    print('Starting chunk ' + str(chunk) + ' in Python at ' + str(datetime.datetime.now().time()))
+                    print((datetime.datetime.now() - start).total_seconds())
                     # document['progress_tab'] <= file_name + '\n'
                     # window.progress_display(file_name)
 
@@ -857,16 +859,22 @@
 
                     input_file = log_files[file_name]
                     lines = input_file.split('\n')
-                    # window.console.log(str(len(lines)) + ' lines to process in file')
-                    start = time.time()
+                    print(str(len(lines)) + ' lines to process in file')
+                    print((datetime.datetime.now() - start).total_seconds())
 
-                    for line in lines:
+                    new_line_reader = ['new_line_reader']
+                    existing_line_reader = ['existing_line_reader']
+
+                    for line in lines[0:10000]:
+                        start = datetime.datetime.now()
+
                         if len(line) < 10:
-                            window.console.log('Skipped line')
+                            print('Skipped line')
                             continue
                         jsonObject = json.loads(line)
+
                         if "user_id" not in jsonObject["context"]:
-                            window.console.log('no userid')
+                            print('no userid')
                             continue
 
                         global_learner_id = jsonObject["context"]["user_id"]
@@ -883,33 +891,40 @@
 
                             if course_learner_id in course_learner_id_set:
                                 learner_all_event_logs[course_learner_id].append({"event_time":event_time, "event_type":event_type})
+                                existing_line_reader.append((datetime.datetime.now() - start).total_seconds())
                             else:
                                 learner_all_event_logs[course_learner_id] = [{"event_time":event_time, "event_type":event_type}]
                                 course_learner_id_set.add(course_learner_id)
+                                new_line_reader.append((datetime.datetime.now() - start).total_seconds())
 
                         ### Counter #############################################
                         # if counter % 10000 == 0:
                         #     counter_message = (str(counter) + ' lines processed in ' +
                         #                        str(time.time() - start))
-                        #     window.console.log(counter_message)
+                        #     print(counter_message)
                         #     document['progress_tab'] <= counter_message + '\n'
                         #     window.progress_display(counter_message)
                         # counter += 1
                         ### Counter #############################################
 
-                    window.console.log('id list ready, with size: ', len(learner_all_event_logs),
+                    print('id list ready, with size: ', len(learner_all_event_logs),
                                         ' at ', str(datetime.datetime.now().time()) )
-
+                    print((datetime.datetime.now() - start).total_seconds())
                     counter = 0
-                    for course_learner_id in learner_all_event_logs.keys():
+                    sorter = ['sorter']
+                    starting_event = ['starting_event']
+                    cont_event_a = ['cont_event_a']
+                    cont_event_b = ['cont_event_b']
 
+                    for course_learner_id in learner_all_event_logs.keys():
+                        start = datetime.datetime.now()
                         event_logs = learner_all_event_logs[course_learner_id]
 
                         # Sorting
                         # REVISED from #event_logs.sort(cmp=cmp_datetime, key=operator.itemgetter('event_time'))
 
                         event_logs = sorted(event_logs, key=itemgetter('event_time'))
-
+                        sorter.append((datetime.datetime.now() - start).total_seconds())
                         session_id = ""
                         start_time = ""
                         end_time = ""
@@ -917,9 +932,9 @@
                         final_time = ""
 
                         for i in range(len(event_logs)):
-
+                            start = datetime.datetime.now()
                             if start_time == "":
-
+                                starting_event.append((datetime.datetime.now() - start).total_seconds())
                                 # Initialization
                                 start_time = event_logs[i]["event_time"]
                                 end_time = event_logs[i]["event_time"]
@@ -927,6 +942,7 @@
                             else:
 
                                 if event_logs[i]["event_time"] > end_time + datetime.timedelta(hours=0.5):
+
 
                                     session_id = course_learner_id + "_" + str(start_time) + "_" + str(end_time)
                                     duration = (end_time - start_time).days * 24 * 60 * 60 + (end_time - start_time).seconds
@@ -941,9 +957,9 @@
                                     session_id = ""
                                     start_time = event_logs[i]["event_time"]
                                     end_time = event_logs[i]["event_time"]
+                                    cont_event_a.append((datetime.datetime.now() - start).total_seconds())
 
                                 else:
-
                                     if event_logs[i]["event_type"] == "page_close":
 
                                         end_time = event_logs[i]["event_time"]
@@ -966,6 +982,8 @@
 
                                         end_time = event_logs[i]["event_time"]
 
+                                    cont_event_b.append((datetime.datetime.now() - start).total_seconds())
+
                         if final_time != "":
                             new_logs = []
                             for log in event_logs:
@@ -976,15 +994,15 @@
 
                         ### Counter #############################################
                         # if counter % 1000 == 0:
-                        #     window.console.log(str(counter) + ' lines processed in ' +
+                        #     print(str(counter) + ' lines processed in ' +
                         #                        str(time.time() - start))
                         # counter += 1
                         ### Counter #############################################
 
             current_date = getNextDay(current_date)
-
             # Filter duplicated records
-            window.console.log('Filtering duplicated records at ' + str(datetime.datetime.now().time()))
+            print('Filtering duplicated records at ' + str(datetime.datetime.now().time()))
+            print('Total', (datetime.datetime.now() - start).total_seconds())
             updated_session_record = []
             session_id_set = set()
             for array in session_record:
@@ -994,10 +1012,12 @@
                     updated_session_record.append(array)
 
             session_record = updated_session_record
-
-            window.console.log('Session data processed at ' + str(datetime.datetime.now().time()))
+            window.download('lists.txt', [new_line_reader, '\n', existing_line_reader, '\n', sorter, '\n',
+                                           starting_event, '\n', cont_event_a, '\n', cont_event_b])
+            print('Session data processed at ' + str(datetime.datetime.now().time()))
+            print((datetime.datetime.now() - start).total_seconds())
             if len(session_record) > 0:
-                window.console.log('Session data to store: ', len(session_record))
+                print('Session data to store: ', len(session_record))
                 data = []
                 for array in session_record:
                     session_id = array[0]
@@ -1009,26 +1029,25 @@
                               'start_time':start_time.isoformat(),
                               'end_time': end_time.isoformat(), 'duration':duration}
                     data.append(values)
-                window.console.log('Send to storage at ' + str(datetime.datetime.now().time()))
-                window.sqlLogInsert('sessions', data)
-                # window.console.log('not storing for test, CHANGE', index, total, chunk)
+                print('Send to storage at ' + str(datetime.datetime.now().time()))
+                # window.sqlLogInsert('sessions', data)
+                print('not storing for test, CHANGE', index, total, chunk)
+                print('Total', (datetime.datetime.now() - start).total_seconds())
                 chunk = chunk + 1
                 document['progress_bar'] <= str(chunk) + ' - '
-                if len(lines) < 5000:
+
+                if len(lines) < 1001:
                     chunk = 0
                     window.progress_display('Done with file ' + str(index + 1))
                     index = index + 1
                 if index < total:
-                    window.console.log('Back to JS at ' + str(datetime.datetime.now().time()))
+                    print('Back to JS at ' + str(datetime.datetime.now().time()))
                     window.processLogFiles(index, chunk)
                 else:
                     alert('Done')
 
             else:
-                window.console.log('no session info')
-                window.console.log('not storing for test, CHANGE', index, total)
-                if index < total:
-                    window.processLogFiles(index)
+                print('no session info', index, total)
 
             jq('#loading').hide()
 
@@ -1051,7 +1070,7 @@
 
         def process_logs(result):
             files, meta_map, index, total, chunk = getFiles(result)
-            window.console.log('Files ready')
+            print('Files ready')
             session_mode(files, meta_map, index, total, chunk)
 
         document.bind("logFileReader", process_logs)

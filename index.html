@@ -15,14 +15,15 @@
 
     <script src="brython/brython.js"></script>
 
-    <script data-main="scripts/index" src="scripts/require.js"></script>
+    <!--<script data-main="scripts/index" src="scripts/require.js"></script>-->
     <!--<script data-main="scripts/index" src="https://cdn.jsdelivr.net/gh/mvallet91/untitled/scripts/require.js"></script>-->
 
-    <script type="text/javascript" src="brython/brython_stdlib.js"></script>
-    <!--<script type="text/javascript" src="https://cdn.jsdelivr.net/gh/mvallet91/untitled/brython/brython_stdlib.js"></script>-->
+    <!--<script type="text/javascript" src="brython/brython_stdlib.js"></script>-->
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/gh/mvallet91/untitled/brython/brython_stdlib.js"></script>
 
-    <script src="scripts/pako.js"></script>
-    <!--<script src="https://cdn.jsdelivr.net/gh/mvallet91/untitled/scripts/pako.js"></script>-->
+    <!--<script src="scripts/pako.js"></script>-->
+    <!--<script type="text/javascript" src="scripts/pako.js"></script>-->
+    <script src="https://cdn.jsdelivr.net/gh/mvallet91/untitled/scripts/pako.js"></script>
 
     <script src="scripts/index.js"></script>
 </head>
@@ -61,7 +62,7 @@
     <!--</div>-->
 
     <!--<div>-->
-        <!--<input id="query_zone" value="SELECT * FROM Student WHERE Country = 'Canada'" size="50">-->
+        <!--<input id="query_zone" value="SELECT * FROM Student WHERE Country = "Canada"" size="50">-->
         <!--<button id="action_button">Click to run query in db</button>-->
         <!--<pre id="queryDisplayArea"></pre>-->
     <!--</div>-->
@@ -87,7 +88,7 @@
     <!--<script type="text/python" id="fileToMsg">-->
         <!--from browser import document, alert-->
         <!--import re-->
-        <!--# bind event 'click' on button to function echo-->
+        <!--# bind event "click" on button to function echo-->
 
         <!--def echo(ev):-->
             <!--# message = document["zone"].value-->
@@ -96,8 +97,8 @@
             <!--# file_content = fileContent-->
             <!--message = message.split()-->
             <!--size = len(message[-1])-->
-            <!--message = "Python read your file, the last word is: '" + str(message[-1]) + \-->
-                      <!--"'\nand it is " + str(size) + " characters long"-->
+            <!--message = "Python read your file, the last word is: "" + str(message[-1]) + \-->
+                      <!--""\nand it is " + str(size) + " characters long"-->
             <!--alert(message)-->
 
         <!--document["mybutton"].bind("click", echo)-->
@@ -114,11 +115,11 @@
 
         <!--def getResult(result):-->
             <!--query_result = json.loads(result.detail)-->
-            <!--text_result = ''-->
+            <!--text_result = ""-->
             <!--for x in query_result:-->
                 <!--for key in x:-->
-                    <!--text_result = text_result + str(x[key]) + ', '-->
-                <!--text_result = text_result + '\n'-->
+                    <!--text_result = text_result + str(x[key]) + ", "-->
+                <!--text_result = text_result + "\n"-->
             <!--document["queryDisplayArea"].innerText = text_result-->
 
         <!--document["action_button"].bind("click", echo_db)-->
@@ -162,7 +163,7 @@
 
         def process_null(inputString):
             if isinstance(inputString, str):
-                if len(inputString)==0 or inputString=='NULL':
+                if len(inputString)==0 or inputString=="NULL":
                     return None
                 else:
                     return inputString
@@ -321,11 +322,9 @@
                     course_metadata_map["child_parent_map"] = child_parent_map
                     course_metadata_map["block_type_map"] = block_type_map
 
-                    window.console.log('Metadata map ready')
+                    window.console.log("Metadata map ready")
 
                     return course_metadata_map
-                else:
-                    window.console.log('Course structure file not found')
 
 
         def learner_mode(files):
@@ -339,25 +338,25 @@
             learner_demographic_record = []
 
             # Collect course information
-            report.append('Processing metadata map')
+            report.append("Processing metadata map")
             course_metadata_map = ExtractCourseInformation(files)
 
             if course_metadata_map:
-                report.append('Metadata map ready')
+                report.append("Metadata map ready")
                 course_record.append(
                     [course_metadata_map["course_id"], course_metadata_map["course_name"],
                     course_metadata_map["start_time"], course_metadata_map["end_time"]])
 
                 # Course_element table
-                # window.console.log('Processing ' + str(len(course_metadata_map["element_time_map"].keys())) + \
-                #                    ' elements in metadata map')
-                report.append('Processing ' + str(len(course_metadata_map["element_time_map"].keys())) + \
-                              ' elements in metadata map')
+                # window.console.log("Processing " + str(len(course_metadata_map["element_time_map"].keys())) + \
+                #                    " elements in metadata map")
+                report.append("Processing " + str(len(course_metadata_map["element_time_map"].keys())) + \
+                              " elements in metadata map")
                 counter = 0
                 for element_id in course_metadata_map["element_time_map"].keys():
                     element_start_time = course_metadata_map["element_time_map"][element_id]
                     # Some contents released just one hour earlier than the hour of start time.
-                    # For example, start time is 2015-10-15 09:00:00, while 2nd week contents'
+                    # For example, start time is 2015-10-15 09:00:00, while 2nd week contents"
                     # release time is 2015-10-22 08:00:00.
                     # However, those 2nd week contents are count as 1st week.
                     # In order to avoid above situation, I use date to replace datetime here.
@@ -368,11 +367,11 @@
                     course_element_record.append(array)
 
                     if counter % (len(course_metadata_map["element_time_map"].keys())/5) == 0:
-                        report.append(str(counter) + ' lines processed')
+                        report.append(str(counter) + " lines processed")
                     counter += 1
 
-                report.append('Finished processing ' + str(len(course_element_record)) +
-                                   ' elements in metadata map')
+                report.append("Finished processing " + str(len(course_element_record)) +
+                                   " elements in metadata map")
 
                 # Learner_demographic table
                 learner_mail_map = {}
@@ -392,8 +391,8 @@
                 for file_name in files:
                     if "student_courseenrollment" in file_name:
                         input_file = files[file_name]
-                        lines = input_file.split('\n')
-                        report.append('Starting course enrollment processing, for ' + str(len(lines)) + ' lines')
+                        lines = input_file.split("\n")
+                        report.append("Starting course enrollment processing, for " + str(len(lines)) + " lines")
                         counter = 0
                         for line in lines[1:]:
                             record = line.split("\t")
@@ -416,7 +415,7 @@
                                 learner_enrollment_time_map[global_learner_id] = time
 
                             if counter % (len(lines)/5) == 0:
-                                report.append(str(counter)+ ' lines processed')
+                                report.append(str(counter)+ " lines processed")
                             counter += 1
 
                         report.append("The number of enrolled learners is: " + str(len(enrolled_learner_set)) + "\n")
@@ -425,15 +424,15 @@
                     # Processing auth_user data ################################################################
                     if "auth_user-" in file_name:
                         input_file = files[file_name]
-                        lines = input_file.split('\n')
-                        report.append('Starting auth user pre-processing, for ' + str(len(lines)) + ' lines')
+                        lines = input_file.split("\n")
+                        report.append("Starting auth user pre-processing, for " + str(len(lines)) + " lines")
 
                         for line in lines:
                             record = line.split("\t")
                             if record[0] in enrolled_learner_set:
                                 learner_mail_map[record[0]] = record[4]
-                        report.append('Done with auth user pre-processing with ' + str(len(learner_mail_map)) +
-                                           ' learners with email')
+                        report.append("Done with auth user pre-processing with " + str(len(learner_mail_map)) +
+                                           " learners with email")
 
                 for file_name in files:
                     # Processing certificates_generatedcertificate data ########################################
@@ -442,8 +441,8 @@
                     counter = 0
                     if "certificates_generatedcertificate" in file_name:
                         input_file = files[file_name]
-                        lines = input_file.split('\n')
-                        report.append('Starting certificate processing, for ' + str(len(lines)) + ' lines')
+                        lines = input_file.split("\n")
+                        report.append("Starting certificate processing, for " + str(len(lines)) + " lines")
                         for line in lines:
                             record = line.split("\t")
                             if len(record) < 10:
@@ -467,19 +466,19 @@
                                 num_uncertifiedLearners += 1
 
                             if counter % (len(lines)/5) == 0:
-                                report.append(str(counter) + ' lines processed')
+                                report.append(str(counter) + " lines processed")
                             counter += 1
 
-                        report.append(str(num_certifiedLearners) + ' certified learners and '+
-                                           str(num_uncertifiedLearners) + ' uncertified learners')
+                        report.append(str(num_certifiedLearners) + " certified learners and "+
+                                           str(num_uncertifiedLearners) + " uncertified learners")
 
 
                 for file_name in files:
                     # Processing auth_userprofile data #######################################################
                     if "auth_userprofile" in file_name:
                         input_file = files[file_name]
-                        lines = input_file.split('\n')
-                        report.append('Starting auth userprofile processing, for ' + str(len(lines)) + ' lines')
+                        lines = input_file.split("\n")
+                        report.append("Starting auth userprofile processing, for " + str(len(lines)) + " lines")
                         counter = 0
                         for line in lines:
                             record = line.split("\t")
@@ -499,7 +498,7 @@
                                 learner_demographic_record.append(array)
 
                             if counter % (len(lines)/5) == 0:
-                                report.append(str(counter) + ' lines processed')
+                                report.append(str(counter) + " lines processed")
                             counter += 1
 
                         report.append("Done with auth_userprofile " + str(len(learner_demographic_record)) +
@@ -510,13 +509,11 @@
                     # Processing forum data #######################################################
                     if ".mongo" in file_name:
                         forum_interaction_records = []
-                        continue
-                        window.console.log('Starting forum interaction records')
 
                         forum_file = files[file_name]
-                        lines = forum_file.split('\n')
+                        lines = forum_file.split("\n")
 
-                        for line in lines:
+                        for line in lines[1155:1180]:
                             if len(line) < 9:
                                 continue
                             jsonObject = json.loads(line)
@@ -559,7 +556,8 @@
 
                             post_content = post_content.replace("\n", " ")
                             post_content = post_content.replace("\\", "\\\\")
-                            post_content = post_content.replace("\'", "\\'")
+                            # post_content = post_content.replace("\'", "\\'")
+                            post_content = post_content.replace('"', '\"')
 
                             if post_timestamp < course_metadata_map["end_time"]:
                                 array = [post_id, course_learner_id, post_type, post_title, post_content, post_timestamp, post_parent_id, post_thread_id]
@@ -568,7 +566,7 @@
                         report.append("Done with forum_interaction " + str(len(forum_interaction_records)) +
                                        " forum records")
 
-                report.append('All metadata ready')
+                report.append("All metadata ready")
 
                 if len(course_record) > 0:
                     data = []
@@ -577,13 +575,13 @@
                         course_name = course_metadata_map["course_name"]
                         start_time = course_metadata_map["start_time"]
                         end_time = course_metadata_map["end_time"]
-                        values = {'course_id': course_id, 'course_name': course_name,
-                                'start_time': start_time.isoformat(),
-                                'end_time': end_time.isoformat()}
+                        values = {"course_id": course_id, "course_name": course_name,
+                                "start_time": start_time.isoformat(),
+                                "end_time": end_time.isoformat()}
                         data.append(values)
-                    window.sqlInsert('courses', data)
+                    window.sqlInsert("courses", data)
                 else:
-                    report.append('no courses info')
+                    report.append("no courses info")
 
                 if len(course_element_record) > 0:
                     data = []
@@ -592,12 +590,12 @@
                         element_type = array[1]
                         week = process_null(array[2])
                         course_id = array[3]
-                        values = {'element_id': element_id, 'element_type': element_type,
-                                  'week': week, 'course_id': course_id}
+                        values = {"element_id": element_id, "element_type": element_type,
+                                  "week": week, "course_id": course_id}
                         data.append(values)
-                    window.sqlInsert('course_elements', data)
+                    window.sqlInsert("course_elements", data)
                 else:
-                    report.append('no course element info')
+                    report.append("no course element info")
 
                 if len(learner_index_record) > 0:
                     data = []
@@ -605,17 +603,17 @@
                         global_learner_id = array[0]
                         course_id = array[1]
                         course_learner_id = array[2]
-                        values = {'global_learner_id': global_learner_id, 'course_id':course_id,
-                                   'course_learner_id':course_learner_id}
+                        values = {"global_learner_id": global_learner_id, "course_id":course_id,
+                                   "course_learner_id":course_learner_id}
                         data.append(values)
-                    window.sqlInsert('learner_index', data)
+                    window.sqlInsert("learner_index", data)
                 else:
-                    report.append('no learner index info')
+                    report.append("no learner index info")
 
                 if len(course_learner_record) > 0:
                     data = []
-                    report.append('Storing ' + str(len(course_learner_record)) +
-                                      ' learner records in DB')
+                    report.append("Storing " + str(len(course_learner_record)) +
+                                      " learner records in DB")
                     for array in course_learner_record:
                         course_learner_id = array[0]
                         try:
@@ -625,18 +623,18 @@
                         enrollment_mode = array[2]
                         certificate_status = array[3]
                         register_time = process_null(array[4])
-                        values = {'course_learner_id': course_learner_id, 'final_grade': final_grade,
-                                  'enrollment_mode':enrollment_mode, 'certificate_status': certificate_status,
-                                  'register_time': register_time}
+                        values = {"course_learner_id": course_learner_id, "final_grade": final_grade,
+                                  "enrollment_mode":enrollment_mode, "certificate_status": certificate_status,
+                                  "register_time": register_time}
                         data.append(values)
-                    window.sqlInsert('course_learner', data)
+                    window.sqlInsert("course_learner", data)
                 else:
-                    report.append('no enrolled students info')
+                    report.append("no enrolled students info")
 
                 if len(learner_demographic_record) > 0:
                     data = []
-                    report.append('Storing ' + str(len(learner_demographic_record)) +
-                                      ' demographic records in DB')
+                    report.append("Storing " + str(len(learner_demographic_record)) +
+                                      " demographic records in DB")
                     for array in learner_demographic_record:
                         course_learner_id = process_null(array[0])
                         gender = array[1]
@@ -647,92 +645,94 @@
                         level_of_education = array[3]
                         country = array[4]
                         email = array[5]
-                        email = email.replace("\'", "")
-                        values = {'course_learner_id': course_learner_id, 'gender': gender,
-                                  'year_of_birth': year_of_birth, 'level_of_education': level_of_education,
-                                  'country': country, 'email': email}
+                        email = email.replace("\"", "")
+                        values = {"course_learner_id": course_learner_id, "gender": gender,
+                                  "year_of_birth": year_of_birth, "level_of_education": level_of_education,
+                                  "country": country, "email": email}
                         data.append(values)
-                    window.sqlInsert('learner_demographic', data)
+                    window.sqlInsert("learner_demographic", data)
                 else:
-                    report.append('no learner demographic info')
+                    report.append("no learner demographic info")
 
                 if len(forum_interaction_records) > 0:
                     data = []
-                    report.append('Storing ' + str(len(forum_interaction_records)) +
-                                      ' forum interaction records in DB')
+                    report.append("Storing " + str(len(forum_interaction_records)) +
+                                      " forum interaction records in DB")
                     for array in forum_interaction_records:
                         post_id = array[0]
                         course_learner_id = array[1]
                         post_type = array[2]
-                        post_title = cleanUnicode(array[3])
-                        post_content = cleanUnicode(array[4])
+                        post_title = window.cleanUnicode(array[3])
+                        post_content = window.cleanUnicode(array[4])
                         post_timestamp = array[5]
                         post_parent_id = array[6]
                         post_thread_id = array[7]
-                        values = {'post_id': post_id, 'course_learner_id': course_learner_id,
-                                  'post_type': post_type, 'post_title': post_title,
-                                  'post_content': post_content, 'post_timestamp':post_timestamp,
-                                  'post_parent_id': post_parent_id, 'post_thread_id':post_thread_id}
+                        values = {"post_id": post_id, "course_learner_id": course_learner_id,
+                                  "post_type": post_type, "post_title": post_title,
+                                  "post_content": post_content, "post_timestamp":post_timestamp.isoformat(),
+                                  "post_parent_id": post_parent_id, "post_thread_id":post_thread_id}
                         data.append(values)
-                    window.sqlInsert('forum_interaction', data)
+                    print(data)
+                    window.sqlInsert("forum_interaction", data)
                 else:
-                    report.append('no forum interaction info')
+                    report.append("no forum interaction info")
 
 
                 map_to_store = course_metadata_map
-                map_to_store['start_time'] = start_time.isoformat()
-                map_to_store['end_time'] = end_time.isoformat()
-                for element in map_to_store['element_time_map']:
-                    map_to_store['element_time_map'][element] = course_metadata_map['element_time_map'][element].isoformat()
-                for element in map_to_store['element_time_map_due']:
-                    map_to_store['element_time_map_due'][element] = course_metadata_map['element_time_map_due'][element].isoformat()
-                store_map = [{'name': 'metadata_map',
-                             'object': map_to_store}]
-                window.sqlInsert('metadata', store_map)
-                jq('#loading').hide()
+                map_to_store["start_time"] = start_time.isoformat()
+                map_to_store["end_time"] = end_time.isoformat()
+                for element in map_to_store["element_time_map"]:
+                    map_to_store["element_time_map"][element] = course_metadata_map["element_time_map"][element].isoformat()
+                for element in map_to_store["element_time_map_due"]:
+                    map_to_store["element_time_map_due"][element] = course_metadata_map["element_time_map_due"][element].isoformat()
+                store_map = [{"name": "metadata_map",
+                             "object": map_to_store}]
+                window.sqlInsert("metadata", store_map)
+                jq("#loading").hide()
 
-                if window.confirm('Download processing report?'):
-                    report = '\n'.join(report)
-                    window.download('report.txt', report)
-                    alert('Your data is being stored, please wait a couple minuted before reloading this page')
+                if window.confirm("Download processing report?"):
+                    report = "\n".join(report)
+                    window.download("report.txt", report)
+                    alert("Your data is being stored, please wait a couple minutes before reloading this page")
                 else:
-                    window.console.log('No report downloaded')
-                    alert('Your data is being stored, please wait a couple minuted before reloading this page')
+                    window.console.log("No report downloaded")
+                    alert("Your data is being stored, please wait a couple minutes before reloading this page")
 
             else:
-                report.append('Course structure file not found')
-                jq('#loading').hide()
+                report.append("Course structure file not found")
+                jq("#loading").hide()
 
-                if window.confirm('Download processing report?'):
-                    report = '\n'.join(report)
-                    window.download('report.txt', report)
+                if window.confirm("Download processing report?"):
+                    report = "\n".join(report)
+                    window.download("report.txt", report)
                 else:
-                    window.console.log('No report downloaded')
+                    window.console.log("No report downloaded")
 
 
         def getFiles(result):
             files = {}
             pairs = json.loads(result.detail)
             for pair in pairs:
-                file_name = pair['key']
-                file = pair['value']
+                file_name = pair["key"]
+                file = pair["value"]
                 files[file_name] = file
             return files
 
 
         def metadata_processing(results):
             files = getFiles(results)
-            window.console.log('Files ready')
+            window.console.log("Files ready")
             learner_mode(files)
 
 
         def cleanUnicode(text):
             #return text;
             if isinstance(text, str):
-                return unicodedata.normalize('NFC', text);
+                # return unicodedata.normalize("NFC", text);
+                window.text.normalize("NFC")
             else:
                 return text
-            #return unicodedata.normalize('NFKD', text).encode('utf8', 'ignore');
+            #return unicodedata.normalize("NFKD", text).encode("utf8", "ignore");
 
 
         # for detecting mentioned element info in the log
@@ -817,7 +817,7 @@
 
         def process_null(inputString):
             if isinstance(inputString, str):
-                if len(inputString)==0 or inputString=='NULL':
+                if len(inputString)==0 or inputString=="NULL":
                     return None
                 else:
                     return inputString
@@ -838,14 +838,14 @@
 
             #####################################################################
             for file_name in log_files:
-                if 'log' in file_name:
+                if "log" in file_name:
                     start = datetime.datetime.now()
                     counter = 0
                     # if current_date in file_name:
 
-                    print('Starting chunk ' + str(chunk) + ' in Python at ' + str(datetime.datetime.now().time()))
+                    print("Starting chunk " + str(chunk) + " in Python at " + str(datetime.datetime.now().time()))
                     print((datetime.datetime.now() - start).total_seconds())
-                    # document['progress_tab'] <= file_name + '\n'
+                    # document["progress_tab"] <= file_name + "\n"
                     # window.progress_display(file_name)
 
                     learner_all_event_logs.clear()
@@ -858,23 +858,23 @@
                         course_learner_id_set.add(course_learner_id)
 
                     input_file = log_files[file_name]
-                    lines = input_file.split('\n')
-                    print(str(len(lines)) + ' lines to process in file')
+                    lines = input_file.split("\n")
+                    print(str(len(lines)) + " lines to process in file")
                     print((datetime.datetime.now() - start).total_seconds())
 
-                    new_line_reader = ['new_line_reader']
-                    existing_line_reader = ['existing_line_reader']
+                    new_line_reader = ["new_line_reader"]
+                    existing_line_reader = ["existing_line_reader"]
 
                     for line in lines[0:10000]:
                         start = datetime.datetime.now()
 
                         if len(line) < 10:
-                            print('Skipped line')
+                            print("Skipped line")
                             continue
                         jsonObject = json.loads(line)
 
                         if "user_id" not in jsonObject["context"]:
-                            print('no userid')
+                            print("no userid")
                             continue
 
                         global_learner_id = jsonObject["context"]["user_id"]
@@ -899,31 +899,31 @@
 
                         ### Counter #############################################
                         # if counter % 10000 == 0:
-                        #     counter_message = (str(counter) + ' lines processed in ' +
+                        #     counter_message = (str(counter) + " lines processed in " +
                         #                        str(time.time() - start))
                         #     print(counter_message)
-                        #     document['progress_tab'] <= counter_message + '\n'
+                        #     document["progress_tab"] <= counter_message + "\n"
                         #     window.progress_display(counter_message)
                         # counter += 1
                         ### Counter #############################################
 
-                    print('id list ready, with size: ', len(learner_all_event_logs),
-                                        ' at ', str(datetime.datetime.now().time()) )
+                    print("id list ready, with size: ", len(learner_all_event_logs),
+                                        " at ", str(datetime.datetime.now().time()) )
                     print((datetime.datetime.now() - start).total_seconds())
                     counter = 0
-                    sorter = ['sorter']
-                    starting_event = ['starting_event']
-                    cont_event_a = ['cont_event_a']
-                    cont_event_b = ['cont_event_b']
+                    sorter = ["sorter"]
+                    starting_event = ["starting_event"]
+                    cont_event_a = ["cont_event_a"]
+                    cont_event_b = ["cont_event_b"]
 
                     for course_learner_id in learner_all_event_logs.keys():
                         start = datetime.datetime.now()
                         event_logs = learner_all_event_logs[course_learner_id]
 
                         # Sorting
-                        # REVISED from #event_logs.sort(cmp=cmp_datetime, key=operator.itemgetter('event_time'))
+                        # REVISED from #event_logs.sort(cmp=cmp_datetime, key=operator.itemgetter("event_time"))
 
-                        event_logs = sorted(event_logs, key=itemgetter('event_time'))
+                        event_logs = sorted(event_logs, key=itemgetter("event_time"))
                         sorter.append((datetime.datetime.now() - start).total_seconds())
                         session_id = ""
                         start_time = ""
@@ -934,10 +934,11 @@
                         for i in range(len(event_logs)):
                             start = datetime.datetime.now()
                             if start_time == "":
-                                starting_event.append((datetime.datetime.now() - start).total_seconds())
                                 # Initialization
                                 start_time = event_logs[i]["event_time"]
                                 end_time = event_logs[i]["event_time"]
+
+                                starting_event.append((datetime.datetime.now() - start).total_seconds())
 
                             else:
 
@@ -994,15 +995,15 @@
 
                         ### Counter #############################################
                         # if counter % 1000 == 0:
-                        #     print(str(counter) + ' lines processed in ' +
+                        #     print(str(counter) + " lines processed in " +
                         #                        str(time.time() - start))
                         # counter += 1
                         ### Counter #############################################
 
             current_date = getNextDay(current_date)
             # Filter duplicated records
-            print('Filtering duplicated records at ' + str(datetime.datetime.now().time()))
-            print('Total', (datetime.datetime.now() - start).total_seconds())
+            print("Filtering duplicated records at " + str(datetime.datetime.now().time()))
+            print("Total", (datetime.datetime.now() - start).total_seconds())
             updated_session_record = []
             session_id_set = set()
             for array in session_record:
@@ -1012,12 +1013,12 @@
                     updated_session_record.append(array)
 
             session_record = updated_session_record
-            window.download('lists.txt', [new_line_reader, '\n', existing_line_reader, '\n', sorter, '\n',
-                                           starting_event, '\n', cont_event_a, '\n', cont_event_b])
-            print('Session data processed at ' + str(datetime.datetime.now().time()))
+            window.download("lists.txt", [new_line_reader, "\n", existing_line_reader, "\n", sorter, "\n",
+                                           starting_event, "\n", cont_event_a, "\n", cont_event_b])
+            print("Session data processed at " + str(datetime.datetime.now().time()))
             print((datetime.datetime.now() - start).total_seconds())
             if len(session_record) > 0:
-                print('Session data to store: ', len(session_record))
+                print("Session data to store: ", len(session_record))
                 data = []
                 for array in session_record:
                     session_id = array[0]
@@ -1025,31 +1026,31 @@
                     start_time = array[2]
                     end_time = array[3]
                     duration = process_null(array[4])
-                    values = {'session_id':session_id, 'course_learner_id':course_learner_id,
-                              'start_time':start_time.isoformat(),
-                              'end_time': end_time.isoformat(), 'duration':duration}
+                    values = {"session_id":session_id, "course_learner_id":course_learner_id,
+                              "start_time":start_time.isoformat(),
+                              "end_time": end_time.isoformat(), "duration":duration}
                     data.append(values)
-                print('Send to storage at ' + str(datetime.datetime.now().time()))
-                # window.sqlLogInsert('sessions', data)
-                print('not storing for test, CHANGE', index, total, chunk)
-                print('Total', (datetime.datetime.now() - start).total_seconds())
+                print("Send to storage at " + str(datetime.datetime.now().time()))
+                # window.sqlLogInsert("sessions", data)
+                print("not storing for test, CHANGE", index, total, chunk)
+                print("Total", (datetime.datetime.now() - start).total_seconds())
                 chunk = chunk + 1
-                document['progress_bar'] <= str(chunk) + ' - '
+                document["progress_bar"] <= str(chunk) + " - "
 
                 if len(lines) < 1001:
                     chunk = 0
-                    window.progress_display('Done with file ' + str(index + 1))
+                    window.progress_display("Done with file " + str(index + 1))
                     index = index + 1
                 if index < total:
-                    print('Back to JS at ' + str(datetime.datetime.now().time()))
+                    print("Back to JS at " + str(datetime.datetime.now().time()))
                     window.processLogFiles(index, chunk)
                 else:
-                    alert('Done')
+                    alert("Done")
 
             else:
-                print('no session info', index, total)
+                print("no session info", index, total)
 
-            jq('#loading').hide()
+            jq("#loading").hide()
 
 
         def getFiles(result):
@@ -1062,15 +1063,15 @@
             total = result.detail[3]
             chunk = result.detail[4]
             for pair in pairs:
-                file_name = pair['key']
-                file = pair['value']
+                file_name = pair["key"]
+                file = pair["value"]
                 files[file_name] = file
             return files, meta_map, index, total, chunk
 
 
         def process_logs(result):
             files, meta_map, index, total, chunk = getFiles(result)
-            print('Files ready')
+            print("Files ready")
             session_mode(files, meta_map, index, total, chunk)
 
         document.bind("logFileReader", process_logs)

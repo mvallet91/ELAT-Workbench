@@ -1,5 +1,5 @@
 var connection = new JsStore.Instance(new Worker('scripts/jsstore.worker.js'));
-
+let loader = $('#loading');
 // let define function (require) {
 //     pako = require('pako');
 // };
@@ -67,14 +67,14 @@ window.onload = function () {
     //// MULTI FILE SYSTEM SCRIPTS ///////////////////////////////////////////////////////////////////////////
     let  multiFileInput = document.getElementById('filesInput');
     multiFileInput.addEventListener('change', function (e) {
-        $('#loading').show();
+        loader.show();
         let files = multiFileInput.files;
         readMetaFiles(files, passFiles);
     });
 
     let  multiFileInputLogs = document.getElementById('logFilesInput');
     multiFileInputLogs.addEventListener('change', function (e) {
-        // $('#loading').show();
+        // loader.show();
         //let files = multiFileInputLogs.files;
         // readLogFiles(files, passLogFiles);
         // processLogFiles(files, 0)
@@ -82,7 +82,7 @@ window.onload = function () {
     });
 };
 
-var reader = new FileReader();
+let reader = new FileReader();
 
 function readMetaFiles(files, callback){
     let output = [];
@@ -90,7 +90,7 @@ function readMetaFiles(files, callback){
     let processedFiles = [];
     let fileNames = 'Names: ';
     let counter = 1;
-    let gzipType = /gzip/;
+    // let gzipType = /gzip/;
     let sqlType = 'sql';
     let jsonType = 'json';
     let mongoType = 'mongo';
@@ -132,53 +132,53 @@ function readMetaFiles(files, callback){
     }
 }
 
-function readLogFiles(files, callback){
-    let output = [];
-    let processedFiles = [];
-    let counter = 1;
-    let gzipType = /gzip/;
-    let sqlType = 'sql';
-    let jsonType = 'json';
-
-    for (const f of files) {
-        output.push('<li><strong>', f.name, '</strong> (', f.type || 'n/a', ') - ',
-            f.size, ' bytes', '</li>');
-
-        if (f.type.match(gzipType)) {
-            const reader = new FileReader();
-            reader.onloadend = function (event) {
-                let content = pako.inflate(event.target.result, {to: 'string'});
-                processedFiles.push({
-                    key: f.name,
-                    value: content
-                });
-                if (counter === files.length) {
-                    callback([processedFiles, output]);
-                }
-                counter++;
-            };
-            reader.readAsArrayBuffer(f);
-
-        // } else if (f.name.includes(sqlType) || (f.name.includes(jsonType))) {
-        //     const reader = new FileReader();
-        //     reader.onloadend = function () {
-        //         let content = reader.result;
-        //         processedFiles.push({
-        //             key: f.name,
-        //             value: content
-        //         });
-        //         if (counter === files.length) {
-        //             callback([processedFiles, output]);
-        //         }
-        //         counter++;
-        //     };
-        //     reader.readAsText(f);
-
-        } else {
-            counter ++;
-        }
-    }
-}
+// function readLogFiles(files, callback){
+//     let output = [];
+//     let processedFiles = [];
+//     let counter = 1;
+//     let gzipType = /gzip/;
+//     let sqlType = 'sql';
+//     let jsonType = 'json';
+//
+//     for (const f of files) {
+//         output.push('<li><strong>', f.name, '</strong> (', f.type || 'n/a', ') - ',
+//             f.size, ' bytes', '</li>');
+//
+//         if (f.type.match(gzipType)) {
+//             const reader = new FileReader();
+//             reader.onloadend = function (event) {
+//                 let content = pako.inflate(event.target.result, {to: 'string'});
+//                 processedFiles.push({
+//                     key: f.name,
+//                     value: content
+//                 });
+//                 if (counter === files.length) {
+//                     callback([processedFiles, output]);
+//                 }
+//                 counter++;
+//             };
+//             reader.readAsArrayBuffer(f);
+//
+//         // } else if (f.name.includes(sqlType) || (f.name.includes(jsonType))) {
+//         //     const reader = new FileReader();
+//         //     reader.onloadend = function () {
+//         //         let content = reader.result;
+//         //         processedFiles.push({
+//         //             key: f.name,
+//         //             value: content
+//         //         });
+//         //         if (counter === files.length) {
+//         //             callback([processedFiles, output]);
+//         //         }
+//         //         counter++;
+//         //     };
+//         //     reader.readAsText(f);
+//
+//         } else {
+//             counter ++;
+//         }
+//     }
+// }
 
 function processLogFiles(index, chunk){
     let  multiFileInputLogs = document.getElementById('logFilesInput');
@@ -202,7 +202,7 @@ function readAndPassLog(f, reader, index, total, chunk, callback){
     let output = [];
     let processedFiles = [];
     let gzipType = /gzip/;
-    let chunk_size = 5000;
+    let chunk_size = 10000;
     output.push('<li><strong>', f.name, '</strong> (', f.type || 'n/a', ') - ',
                 f.size, ' bytes', '</li>');
 
@@ -211,6 +211,7 @@ function readAndPassLog(f, reader, index, total, chunk, callback){
         reader.onloadend = function (event) {
             let content = pako.inflate(event.target.result, {to: 'string'});
             let lines = content.split('\n');
+
             // if (chunk === 0){
             //     let today = new Date();
             //     let starting = (today.getHours() + ":" + today.getMinutes() +
@@ -220,6 +221,7 @@ function readAndPassLog(f, reader, index, total, chunk, callback){
             //                       ' with ' + Math.ceil(lines.length/chunk_size) + ' stages');
             //     document.getElementById('progress_bar').innerHTML = 'Processing: ';
             // }
+
             processedFiles.push({
                 key: f.name,
                 value: lines.slice((chunk * chunk_size), chunk_size + (chunk*chunk_size)).join('\n')
@@ -228,20 +230,23 @@ function readAndPassLog(f, reader, index, total, chunk, callback){
             callback([processedFiles, output, index, total, chunk]);
         };
         reader.readAsArrayBuffer(f);
+
     } else if (f.name.includes('-log')) {
         // const reader = new FileReader();
         reader.onload = function () {
             let content = reader.result;
             let lines = content.split('\n');
-            if (chunk === 0){
-                let today = new Date();
-                let starting = (today.getHours() + ":" + today.getMinutes() +
-                    ":" + today.getSeconds() + '.' + today.getMilliseconds());
-                document.getElementById('progress_time').innerHTML = 'Processing - Started at ' + starting + ' ';
-                progress_display('Working on file ' + (index + 1) + ' out of ' + total +
-                    ' with ' + Math.ceil(lines.length/chunk_size) + ' stages');
-                document.getElementById('progress_bar').innerHTML = 'Processing: ';
-            }
+
+            // if (chunk === 0){
+            //     let today = new Date();
+            //     let starting = (today.getHours() + ":" + today.getMinutes() +
+            //         ":" + today.getSeconds() + '.' + today.getMilliseconds());
+            //     document.getElementById('progress_time').innerHTML = 'Processing - Started at ' + starting + ' ';
+            //     progress_display('Working on file ' + (index + 1) + ' out of ' + total +
+            //         ' with ' + Math.ceil(lines.length/chunk_size) + ' stages');
+            //     document.getElementById('progress_bar').innerHTML = 'Processing: ';
+            // }
+
             processedFiles.push({
                 key: f.name,
                 value: lines.slice((chunk * chunk_size), chunk_size + (chunk*chunk_size)).join('\n')
@@ -257,7 +262,7 @@ function readAndPassLog(f, reader, index, total, chunk, callback){
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
 function passFiles(result){
-    const reader = new FileReader();
+    // const reader = new FileReader();
     let names = result[0];
     let output = result[1];
     document.getElementById('list').innerHTML = '<ul>' + output.join('') + '</ul>';
@@ -286,8 +291,9 @@ function passLogFiles(result){
     let total = result[3];
     let chunk = result[4];
     let list = document.getElementById('listLogs').innerHTML;
-    // document.getElementById('listLogs').innerHTML = list +'<ul>' + output.join('') + '</ul>';
+    document.getElementById('listLogs').innerHTML = list +'<ul>' + output.join('') + '</ul>';
     connection.runSql('SELECT * FROM metadata').then(function(result) {
+
         // let today = new Date();
         // let time = today.getHours() + ":" + today.getMinutes() + ":" + today.getSeconds() + '.' + today.getMilliseconds();
         // console.log('Passing file ' + index + ' chunk ' + chunk + ' to Brython at ' + time);
@@ -295,37 +301,40 @@ function passLogFiles(result){
         //     "detail": [result, files, index, total, chunk]
         // });
         // document.dispatchEvent(readerEvent);
+
         let course_metadata_map = result[0]['object'];
-        // session_mode(course_metadata_map, files, index, total, chunk);
-        // forum_sessions(course_metadata_map, files, index, total, chunk);
-        // video_interaction(course_metadata_map, files, index, total, chunk);
-        // quiz_mode(course_metadata_map, files, index, total, chunk);
+
+        session_mode(course_metadata_map, files, index, total, chunk);
+        forum_sessions(course_metadata_map, files, index, total, chunk);
+        video_interaction(course_metadata_map, files, index, total, chunk);
+        quiz_mode(course_metadata_map, files, index, total, chunk);
         quiz_sessions(course_metadata_map, files, index, total, chunk);
+
     });
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
 // BRYTHON FUNCTIONS
 
-function sqlQuery(query){
-    connection.runSql(query).then(function(result) {
-        let answer = JSON.stringify(result);
-        let passData = new CustomEvent("finishedQuery", {
-            "detail": answer
-        });
-        document.dispatchEvent(passData);
-    });
-}
-
-function getMetaMap(){
-    connection.runSql('SELECT * FROM metadata').then(function(result) {
-        let answer = JSON.stringify(result);
-        let passData = new CustomEvent("metaMapReady", {
-            "detail": answer
-        });
-        document.dispatchEvent(passData);
-    });
-}
+// function sqlQuery(query){
+//     connection.runSql(query).then(function(result) {
+//         let answer = JSON.stringify(result);
+//         let passData = new CustomEvent("finishedQuery", {
+//             "detail": answer
+//         });
+//         document.dispatchEvent(passData);
+//     });
+// }
+//
+// function getMetaMap(){
+//     connection.runSql('SELECT * FROM metadata').then(function(result) {
+//         let answer = JSON.stringify(result);
+//         let passData = new CustomEvent("metaMapReady", {
+//             "detail": answer
+//         });
+//         document.dispatchEvent(passData);
+//     });
+// }
 
 function sqlInsert(table, data) {
     connection.runSql('DELETE FROM ' + table);
@@ -353,6 +362,7 @@ function sqlInsert(table, data) {
     });
 }
 
+
 function sqlLogInsert(table, data) {
     let query = new SqlWeb.Query("INSERT INTO " + table + " values='@val'");
     for (let v of data) {
@@ -375,6 +385,7 @@ function sqlLogInsert(table, data) {
     });
 }
 
+
 function download(filename, content) {
     let element = document.createElement('a');
     element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(content));
@@ -384,6 +395,7 @@ function download(filename, content) {
     element.click();
     document.body.removeChild(element);
 }
+
 
 function progress_display(content){
     let table = document.getElementById("progress_tab");
@@ -418,6 +430,7 @@ function initiateEdxDb() {
     });
 }
 
+
 function showCoursesTableDataExtra() {
     connection.runSql('select * from courses').then(function (courses) {
         let HtmlString = "";
@@ -443,6 +456,7 @@ function showCoursesTableDataExtra() {
 
 
 function session_mode(course_metadata_map, log_files, index, total, chunk){
+    loader.show();
     let zero_start = performance.now();
     // let current_date = course_metadata_map["start_date"];
     // let end_next_date  = getNextDay(course_metadata_map["end_date"]);
@@ -501,28 +515,28 @@ function session_mode(course_metadata_map, log_files, index, total, chunk){
                     }
                 }
             }
-            let sorter = ['sorter']; // Performance
-            let starting_event = ['starting_event'];// Performance
-            let cont_event_a = ['cont_event_a'];// Performance
-            let cont_event_b = ['cont_event_b'];// Performance
+            // let sorter = ['sorter']; // Performance
+            // let starting_event = ['starting_event'];// Performance
+            // let cont_event_a = ['cont_event_a'];// Performance
+            // let cont_event_b = ['cont_event_b'];// Performance
 
             for (let course_learner_id in learner_all_event_logs){
-                let start = performance.now();
+                // let start = performance.now();
                 let event_logs = learner_all_event_logs[course_learner_id];
                 event_logs.sort(function(a, b) {
                     return new Date(a.event_time) - new Date(b.event_time) ;
                 });
-                sorter.push(performance.now() - start);// Performance
+                // sorter.push(performance.now() - start);// Performance
                 let session_id = "";
                 let start_time = "";
                 let end_time = "";
                 let final_time = "";
                 for (let i in event_logs){
-                    let start = performance.now();
+                    // let start = performance.now();
                     if (start_time === ''){
                         start_time = new Date(event_logs[i]["event_time"]);
                         end_time = new Date(event_logs[i]["event_time"]);
-                        starting_event.push(performance.now() - start);// Performance
+                        // starting_event.push(performance.now() - start);// Performance
                     } else {
                         if (new Date(event_logs[i]["event_time"]) > end_time.setMinutes(end_time.getMinutes() + 30)){
                             let session_id = course_learner_id + '_' + start_time + '_' + end_time;
@@ -540,7 +554,7 @@ function session_mode(course_metadata_map, log_files, index, total, chunk){
                             start_time = new Date(event_logs[i]["event_time"]);
                             end_time = new Date(event_logs[i]["event_time"]);
 
-                            cont_event_a.push(performance.now()-start);// Performance
+                            // cont_event_a.push(performance.now()-start);// Performance
 
                         } else {
                             if (event_logs[i]["event_type"] === "page_close"){
@@ -561,7 +575,7 @@ function session_mode(course_metadata_map, log_files, index, total, chunk){
                             } else {
                                 end_time = new Date(event_logs[i]["event_time"]);
                             }
-                            cont_event_b.push(performance.now() - start);// Performance
+                            // cont_event_b.push(performance.now() - start);// Performance
                         }
                     }
                 }
@@ -607,27 +621,28 @@ function session_mode(course_metadata_map, log_files, index, total, chunk){
                     data.push(values);
                 }
                 console.log('Send to storage at ' + new Date());
-                // sqlLogInsert('sessions', data);
-                progress_display('Done with file ' + (index + 1));
+                sqlLogInsert('sessions', data);
+                progress_display('Done with session mode for file ' + (index + 1));
                 index = index + 1;
                 if (index < total){
                     processLogFiles(index, chunk);
                 } else {
                     console.log(performance.now() - zero_start, ' milliseconds');
+                    loader.hide()
                 }
             } else {
                 console.log('no session info', index, total);
-                $('#loading').hide()
+                loader.hide()
             }
 
             // download('js_list', [new_line_reader, existing_line_reader, sorter, starting_event,
             //                                       cont_event_a, cont_event_b, 'total', performance.now() - zero_start] )
         }
     }
-    if (index < total){
-        let new_index = index + 1;
-        processLogFiles(new_index, chunk);
-    }
+    // if (index < total){
+    //     let new_index = index + 1;
+    //     processLogFiles(new_index, chunk);
+    // }
 }
 
 
@@ -658,6 +673,7 @@ function getNextDay(current_day){
     return current_day;
 }
 
+
 function courseElementsFinder(eventlog, course_id) {
     let elementsID = coucourseElementsFinder_string(eventlog['event_type'], course_id);
     if (elementsID === '') {
@@ -671,6 +687,7 @@ function courseElementsFinder(eventlog, course_id) {
     }
     return elementsID;
 }
+
 
 function coucourseElementsFinder_string(eventlog_item, course_id) {
     let elementsID = '';
@@ -704,15 +721,9 @@ function coucourseElementsFinder_string(eventlog_item, course_id) {
     return elementsID;
 }
 
-// let sys = {};
-// let unicodedata = {};
-// import {AssertionError, AttributeError, BaseException, DeprecationWarning, Exception, IndexError, IterableError, KeyError, NotImplementedError, RuntimeWarning, StopIteration, UserWarning, ValueError, Warning, __JsIterator__, __PyIterator__, __Terminal__, __add__, __and__, __call__, __class__, __envir__, __eq__, __floordiv__, __ge__, __get__, __getcm__, __getitem__, __getslice__, __getsm__, __gt__, __i__, __iadd__, __iand__, __idiv__, __ijsmod__, __ilshift__, __imatmul__, __imod__, __imul__, __in__, __init__, __ior__, __ipow__, __irshift__, __isub__, __ixor__, __jsUsePyNext__, __jsmod__, __k__, __kwargtrans__, __le__, __lshift__, __lt__, __matmul__, __mergefields__, __mergekwargtrans__, __mod__, __mul__, __ne__, __neg__, __nest__, __or__, __pow__, __pragma__, __proxy__, __pyUseJsNext__, __rshift__, __setitem__, __setproperty__, __setslice__, __sort__, __specialattrib__, __sub__, __super__, __t__, __terminal__, __truediv__, __withblock__, __xor__, abs, all, any, assert, bool, bytearray, bytes, callable, chr, copy, deepcopy, delattr, dict, dir, divmod, enumerate, filter, float, getattr, hasattr, input, int, isinstance, issubclass, len, list, map, max, min, object, ord, pow, print, property, py_TypeError, py_iter, py_metatype, py_next, py_reversed, py_typeof, range, repr, round, set, setattr, sorted, str, sum, tuple, zip} from './transcrypt_scripts/org.transcrypt.__runtime__.js';
-// import * as __module_sys__ from './transcrypt_scripts/sys.js';
-// __nest__ (sys, '', __module_sys__);
-// import * as __module_unicodedata__ from './transcrypt_scripts/unicodedata';
-// __nest__ (unicodedata, '', __module_unicodedata__);
 
 function forum_sessions(course_metadata_map, log_files, index, total, chunk) {
+    loader.show();
     let zero_start = performance.now();
 
     let start_date = new Date(course_metadata_map['start_date']);
@@ -924,25 +935,27 @@ function forum_sessions(course_metadata_map, log_files, index, total, chunk) {
             data.push(values);
         }
         console.log('Send to storage at ' + new Date());
-        // sqlLogInsert('forum_sessions', data);
-        progress_display('Done with file ' + (index + 1));
+        sqlLogInsert('forum_sessions', data);
+        progress_display('Done with forum sessions for file ' + (index + 1));
         index = index + 1;
         if (index < total){
             processLogFiles(index, chunk);
+            loader.hide();
         } else {
             console.log(performance.now() - zero_start, ' milliseconds');
+            loader.hide()
         }
     } else {
         console.log('no forum session info', index, total);
-        $('#loading').hide()
+        loader.hide()
     }
 }
 
 
 function video_interaction(course_metadata_map, log_files, index, total, chunk) {
     let zero_start = performance.now();
+    loader.show();
     console.log('Starting video session processing');
-    // let course_metadata_map = ExtractCourseInformation(metadata_path);
     let current_date = new Date(course_metadata_map['start_date']);
     // let end_next_date = getNextDay(course_metadata_map['end_date']);
     let video_interaction_map = {};
@@ -1027,7 +1040,7 @@ function video_interaction(course_metadata_map, log_files, index, total, chunk) 
                                 }
                             }
                             if (['seek_video', 'edx.video.position.changed'].includes(event_type)){
-                                if (new_time !== null && old_time !== null) {
+                                if (new_time != null && old_time != null) {
                                     if (course_learner_id_set.has(course_learner_id)) {
                                         learner_video_event_logs[course_learner_id].push({'event_time': event_time,
                                             'event_type': event_type, 'video_id': video_id, 'new_time': new_time,
@@ -1308,24 +1321,26 @@ function video_interaction(course_metadata_map, log_files, index, total, chunk) 
             data.push(values);
         }
         console.log('Sending', data.length, ' values to storage at ' + new Date());
-        // sqlLogInsert('video_interaction', data);
-        progress_display('Done with file ' + (index + 1));
+        sqlLogInsert('video_interaction', data);
+        progress_display('Done with video interaction for file ' + (index + 1));
         index = index + 1;
         if (index < total){
             processLogFiles(index, chunk);
+            loader.hide();
         } else {
             console.log(performance.now() - zero_start, ' milliseconds');
+            loader.hide();
         }
     } else {
         console.log('no forum session info', index, total);
-        $('#loading').hide()
+        loader.hide();
     }
 }
 
 
 function quiz_mode(course_metadata_map, log_files, index, total, chunk) {
     console.log('Starting quiz processing');
-
+    loader.show();
     let zero_start = performance.now();
 
     let quiz_question_map = course_metadata_map['quiz_question_map']; //object
@@ -1352,7 +1367,7 @@ function quiz_mode(course_metadata_map, log_files, index, total, chunk) {
         data.push(values);
     }
 
-    // sqlLogInsert('quiz_questions', data);   // Uncomment!!!!!!!!!!!!!!!!
+    sqlLogInsert('quiz_questions', data);   // Uncomment!!!!!!!!!!!!!!!!
 
     let submission_event_collection = [];
     submission_event_collection.push('problem_check');
@@ -1398,14 +1413,12 @@ function quiz_mode(course_metadata_map, log_files, index, total, chunk) {
                             if (question_id !== '') {
                                 let submission_id = course_learner_id + '_' + question_id + '_' + submission_uni_index;
                                 submission_uni_index = submission_uni_index + 1;
-                                let submission_timestamp = event_time;
                                 let values = {'submission_id': submission_id, 'course_learner_id':course_learner_id,
-                                              'question_id':question_id, 'submission_timestamp':submission_timestamp};
+                                              'question_id':question_id, 'submission_timestamp': event_time};
                                 submission_data.push(values);
 
                                 if (grade !== '' && max_grade !== '') {
-                                    let assessment_id = submission_id;
-                                    let values = {'assessment_id':assessment_id, 'course_learner_id':course_learner_id,
+                                    let values = {'assessment_id':submission_id, 'course_learner_id':course_learner_id,
                                                   'max_grade':max_grade, 'grade':grade};
                                     assessment_data.push(values);
                                 }
@@ -1414,14 +1427,25 @@ function quiz_mode(course_metadata_map, log_files, index, total, chunk) {
                     }
                 }
             }
-            sqlLogInsert('assessments', assessment_data);
-            sqlLogInsert('submissions', submission_data);
+            if (assessment_data.length > 0){
+                sqlLogInsert('assessments', assessment_data);
+            } else {
+                console.log('No assessment data')
+            }
+            if (submission_data.length > 0) {
+                sqlLogInsert('submissions', submission_data);
+            } else {
+                console.log('No submission data')
+            }
         }
         // current_date = getNextDay(current_date);
     // }
+    console.log('Done with quiz questions ', performance.now()-zero_start, 'milliseconds');
+    loader.hide();
 }
 
 function quiz_sessions(course_metadata_map, log_files, index, total, chunk) {
+    loader.show();
     let zero_start = performance.now();
     let submission_event_collection = [];
     submission_event_collection.push('problem_check');
@@ -1451,10 +1475,10 @@ function quiz_sessions(course_metadata_map, log_files, index, total, chunk) {
     //     if (current_date == end_next_date) {
     //         break;
     //     }
-    let counter0 = 0;
-    let counter1 = 0;
-    let counter2 = 0;
-    let counter3 = 0;
+    // let counter0 = 0;
+    // let counter1 = 0;
+    // let counter2 = 0;
+    // let counter3 = 0;
         for (let log_file of log_files) {
             let file_name = log_file['key'];
             let input_file = log_file['value'];
@@ -1498,6 +1522,7 @@ function quiz_sessions(course_metadata_map, log_files, index, total, chunk) {
                 }
 
                 for (let course_learner_id in learner_all_event_logs) {
+                    if (!(learner_all_event_logs.hasOwnProperty(course_learner_id))){ continue; }
                     let event_logs = learner_all_event_logs[course_learner_id];
 
                     event_logs.sort(function(a, b) {
@@ -1515,10 +1540,10 @@ function quiz_sessions(course_metadata_map, log_files, index, total, chunk) {
                     let final_time = '';
                     // console.log(event_logs);
                     for (let i in event_logs) {
-                        counter2++;
+                        // counter2++;
 
                         if (session_id === '') {
-                            counter0++;
+                            // counter0++;
                             if (event_logs[i]['event_type'].includes('problem+block') || event_logs[i]['event_type'].includes("_problem;_") || submission_event_collection.includes(event_logs[i]['event_type'])) {
                                 let event_type_array = event_logs[i]['event_type'].split('/');
                                 let question_id = '';
@@ -1538,7 +1563,7 @@ function quiz_sessions(course_metadata_map, log_files, index, total, chunk) {
                                 }
                             }
                         } else {
-                            counter1++;
+                            // counter1++;
                             if (event_logs[i]['event_type'].includes('problem+block') || event_logs[i]['event_type'].includes('_problem;_') || submission_event_collection.includes(event_logs[i]['event_type'])) {
                                 // console.log('other', i);
                                 let verification_time = new Date(end_time);
@@ -1617,22 +1642,23 @@ function quiz_sessions(course_metadata_map, log_files, index, total, chunk) {
                 }
             }
         }
-        console.log('c0',counter0);
-        console.log('c1',counter1);
-        console.log('c2', counter2);
-        console.log('c3', counter3);
+        // console.log('c0',counter0);
+        // console.log('c1',counter1);
+        // console.log('c2', counter2);
+        // console.log('c3', counter3);
         // for (let x in learner_all_event_logs){
         //     console.log(learner_all_event_logs[x].length)
         // }
-        console.log('event logs', Object.keys(learner_all_event_logs).length);
-        console.log('keys', Object.keys(quiz_sessions).length);
-        console.log((performance.now() - zero_start)/1000);
+        // console.log('event logs', Object.keys(learner_all_event_logs).length);
+        // console.log('keys', Object.keys(quiz_sessions).length);
+        // console.log((performance.now() - zero_start)/1000);
         // current_date = getNextDay(current_date);
 
     // } from while true
 
 
     for (let session_id in quiz_sessions) {
+        if (!(quiz_sessions.hasOwnProperty(session_id))){ continue; }
         if (Object.keys(quiz_sessions[session_id]['time_array']).length > 1) {
             let start_time = '';
             let end_time = '';
@@ -1660,11 +1686,12 @@ function quiz_sessions(course_metadata_map, log_files, index, total, chunk) {
             quiz_sessions[session_id]['time_array'] = updated_time_array;
         }
     }
-    for (let sesh in quiz_sessions){
-        console.log(sesh.slice(-8,))
-    }
+    // for (let sesh in quiz_sessions){
+    //     console.log(sesh.slice(-8,))
+    // }
     let quiz_session_record = [];
     for (let session_id in quiz_sessions) {
+        if (!(quiz_sessions.hasOwnProperty(session_id))){ continue; }
         let course_learner_id = quiz_sessions[session_id]['course_learner_id'];
         for (let i = 0; i < Object.keys(quiz_sessions[session_id]['time_array']).length; i++) {
             let start_time = quiz_sessions[session_id]['time_array'][i]['start_time'];
@@ -1679,18 +1706,36 @@ function quiz_sessions(course_metadata_map, log_files, index, total, chunk) {
             }
         }
     }
-    console.log(quiz_session_record)
-    // for (let array of quiz_session_record) {
-    //     let session_id = array [0];
-    //     let course_learner_id = array [1];
-    //     let start_time = array [2];
-    //     let end_time = array [3];
-    //     let duration = process_null (array [4]);
-    //     let sql = 'insert into quiz_sessions (session_id, course_learner_id, start_time, end_time, duration) values (%s,%s,%s,%s,%s)';
-    //     let data = tuple ([session_id, course_learner_id, start_time, end_time, duration]);
-    //     cursor.execute (sql, data);
-    // }
-};
+    // console.log(quiz_session_record)
+    if (quiz_session_record.length > 0) {
+        let data = [];
+        for (let array of quiz_session_record) {
+            let session_id = array [0];
+            let course_learner_id = array[1];
+            let start_time = array[2];
+            let end_time = array[3];
+            let duration = process_null(array[4]);
+            let values = {
+                'session_id': session_id, 'course_learner_id': course_learner_id,
+                'start_time': start_time, 'end_time': end_time, 'duration': duration
+            };
+            data.push(values)
+        }
+        sqlLogInsert('quiz_sessions', data);
+        progress_display('Done with quiz sessions for file ' + (index + 1));
+        index = index + 1;
+        if (index < total){
+            processLogFiles(index, chunk);
+            loader.hide();
+        } else {
+            console.log(performance.now() - zero_start, ' milliseconds');
+            loader.hide();
+        }
+    } else {
+        console.log('No quiz session data')
+    }
+}
+
 
 function getEdxDbQuery() {
     let db = "DEFINE DB edxdb;";

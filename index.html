@@ -84,6 +84,18 @@
     <table id="progress_bar">
     </table>
 
+    <div>
+        <br>
+        Click to download session csv file for each course in the table above
+        <br>
+        <button id="dl_sessions">Download Sessions</button>
+        <br>
+        Click to download video interaction csv file for each course in the table above
+        <br>
+        <button id="vid_sessions">Download Video Interaction</button>
+        <br>
+    </div>
+
     <!-- BRYTHON SCRIPT /////////////////////////////////////////////////////////////////////// -->
     <!--<script type="text/python" id="fileToMsg">-->
         <!--from browser import document, alert-->
@@ -513,7 +525,7 @@
                         forum_file = files[file_name]
                         lines = forum_file.split("\n")
 
-                        for line in lines[1155:1180]:
+                        for line in lines[:1155]:
                             if len(line) < 9:
                                 continue
                             jsonObject = json.loads(line)
@@ -672,7 +684,6 @@
                                   "post_content": post_content, "post_timestamp":post_timestamp.isoformat(),
                                   "post_parent_id": post_parent_id, "post_thread_id":post_thread_id}
                         data.append(values)
-                    print(data)
                     window.sqlInsert("forum_interaction", data)
                 else:
                     report.append("no forum interaction info")

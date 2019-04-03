@@ -1,4 +1,4 @@
-var connection = new JsStore.Instance(new Worker('scripts/jsstore.worker.js'));
+let connection = new JsStore.Instance(new Worker('scripts/jsstore.worker.js'));
 let loader = $('#loading');
 // let define function (require) {
 //     pako = require('pako');
@@ -220,7 +220,7 @@ function readAndPassLog(f, reader, index, total, chunk, callback){
         // const reader = new FileReader();
         reader.onloadend = function (event) {
             let content = pako.inflate(event.target.result, {to: 'string'});
-            let lines = content.split('\n');
+            // let lines = content.split('\n');
 
             // if (chunk === 0){
             //     let today = new Date();
@@ -234,10 +234,11 @@ function readAndPassLog(f, reader, index, total, chunk, callback){
 
             processedFiles.push({
                 key: f.name,
-                value: lines.slice((chunk * chunk_size), chunk_size + (chunk*chunk_size)).join('\n')
-                // value: content
+                // value: lines.slice((chunk * chunk_size), chunk_size + (chunk*chunk_size)).join('\n')
+                value: content
             });
             callback([processedFiles, output, index, total, chunk]);
+            reader.abort();
         };
         reader.readAsArrayBuffer(f);
 
@@ -245,7 +246,7 @@ function readAndPassLog(f, reader, index, total, chunk, callback){
         // const reader = new FileReader();
         reader.onload = function () {
             let content = reader.result;
-            let lines = content.split('\n');
+            // let lines = content.split('\n');
 
             // if (chunk === 0){
             //     let today = new Date();
@@ -276,11 +277,12 @@ function passFiles(result){
     let names = result[0];
     let output = result[1];
     document.getElementById('list').innerHTML = '<ul>' + output.join('') + '</ul>';
-    let answer = JSON.stringify(names);
-    let readerEvent = new CustomEvent("studentMetaReader", {
-        "detail": answer
-    });
-    document.dispatchEvent(readerEvent);
+    // let answer = JSON.stringify(names);
+    // let readerEvent = new CustomEvent("studentMetaReader", {
+    //     "detail": answer
+    // });
+    // document.dispatchEvent(readerEvent);
+    learner_mode(names);
 }
 
 // function passLogFiles(result){
@@ -304,9 +306,6 @@ function passLogFiles(result){
     document.getElementById('listLogs').innerHTML = list +'<ul>' + output.join('') + '</ul>';
     connection.runSql('SELECT * FROM metadata').then(function(result) {
 
-        // let today = new Date();
-        // let time = today.getHours() + ":" + today.getMinutes() + ":" + today.getSeconds() + '.' + today.getMilliseconds();
-        // console.log('Passing file ' + index + ' chunk ' + chunk + ' to Brython at ' + time);
         // let readerEvent = new CustomEvent("logFileReader", {
         //     "detail": [result, files, index, total, chunk]
         // });
@@ -314,40 +313,48 @@ function passLogFiles(result){
 
         let course_metadata_map = result[0]['object'];
 
-        // session_mode(course_metadata_map, files, index, total, chunk);
+        let table = document.getElementById("progress_tab");
+        let row = table.insertRow();
+        let cell1 = row.insertCell();
+        cell1.innerHTML = 'Processing file ' + (index + 1) + '/' + total;
+
+        session_mode(course_metadata_map, files, index, total, chunk);
         forum_sessions(course_metadata_map, files, index, total, chunk);
         video_interaction(course_metadata_map, files, index, total, chunk);
         quiz_mode(course_metadata_map, files, index, total, chunk);
         quiz_sessions(course_metadata_map, files, index, total, chunk);
-
     });
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
-// BRYTHON FUNCTIONS
+// USER INTERACTION FUNCTIONS
 
-// function sqlQuery(query){
-//     connection.runSql(query).then(function(result) {
-//         let answer = JSON.stringify(result);
-//         let passData = new CustomEvent("finishedQuery", {
-//             "detail": answer
-//         });
-//         document.dispatchEvent(passData);
-//     });
-// }
-//
-// function getMetaMap(){
-//     connection.runSql('SELECT * FROM metadata').then(function(result) {
-//         let answer = JSON.stringify(result);
-//         let passData = new CustomEvent("metaMapReady", {
-//             "detail": answer
-//         });
-//         document.dispatchEvent(passData);
-//     });
-// }
+function sqlQuery(query){
+    connection.runSql(query).then(function(result) {
+        let answer = JSON.stringify(result);
+        let passData = new CustomEvent("finishedQuery", {
+            "detail": answer
+        });
+        document.dispatchEvent(passData);
+    });
+}
+
+
+function getMetaMap(){
+    connection.runSql('SELECT * FROM metadata').then(function(result) {
+        let answer = JSON.stringify(result);
+        let passData = new CustomEvent("metaMapReady", {
+            "detail": answer
+        });
+        document.dispatchEvent(passData);
+    });
+}
+
 
 function sqlInsert(table, data) {
-    connection.runSql('DELETE FROM ' + table);
+    if (table !== 'forum_interaction'){
+        connection.runSql('DELETE FROM ' + table);
+    }
     let query = new SqlWeb.Query("INSERT INTO " + table + " values='@val'");
     for (let v of data) {
         for (let field of Object.keys(v)) {
@@ -359,10 +366,10 @@ function sqlInsert(table, data) {
     }
     query.map("@val", data);
     connection.runSql(query).then(function (rowsAdded) {
-        if (rowsAdded > 0) {
+        if (rowsAdded > 0 && table !== 'forum_interaction') {
             let today = new Date();
             let time = today.getHours() + ":" + today.getMinutes() + ":" + today.getSeconds() + '.' + today.getMilliseconds();
-            console.log('Successfully added: ', table, ' at ', time);
+            console.log('Successfully added: ', rowsAdded.length, 'to' , table, ' at ', time);
             if (table === 'metadata'){
                 alert('Please reload the page now')
             }
@@ -422,11 +429,19 @@ function downloadCsv(filename, content) {
 }
 
 
-function progress_display(content){
+// function progress_display(content){
+//     let table = document.getElementById("progress_tab");
+//     let row = table.insertRow();
+//     let cell1 = row.insertCell();
+//     cell1.innerHTML = content;
+//     //document.getElementById("progress").innerHTML = content;
+// }
+
+function progress_display(content, index){
     let table = document.getElementById("progress_tab");
-    let row = table.insertRow();
+    let row = table.rows[index];
     let cell1 = row.insertCell();
-    cell1.innerHTML = content
+    cell1.innerHTML = '  ' + content + '  ';
     //document.getElementById("progress").innerHTML = content;
 }
 
@@ -479,6 +494,373 @@ function showCoursesTableDataExtra() {
     });
 }
 
+// METADATA MODULES ////////////////////////////////////////////////////////////////////
+
+function ExtractCourseInformation(files) {
+    let course_metadata_map = {};
+    for (let file of files) {
+        let file_name = file['key'];
+        if (file_name.includes('course_structure')) {
+            let child_parent_map = {};
+            let element_time_map = {};
+            let element_time_map_due = {};
+            let element_type_map = {};
+            let element_without_time = [];
+            let quiz_question_map = {};
+            let block_type_map = {};
+            let jsonObject = JSON.parse(file['value']);
+            for (let record in jsonObject) {
+                if (jsonObject[record]['category'] === 'course') {
+                    let course_id = record;
+                    if (course_id.startsWith('block-')) {
+                        course_id = course_id.replace('block-', 'course-');
+                        course_id = course_id.replace('+type@course+block@course', '');
+                    }
+                    if (course_id.startsWith('i4x://')) {
+                        course_id = course_id.replace('i4x://', '');
+                        course_id = course_id.replace('course/', '');
+                    }
+                    course_metadata_map['course_id'] = course_id;
+                    course_metadata_map['course_name'] = jsonObject[record]['metadata']['display_name'];
+
+                    course_metadata_map['start_date'] = new Date(jsonObject[record]['metadata']['start']);
+                    course_metadata_map['end_date'] = new Date(jsonObject[record]['metadata']['end']);
+
+                    course_metadata_map['start_time'] = course_metadata_map['start_date'];
+                    course_metadata_map['end_time'] = course_metadata_map['end_date'];
+
+                    for (let child of jsonObject[record]['children']) {
+                        child_parent_map[child] = record;
+                    }
+                    element_time_map[record] = new Date(jsonObject[record]['metadata']['start']);
+                    element_type_map[record] = jsonObject[record]['category'];
+                } else {
+                    let element_id = record;
+                    for (let child of jsonObject[element_id]['children']) {
+                        child_parent_map[child] = element_id;
+                    }
+                    if ('start' in jsonObject[element_id]['metadata']) {
+                        element_time_map[element_id] = new Date(jsonObject[element_id]['metadata']['start']);
+                    } else {
+                        element_without_time.push(element_id);
+                    }
+                    if ('due' in jsonObject[element_id]['metadata']) {
+                        element_time_map_due[element_id] = new Date(jsonObject[element_id]['metadata']['due']);
+                    }
+                    element_type_map[element_id] = jsonObject[element_id]['category'];
+                    if (jsonObject[element_id]['category'] === 'problem') {
+                        if ('weight' in jsonObject[element_id]['metadata']) {
+                            quiz_question_map[element_id] = jsonObject[element_id]['metadata']['weight'];
+                        } else {
+                            quiz_question_map[element_id] = 1.0;
+                        }
+                    }
+                    if (jsonObject[element_id]['category'] === 'sequential') {
+                        if ('display_name' in jsonObject[element_id]['metadata']) {
+                            block_type_map[element_id] = jsonObject[element_id]['metadata']['display_name'];
+                        }
+                    }
+                }
+            }
+            for (let element_id of element_without_time) {
+                let element_start_time = '';
+                while (element_start_time === '') {
+                    let element_parent = child_parent_map[element_id];
+                    while (!(element_parent in element_time_map)) {
+                        element_parent = child_parent_map[element_parent];
+                    }
+                    element_start_time = element_time_map[element_parent];
+                }
+                element_time_map[element_id] = element_start_time;
+            }
+            course_metadata_map['element_time_map'] = element_time_map;
+            course_metadata_map['element_time_map_due'] = element_time_map_due;
+            course_metadata_map['element_type_map'] = element_type_map;
+            course_metadata_map['quiz_question_map'] = quiz_question_map;
+            course_metadata_map['child_parent_map'] = child_parent_map;
+            course_metadata_map['block_type_map'] = block_type_map;
+            console.log('Metadata map ready');
+            return course_metadata_map;
+        }
+    }
+}
+
+
+function learner_mode(files) {
+    let course_record = [];
+    let course_element_record = [];
+    let learner_index_record = [];
+    let course_learner_record = [];
+    let learner_demographic_record = [];
+    let course_metadata_map = ExtractCourseInformation(files);
+
+    if (Object.keys(course_metadata_map).length > 1) {
+        course_record.push([course_metadata_map['course_id'], course_metadata_map['course_name'], course_metadata_map['start_time'], course_metadata_map['end_time']]);
+        for (let element_id in course_metadata_map['element_time_map']) {
+            let element_start_time = new Date(course_metadata_map['element_time_map'][element_id]);
+            let week = getDayDiff(course_metadata_map['start_time'], element_start_time) / 7 + 1;
+            let array = [element_id, course_metadata_map['element_type_map'][element_id], week, course_metadata_map['course_id']];
+            course_element_record.push(array);
+        }
+        console.log('Finished processing ' + course_element_record.length + ' elements in metadata map');
+        let learner_mail_map = {};
+        let course_learner_map = {};
+        let learner_enrollment_time_map = {};
+        let enrolled_learner_set = new Set();
+        let course_id = '';
+        for (let file of files) {
+            let file_name = file['key'];
+            if (file_name.includes('student_courseenrollment')){
+                let input_file = file['value'];
+                let lines = input_file.split('\n');
+                for (let line of lines.slice(1, )) {
+                    let record = line.split('\t');
+                    if (record.length < 2) { continue; }
+                    let global_learner_id = record[1];
+                    course_id = record[2];
+                    let time = record[3];
+                    let course_learner_id = course_id + '_' + global_learner_id;
+                    if (cmp_datetime(course_metadata_map['end_time'], new Date(time)) === 1) {
+                        enrolled_learner_set.add(global_learner_id);
+                        let array = [global_learner_id, course_id, course_learner_id];
+                        learner_index_record.push(array);
+                        course_learner_map[global_learner_id] = course_learner_id;
+                        learner_enrollment_time_map[global_learner_id] = time;
+                    }
+                }
+            }
+        }
+        for (let file of files) {
+            let file_name = file['key'];
+            if (file_name.includes('auth_user-')) {
+                let input_file = file['value'];
+                let lines = input_file.split('\n');
+                for (let line of lines) {
+                    let record = line.split('\t');
+                    if (enrolled_learner_set.has(record[0])) {
+                        learner_mail_map[record[0]] = record[4];
+                    }
+                }
+            }
+        }
+        for (let file of files) {
+            let file_name = file['key'];
+            let num_uncertifiedLearners = 0;
+            let num_certifiedLearners = 0;
+            if (file_name.includes('certificates_generatedcertificate')) {
+                let input_file = file['value'];
+                let lines = input_file.split('\n');
+                for (let line of lines) {
+                    let record = line.split('\t');
+                    if (record.length < 10) { continue; }
+                    let global_learner_id = record[1];
+                    let final_grade = record[3];
+                    let enrollment_mode = record[14].replace(/\n/g, '');
+                    let certificate_status = record[7];
+                    let register_time = '';
+                    if (global_learner_id in course_learner_map) {
+                        register_time = learner_enrollment_time_map[global_learner_id];
+                    }
+                    if (global_learner_id in course_learner_map) {
+                        num_certifiedLearners++;
+                        let array = [course_learner_map[global_learner_id], final_grade, enrollment_mode, certificate_status, register_time];
+                        course_learner_record.push(array);
+                    }
+                    else {
+                        num_uncertifiedLearners++;
+                    }
+                }
+            }
+        }
+        for (let file of files) {
+            let file_name = file['key'];
+            if (file_name.includes('auth_userprofile')) {
+                let input_file = file['value'];
+                let lines = input_file.split('\n');
+                for (let line of lines) {
+                    let record = line.split('\t');
+                    if (record.length < 10) { continue; }
+                    let global_learner_id = record[1];
+                    let gender = record[7];
+                    let year_of_birth = record[9];
+                    let level_of_education = record[10];
+                    let country = record[13];
+                    let course_learner_id = course_id + '_' + global_learner_id;
+                    if (enrolled_learner_set.has(global_learner_id)) {
+                        let array = [course_learner_id, gender, year_of_birth, level_of_education, country, learner_mail_map[global_learner_id]];
+                        learner_demographic_record.push(array);
+                    }
+                }
+            }
+        }
+
+        let forum_interaction_records = [];
+        for (let file of files) {
+            let file_name = file['key'];
+            if (file_name.includes(".mongo")) {
+                forum_interaction_records = forum_interaction(file['value'], course_metadata_map);
+            }
+        }
+
+        console.log('All metadata ready');
+        if (course_record.length > 0) {
+            let data = [];
+            for (let array of course_record) {
+                let course_id = course_metadata_map['course_id'];
+                let course_name = course_metadata_map['course_name'];
+                let start_time = course_metadata_map['start_time'];
+                let end_time = course_metadata_map['end_time'];
+                let py_values = {'course_id': course_id, 'course_name': course_name,
+                    'start_time': start_time, 'end_time': end_time};
+                data.push(py_values);
+            }
+            sqlInsert('courses', data);
+        } else {
+            console.log('no courses info');
+        }
+        if (course_element_record.length > 0) {
+            let data = [];
+            for (let array of course_element_record) {
+                let element_id = array[0];
+                let element_type = array[1];
+                let week = process_null(array[2]);
+                let course_id = array[3];
+                let py_values = {'element_id': element_id, 'element_type': element_type,
+                    'week': week, 'course_id': course_id};
+                data.push(py_values);
+            }
+            sqlInsert ('course_elements', data);
+        }
+        else {
+            console.log('no course element info');
+        }
+        if (learner_index_record.length > 0) {
+            let data = [];
+            for (let array of learner_index_record) {
+                let global_learner_id = array[0];
+                let course_id = array[1];
+                let course_learner_id = array[2];
+                let py_values = {'global_learner_id': global_learner_id, 'course_id': course_id,
+                    'course_learner_id': course_learner_id};
+                data.push(py_values);
+            }
+            sqlInsert ('learner_index', data);
+        }
+        else {
+            console.log('no learner index info');
+        }
+        if (course_learner_record.length > 0) {
+            let data = [];
+            for (let array of course_learner_record) {
+                let course_learner_id = array[0];
+                let final_grade = parseFloat(process_null(array[1]));
+                let enrollment_mode = array[2];
+                let certificate_status = array[3];
+                let register_time = process_null(array[4]);
+                let py_values = {'course_learner_id': course_learner_id, 'final_grade': final_grade,
+                    'enrollment_mode': enrollment_mode, 'certificate_status': certificate_status,
+                    'register_time': register_time};
+                data.push(py_values);
+            }
+            sqlInsert('course_learner', data);
+        }
+        else {
+            console.log('no enrolled students info');
+        }
+        if (learner_demographic_record.length > 0) {
+            let data = [];
+            for (let array of learner_demographic_record) {
+                let course_learner_id = process_null(array[0]);
+                let gender = array[1];
+                let year_of_birth = parseInt(process_null(array[2]));
+                let level_of_education = array[3];
+                let country = array[4];
+                let email = array[5];
+                email = email.replace(/"/g, '');
+                let py_values = {'course_learner_id': course_learner_id, 'gender': gender, 'year_of_birth': year_of_birth,
+                    'level_of_education': level_of_education, 'country': country, 'email': email};
+                data.push(py_values);
+            }
+            sqlInsert('learner_demographic', data);
+        }
+        else {
+            console.log('no learner demographic info');
+        }
+        if (forum_interaction_records.length > 0){
+            let data = [];
+            for (let array of forum_interaction_records) {
+                let post_id = process_null(array[0]);
+                let course_learner_id = array[1];
+                let post_type = array[2];
+                let post_title = cleanUnicode(array[3]);
+                let post_content = cleanUnicode(array[4]);
+                let post_timestamp = array[5];
+                let post_parent_id = array[6];
+                let post_thread_id = array[7];
+
+                let py_values = {"post_id": post_id, "course_learner_id": course_learner_id, "post_type": post_type,
+                    "post_title": post_title, "post_content": post_content, "post_timestamp":post_timestamp,
+                    "post_parent_id": post_parent_id, "post_thread_id":post_thread_id};
+
+                data.push(py_values);
+            }
+
+            connection.runSql('DELETE FROM forum_interaction');
+
+            for (let array of data){
+                try {
+                    sqlInsert('forum_interaction', [array])
+                } catch(error) {
+                    console.log(array)
+                }
+            }
+            // sqlInsert('forum_interaction', data);
+
+        } else {
+            console.log('no forum interaction records')
+        }
+
+        let map_to_store = course_metadata_map;
+
+        // map_to_store['start_time'] = start_time.isoformat ();
+        // map_to_store['end_time'] = end_time.isoformat ();
+        // for (let element of map_to_store ['element_time_map']) {
+        //     map_to_store ['element_time_map'][element] = course_metadata_map['element_time_map'][element].isoformat ();
+        // }
+        // for (let element of map_to_store ['element_time_map_due']) {
+        //     map_to_store ['element_time_map_due'][element] = course_metadata_map['element_time_map_due'][element].isoformat ();
+        // }
+
+        let store_map = [{'name': 'metadata_map', 'object': map_to_store}];
+        sqlInsert ('metadata', store_map);
+        // loader.hide();
+
+        // if (window.confirm('Download processing report?')) {
+        //     let report = '\n'.join (report);
+        //     window.download ('report.txt', report);
+        //     alert ('Your data is being stored, please wait a couple minutes before reloading this page');
+        // }
+        // else {
+        //     window.console.log ('No report downloaded');
+        //     alert ('Your data is being stored, please wait a couple minutes before reloading this page');
+        // }
+
+    }
+    else {
+        console.log('Course structure file not found');
+        // jq ('#loading').hide ();
+        // if (window.confirm ('Download processing report?')) {
+        //     let report = '\n'.join (report);
+        //     window.download ('report.txt', report);
+        // }
+        // else {
+        //     window.console.log ('No report downloaded');
+        // }
+    }
+};
+
+
+// TRANSLATION MODULES
 
 function session_mode(course_metadata_map, log_files, index, total, chunk){
     loader.show();
@@ -540,28 +922,20 @@ function session_mode(course_metadata_map, log_files, index, total, chunk){
                     }
                 }
             }
-            // let sorter = ['sorter']; // Performance
-            // let starting_event = ['starting_event'];// Performance
-            // let cont_event_a = ['cont_event_a'];// Performance
-            // let cont_event_b = ['cont_event_b'];// Performance
 
             for (let course_learner_id in learner_all_event_logs){
-                // let start = performance.now();
                 let event_logs = learner_all_event_logs[course_learner_id];
                 event_logs.sort(function(a, b) {
                     return new Date(a.event_time) - new Date(b.event_time) ;
                 });
-                // sorter.push(performance.now() - start);// Performance
                 let session_id = "";
                 let start_time = "";
                 let end_time = "";
                 let final_time = "";
                 for (let i in event_logs){
-                    // let start = performance.now();
                     if (start_time === ''){
                         start_time = new Date(event_logs[i]["event_time"]);
                         end_time = new Date(event_logs[i]["event_time"]);
-                        // starting_event.push(performance.now() - start);// Performance
                     } else {
                         if (new Date(event_logs[i]["event_time"]) > end_time.setMinutes(end_time.getMinutes() + 30)){
                             let session_id = course_learner_id + '_' + start_time + '_' + end_time;
@@ -578,8 +952,6 @@ function session_mode(course_metadata_map, log_files, index, total, chunk){
                             session_id = "";
                             start_time = new Date(event_logs[i]["event_time"]);
                             end_time = new Date(event_logs[i]["event_time"]);
-
-                            // cont_event_a.push(performance.now()-start);// Performance
 
                         } else {
                             if (event_logs[i]["event_type"] === "page_close"){
@@ -600,7 +972,6 @@ function session_mode(course_metadata_map, log_files, index, total, chunk){
                             } else {
                                 end_time = new Date(event_logs[i]["event_time"]);
                             }
-                            // cont_event_b.push(performance.now() - start);// Performance
                         }
                     }
                 }
@@ -647,21 +1018,20 @@ function session_mode(course_metadata_map, log_files, index, total, chunk){
                 }
                 console.log('Send to storage at ' + new Date());
                 sqlLogInsert('sessions', data);
-                progress_display('Done with session mode for file ' + (index + 1));
-                index = index + 1;
-                if (index < total){
-                    processLogFiles(index, chunk);
-                } else {
-                    console.log(performance.now() - zero_start, ' milliseconds');
-                    loader.hide()
-                }
+                // progress_display('Done with session mode for file ' + (index + 1));
+                progress_display(data.length + ' session elements', index);
+                loader.hide();
+                // index = index + 1;
+                // if (index < total){
+                //     processLogFiles(index, chunk);
+                // } else {
+                //     console.log(performance.now() - zero_start, ' milliseconds');
+                //     loader.hide()
+                // }
             } else {
                 console.log('no session info', index, total);
                 loader.hide()
             }
-
-            // download('js_list', [new_line_reader, existing_line_reader, sorter, starting_event,
-            //                                       cont_event_a, cont_event_b, 'total', performance.now() - zero_start] )
         }
     }
     // if (index < total){
@@ -669,6 +1039,17 @@ function session_mode(course_metadata_map, log_files, index, total, chunk){
     //     processLogFiles(new_index, chunk);
     // }
 }
+
+function cmp_datetime(a_datetime, b_datetime){
+    if (a_datetime < b_datetime) {
+        return -1;
+    } else if (a_datetime > b_datetime){
+        return 1;
+    } else {
+        return 0;
+    }
+}
+
 
 
 function process_null(inputString){
@@ -693,9 +1074,32 @@ function cleanUnicode(text) {
 }
 
 
+function escapeString(text) {
+    return text
+        .replace(/[\\]/g, '\\\\')
+        .replace(/[\"]/g, '\\\"')
+        .replace(/[\/]/g, '\\/')
+        .replace(/[\b]/g, '\\b')
+        .replace(/[\f]/g, '\\f')
+        .replace(/[\n]/g, '\\n')
+        .replace(/[\r]/g, '\\r')
+        .replace(/[\t]/g, '\\t');
+}
+
+
 function getNextDay(current_day){
     current_day.setDate(current_day.getDate() + 1);
     return current_day;
+}
+
+
+function getDayDiff(beginDate, endDate) {
+    let count = 0;
+    while ((endDate.getDate() - beginDate.getDate()) >= 1){
+        endDate.setDate(endDate.getDate() - 1);
+        count += 1
+    }
+    return count
 }
 
 
@@ -747,69 +1151,70 @@ function coucourseElementsFinder_string(eventlog_item, course_id) {
 }
 
 
-function forum_interaction(files, course_metadata_map){
+function forum_interaction(forum_file, course_metadata_map){
+    let forum_interaction_records = [];
+    let lines = forum_file.split("\n");
+    for (let line of lines) {
+        if (line.length < 9) {continue;}
+        let jsonObject = JSON.parse(line);
 
-    if (file_name.includes(".mongo")){
-        let forum_interaction_records = [];
+        let post_id = jsonObject["_id"]["$oid"];
+        let course_learner_id = jsonObject["course_id"] + "_" + jsonObject["author_id"];
 
-        let forum_file = files[file_name];
-        let lines = forum_file.split("\n");
-        for (let line of lines) {
-            if (line.length < 9) {continue;}
-            let jsonObject = JSON.parse(line);
+        let post_type = jsonObject["_type"];
+        if (post_type === "CommentThread"){
+            post_type += "_" + jsonObject["thread_type"];
+        }
+        if ("parent_id" in jsonObject &&  jsonObject["parent_id"] !== ""){
+            post_type = "Comment_Reply"
+        }
 
-            let post_id = jsonObject["_id"]["$oid"];
-            let course_learner_id = jsonObject["course_id"] + "_" + jsonObject["author_id"];
+        let post_title = "";
+        if (jsonObject.hasOwnProperty("title")){
+            post_title = jsonObject["title"];
+        }
 
-            let post_type = jsonObject["_type"];
-            if (post_type === "CommentThread"){
-                post_type += "_" + jsonObject["thread_type"];
-            }
-            if ("parent_id" in jsonObject &&  jsonObject["parent_id"] !== ""){
-                post_type = "Comment_Reply"
-            }
+        let post_content = jsonObject["body"];
+        let post_timestamp = new Date(jsonObject["created_at"]["$date"]);
 
-            let post_title = "";
-            if ("title" in jsonObject){
-                post_title = jsonObject["title"];
-            }
+        // if (typeof (post_timestamp) === typeof(100)) {
+        //     post_timestamp = strftime("%Y-%m-%d %H:%M:%S", gmtime(post_timestamp / 1000));
+        //     post_timestamp = datetime.datetime.strptime(post_timestamp, "%Y-%m-%d %H:%M:%S");
+        // }
+        // if (typeof(post_timestamp) === 'string') {
+        //     post_timestamp = post_timestamp.slice(0, 19);
+        //     post_timestamp = post_timestamp.replace("T", " ");
+        //     post_timestamp = datetime.datetime.strptime(post_timestamp, "%Y-%m-%d %H:%M:%S");
+        // }
 
-            let post_content = jsonObject["body"];
-            let  post_timestamp = jsonObject["created_at"]["$date"];
-            if (typeof (post_timestamp) === typeof(100)) {
-                post_timestamp = strftime("%Y-%m-%d %H:%M:%S", gmtime(post_timestamp / 1000));
-                post_timestamp = datetime.datetime.strptime(post_timestamp, "%Y-%m-%d %H:%M:%S");
-            }
-            if (typeof(post_timestamp) === 'string') {
-                post_timestamp = post_timestamp.slice(0, 19);
-                post_timestamp = post_timestamp.replace("T", " ");
-                post_timestamp = datetime.datetime.strptime(post_timestamp, "%Y-%m-%d %H:%M:%S");
-            }
+        let post_parent_id = "";
+        if (jsonObject.hasOwnProperty("parent_id")) {
+            post_parent_id = jsonObject["parent_id"]["$oid"]
+        }
 
-            let post_parent_id = ""
-            if (jsonObject.hasOwnProperty("parent_id")) {
-                post_parent_id = jsonObject["parent_id"]["$oid"]
-            }
+        let post_thread_id = "";
+        if (jsonObject.hasOwnProperty("comment_thread_id" )) {
+            post_thread_id = jsonObject["comment_thread_id"]["$oid"]
+        }
 
-            let post_thread_id = "";
-            if (jsonObject.hasOwnProperty("comment_thread_id" )) {
-                post_thread_id = jsonObject["comment_thread_id"]["$oid"]
-            }
+        // console.log(post_title);
+        // console.log(post_content);
 
-            post_title = post_title.replace("\n", " ");
-            post_title = post_title.replace("\\", "\\\\");
-            post_title = post_title.replace("\'", "\\'");
+        // post_title = post_title.replace("\n", " ");
+        // post_title = post_title.replace("\\", "\\\\");
+        // post_title = post_title.replace("\'", "\\'");
+        //
+        // post_content = post_content.replace("\n", " ");
+        // post_content = post_content.replace("\\", "\\\\");
+        // post_content = post_content.replace('"', '\"');
 
-            post_content = post_content.replace("\n", " ");
-            post_content = post_content.replace("\\", "\\\\");
-            post_content = post_content.replace('"', '\"');
-
-            if (post_timestamp < course_metadata_map["end_time"]) {
-                let array = [post_id, course_learner_id, post_type, post_title, post_content, post_timestamp, post_parent_id, post_thread_id];
-                forum_interaction_records.push(array)
-            }
+        if (post_timestamp < course_metadata_map["end_time"]) {
+            let array = [post_id, course_learner_id, post_type, post_title, escapeString(post_content),
+                        post_timestamp, post_parent_id, post_thread_id];
+            forum_interaction_records.push(array)
         }
     }
+    return forum_interaction_records;
 }
 
 
@@ -1012,9 +1417,9 @@ function forum_sessions(course_metadata_map, log_files, index, total, chunk) {
     if (forum_sessions_record.length > 0){
         let data = [];
         for (let array of forum_sessions_record){
-            let session_id = array [0];
-            let course_learner_id = array [1];
-            let times_search = array[2];
+            let session_id = array[0];
+            let course_learner_id = array[1];
+            let times_search = process_null(array[2]);
             let start_time = array[3];
             let end_time = array[4];
             let duration = process_null(array[5]);
@@ -1026,15 +1431,16 @@ function forum_sessions(course_metadata_map, log_files, index, total, chunk) {
         }
         console.log('Send to storage at ' + new Date());
         sqlLogInsert('forum_sessions', data);
-        progress_display('Done with forum sessions for file ' + (index + 1));
-        index = index + 1;
-        if (index < total){
-            processLogFiles(index, chunk);
-            loader.hide();
-        } else {
-            console.log(performance.now() - zero_start, ' milliseconds');
-            loader.hide()
-        }
+        // progress_display('Done with forum sessions for file ' + (index + 1));
+        progress_display(data.length + ' forum elements', index);
+        // index = index + 1;
+        // if (index < total){
+        //     processLogFiles(index, chunk);
+        //     loader.hide();
+        // } else {
+        //     console.log(performance.now() - zero_start, ' milliseconds');
+        //     loader.hide()
+        // }
     } else {
         console.log('no forum session info', index, total);
         loader.hide()
@@ -1126,8 +1532,8 @@ function video_interaction(course_metadata_map, log_files, index, total, chunk) 
                                     old_time = event_jsonObject['old_time'];
                                 }
                                 if ('new_speed' in event_jsonObject && 'old_speed' in event_jsonObject){
-                                    new_speed = event_jsonObject ['new_speed'];
-                                    old_speed = event_jsonObject ['old_speed'];
+                                    new_speed = event_jsonObject['new_speed'];
+                                    old_speed = event_jsonObject['old_speed'];
                                 }
                             }
                             if (['seek_video', 'edx.video.position.changed'].includes(event_type)){
@@ -1169,7 +1575,7 @@ function video_interaction(course_metadata_map, log_files, index, total, chunk) 
                         }
                     }
                     if (! (video_event_types.includes(jsonObject['event_type']))) {
-                        if (! ('user_id' in jsonObject ['context'])){
+                        if (! ('user_id' in jsonObject['context'])){
                             continue;
                         }
                         let global_learner_id = jsonObject['context']['user_id'];
@@ -1413,15 +1819,16 @@ function video_interaction(course_metadata_map, log_files, index, total, chunk) 
         }
         console.log('Sending', data.length, ' values to storage at ' + new Date());
         sqlLogInsert('video_interaction', data);
-        progress_display('Done with video interaction for file ' + (index + 1));
-        index = index + 1;
-        if (index < total){
-            processLogFiles(index, chunk);
-            loader.hide();
-        } else {
-            console.log(performance.now() - zero_start, ' milliseconds');
-            loader.hide();
-        }
+        // progress_display('Done with video interaction for file ' + (index + 1));
+        progress_display(data.length + ' video interaction elements', index);
+        // index = index + 1;
+        // if (index < total){
+        //     processLogFiles(index, chunk);
+        //     loader.hide();
+        // } else {
+        //     console.log(performance.now() - zero_start, ' milliseconds');
+        //     loader.hide();
+        // }
     } else {
         console.log('no forum session info', index, total);
         loader.hide();
@@ -1446,7 +1853,7 @@ function quiz_mode(course_metadata_map, log_files, index, total, chunk) {
             question_due = element_time_map_due[quiz_question_parent];
         }
         while (!(quiz_question_parent in block_type_map)) {
-            quiz_question_parent = course_metadata_map ['child_parent_map'][quiz_question_parent];
+            quiz_question_parent = course_metadata_map['child_parent_map'][quiz_question_parent];
             if (question_due === '' && quiz_question_parent in element_time_map_due) {
                 question_due = element_time_map_due [quiz_question_parent];
             }
@@ -1458,7 +1865,7 @@ function quiz_mode(course_metadata_map, log_files, index, total, chunk) {
         data.push(values);
     }
 
-    sqlLogInsert('quiz_questions', data);   // Uncomment!!!!!!!!!!!!!!!!
+    sqlLogInsert('quiz_questions', data);
 
     let submission_event_collection = [];
     submission_event_collection.push('problem_check');
@@ -1492,9 +1899,6 @@ function quiz_mode(course_metadata_map, log_files, index, total, chunk) {
                             let grade = '';
                             let max_grade = '';
                             let event_time = new Date(jsonObject['time']);
-                            // let event_time = event_time.__getslice__ (0, 19, 1);
-                            // let event_time = event_time.py_replace ('T', ' ');
-                            // let event_time = datetime.datetime.strptime (event_time, '%Y-%m-%d %H:%M:%S');
                             if (typeof jsonObject['event'] === 'object') {
                                 question_id = jsonObject['event']['problem_id'];
                                 if ('grade' in jsonObject['event'] && 'max_grade' in jsonObject['event']) {
@@ -1563,14 +1967,12 @@ function quiz_sessions(course_metadata_map, log_files, index, total, chunk) {
     let learner_all_event_logs = {};
     let updated_learner_all_event_logs = {};
     let quiz_sessions = {};
+
     // while (true) {
     //     if (current_date == end_next_date) {
     //         break;
     //     }
-    // let counter0 = 0;
-    // let counter1 = 0;
-    // let counter2 = 0;
-    // let counter3 = 0;
+
         for (let log_file of log_files) {
             let file_name = log_file['key'];
             let input_file = log_file['value'];
@@ -1583,7 +1985,6 @@ function quiz_sessions(course_metadata_map, log_files, index, total, chunk) {
                 for (let course_learner_id in learner_all_event_logs) {
                     course_learner_id_set.add(course_learner_id);
                 }
-
                 let lines = input_file.split('\n');
                 console.log('    with ', lines.length, 'lines');
 
@@ -1596,12 +1997,9 @@ function quiz_sessions(course_metadata_map, log_files, index, total, chunk) {
                     let global_learner_id = jsonObject['context']['user_id'];
                     let event_type = jsonObject['event_type'];
                     if (global_learner_id !== '') {
-                        let course_id = jsonObject ['context'] ['course_id'];
+                        let course_id = jsonObject['context']['course_id'];
                         let course_learner_id = course_id + '_' + global_learner_id;
                         let event_time = new Date(jsonObject['time']);
-                        // let event_time = event_time.__getslice__ (0, 19, 1);
-                        // let event_time = event_time.py_replace ('T', ' ');
-                        // let event_time = datetime.datetime.strptime (event_time, '%Y-%m-%d %H:%M:%S');
                         if (course_learner_id in learner_all_event_logs) {
                             learner_all_event_logs[course_learner_id].push({'event_time': event_time, 'event_type': event_type});
                         }
@@ -1628,12 +2026,8 @@ function quiz_sessions(course_metadata_map, log_files, index, total, chunk) {
                     let end_time = '';
 
                     let final_time = '';
-                    // console.log(event_logs);
                     for (let i in event_logs) {
-                        // counter2++;
-
                         if (session_id === '') {
-                            // counter0++;
                             if (event_logs[i]['event_type'].includes('problem+block') || event_logs[i]['event_type'].includes("_problem;_") || submission_event_collection.includes(event_logs[i]['event_type'])) {
                                 let event_type_array = event_logs[i]['event_type'].split('/');
                                 let question_id = '';
@@ -1642,20 +2036,15 @@ function quiz_sessions(course_metadata_map, log_files, index, total, chunk) {
                                 }
                                 if (event_logs[i]['event_type'].includes('_problem;_')) {
                                     question_id = event_type_array[6].replace(/;_/g, '/');
-                                    // console.log(question_id);
-                                    // console.log('first b', i);
                                 }
                                 if (question_id in child_parent_map) {
-                                    // console.log(i, 'in child map', question_id);
                                     session_id = 'quiz_session_' + child_parent_map[question_id] + '_' + course_learner_id;
                                     start_time = event_logs[i]['event_time'];
                                     end_time = event_logs[i]['event_time'];
                                 }
                             }
                         } else {
-                            // counter1++;
                             if (event_logs[i]['event_type'].includes('problem+block') || event_logs[i]['event_type'].includes('_problem;_') || submission_event_collection.includes(event_logs[i]['event_type'])) {
-                                // console.log('other', i);
                                 let verification_time = new Date(end_time);
                                 if (event_logs[i]['event_time'] > verification_time.setMinutes(verification_time.getMinutes() + 30)) {
                                     if (session_id in quiz_sessions) {
@@ -1675,19 +2064,15 @@ function quiz_sessions(course_metadata_map, log_files, index, total, chunk) {
                                         let question_id = '';
                                         if (event_logs[i]['event_type'].includes('problem+block')) {
                                             question_id = event_type_array[4];
-                                            // console.log('a', question_id);
                                         }
                                         if (event_logs[i]['event_type'].includes('_problem;_')) {
                                             question_id = event_type_array[6].replace(/;_/g, '/');
-                                            // console.log('b', question_id);
                                         }
                                         if (question_id in child_parent_map) {
                                             session_id = 'quiz_session_' + child_parent_map[question_id] + '_' + course_learner_id;
                                             start_time = event_logs[i]['event_time'];
                                             end_time = event_logs[i]['event_time'];
-                                            // console.log(i, 'in second child map', question_id);
                                         } else {
-                                            // console.log(i, 'not in second child map', question_id);
                                             session_id = '';
                                             start_time = '';
                                             end_time = '';
@@ -1732,20 +2117,7 @@ function quiz_sessions(course_metadata_map, log_files, index, total, chunk) {
                 }
             }
         }
-        // console.log('c0',counter0);
-        // console.log('c1',counter1);
-        // console.log('c2', counter2);
-        // console.log('c3', counter3);
-        // for (let x in learner_all_event_logs){
-        //     console.log(learner_all_event_logs[x].length)
-        // }
-        // console.log('event logs', Object.keys(learner_all_event_logs).length);
-        // console.log('keys', Object.keys(quiz_sessions).length);
-        // console.log((performance.now() - zero_start)/1000);
-        // current_date = getNextDay(current_date);
-
     // } from while true
-
 
     for (let session_id in quiz_sessions) {
         if (!(quiz_sessions.hasOwnProperty(session_id))){ continue; }
@@ -1800,7 +2172,7 @@ function quiz_sessions(course_metadata_map, log_files, index, total, chunk) {
     if (quiz_session_record.length > 0) {
         let data = [];
         for (let array of quiz_session_record) {
-            let session_id = array [0];
+            let session_id = array[0];
             let course_learner_id = array[1];
             let start_time = array[2];
             let end_time = array[3];
@@ -1812,7 +2184,8 @@ function quiz_sessions(course_metadata_map, log_files, index, total, chunk) {
             data.push(values)
         }
         sqlLogInsert('quiz_sessions', data);
-        progress_display('Done with quiz sessions for file ' + (index + 1));
+        // progress_display('Done with quiz sessions for file ' + (index + 1));
+        progress_display(data.length + ' quiz elements', index);
         index = index + 1;
         if (index < total){
             processLogFiles(index, chunk);

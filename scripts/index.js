@@ -1804,6 +1804,9 @@ function video_interaction(course_metadata_map, log_files, index, total, chunk) 
     let video_interaction_record = [];
     for (let interaction_id in video_interaction_map) {
         let video_interaction_id = interaction_id;
+        if (chunk !== 0) {
+            video_interaction_id = video_interaction_id + '_' + chunk
+        }
         let course_learner_id = video_interaction_map[interaction_id]['course_learner_id'];
         let video_id = video_interaction_map[interaction_id]['video_id'];
         let duration = video_interaction_map[interaction_id]['watch_duration'];

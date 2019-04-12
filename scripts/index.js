@@ -297,26 +297,26 @@ function passLogFiles(result){
 ////////////////////////////////////////////////////////////////////////////////////////////////
 // USER INTERACTION FUNCTIONS
 
-function sqlQuery(query){
-    connection.runSql(query).then(function(result) {
-        let answer = JSON.stringify(result);
-        let passData = new CustomEvent("finishedQuery", {
-            "detail": answer
-        });
-        document.dispatchEvent(passData);
-    });
-}
-
-
-function getMetaMap(){
-    connection.runSql('SELECT * FROM metadata').then(function(result) {
-        let answer = JSON.stringify(result);
-        let passData = new CustomEvent("metaMapReady", {
-            "detail": answer
-        });
-        document.dispatchEvent(passData);
-    });
-}
+// function sqlQuery(query){
+//     connection.runSql(query).then(function(result) {
+//         let answer = JSON.stringify(result);
+//         let passData = new CustomEvent("finishedQuery", {
+//             "detail": answer
+//         });
+//         document.dispatchEvent(passData);
+//     });
+// }
+//
+//
+// function getMetaMap(){
+//     connection.runSql('SELECT * FROM metadata').then(function(result) {
+//         let answer = JSON.stringify(result);
+//         let passData = new CustomEvent("metaMapReady", {
+//             "detail": answer
+//         });
+//         document.dispatchEvent(passData);
+//     });
+// }
 
 
 function sqlInsert(table, data) {
@@ -1278,12 +1278,11 @@ function forum_interaction(forum_file, course_metadata_map){
 
 function forum_sessions(course_metadata_map, log_files, index, total) {
     // // loader.show();
-    let zero_start = performance.now();
 
     let start_date = new Date(course_metadata_map['start_date']);
-    let end_date = new Date(course_metadata_map['end_date']);
+    // let end_date = new Date(course_metadata_map['end_date']);
     let current_date = new Date(start_date);
-    let end_next_date = getNextDay(end_date);
+    // let end_next_date = getNextDay(end_date);
     let forum_event_types = [];
     forum_event_types.push('edx.forum.comment.created');
     forum_event_types.push('edx.forum.response.created');
@@ -1488,10 +1487,7 @@ function forum_sessions(course_metadata_map, log_files, index, total) {
             data.push(values);
         }
         console.log('Send to storage at ' + new Date());
-
-        // console.log('not storing ', data.length, ' elements in forum_sessions');
         sqlLogInsert('forum_sessions', data);
-
         progress_display(data.length + ' forum elements', index);
         // loader.hide();
     } else {
@@ -1502,7 +1498,6 @@ function forum_sessions(course_metadata_map, log_files, index, total) {
 
 
 function video_interaction(course_metadata_map, log_files, index, total, chunk) {
-    let zero_start = performance.now();
     // loader.show();
     console.log('Starting video session processing');
     let current_date = new Date(course_metadata_map['start_date']);
@@ -1936,15 +1931,11 @@ function quiz_mode(course_metadata_map, log_files, index, total, chunk) {
             }
             if (assessment_data.length > 0){
                 sqlLogInsert('assessments', assessment_data);
-                // console.log('not storing ', assessment_data.length, ' elements in assessment_data');
-
             } else {
                 console.log('No assessment data', index, total)
             }
             if (submission_data.length > 0) {
                 sqlLogInsert('submissions', submission_data);
-                // console.log('not storing ', submission_data.length, ' elements in submission_data');
-
             } else {
                 console.log('No submission data', index, total)
             }
@@ -1957,7 +1948,6 @@ function quiz_mode(course_metadata_map, log_files, index, total, chunk) {
 
 function quiz_sessions(course_metadata_map, log_files, index, total, chunk, total_chunks) {
     // loader.show();
-    let zero_start = performance.now();
     let submission_event_collection = [];
     submission_event_collection.push('problem_check');
     submission_event_collection.push('save_problem_check');
@@ -2195,8 +2185,6 @@ function quiz_sessions(course_metadata_map, log_files, index, total, chunk, tota
             data.push(values)
         }
         sqlLogInsert('quiz_sessions', data);
-        // console.log('not storing ', data.length, ' elements in quiz_sessions');
-
         progress_display(data.length + ' quiz elements', index);
     } else {
         console.log('No quiz session data')
@@ -2213,7 +2201,6 @@ function quiz_sessions(course_metadata_map, log_files, index, total, chunk, tota
             processLogFiles(index, chunk);
             // loader.hide();
         } else {
-            console.log(performance.now() - zero_start, ' milliseconds');
             let table = document.getElementById("progress_tab");
             let row = table.insertRow();
             let cell1 = row.insertCell();

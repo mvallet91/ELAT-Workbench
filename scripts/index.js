@@ -187,11 +187,13 @@ function readMetaFiles(files, callback){
 //     }
 // }
 
+let chunk_size = 800 * 1024 * 1024;
+
 function processLogFiles(index, chunk){
     let  multiFileInputLogs = document.getElementById('logFilesInput');
     let files = multiFileInputLogs.files;
     let counter = 0;
-    let chunk_size = 70 * 1024 * 1024;
+    // let chunk_size = 80 * 1024 * 1024;
     let total = files.length;
     let total_chunks = 1;
     for (const f of files) {
@@ -211,7 +213,7 @@ function readAndPassLog(f, reader, index, total, chunk, total_chunks, callback){
     let output = [];
     let processedFiles = [];
     let gzipType = /gzip/;
-    let chunk_size = 70 * 1024 * 1024; // 50 MB
+    // let chunk_size = 80 * 1024 * 1024; // 50 MB
     output.push('<li><strong>', f.name, '</strong> (', f.type || 'n/a', ') - ',
                 f.size, ' bytes', '</li>');
 
@@ -1118,9 +1120,6 @@ function session_mode(course_metadata_map, log_files, index, total){
             for (let course_learner_id in learner_all_event_logs){
                 let event_logs = learner_all_event_logs[course_learner_id];
 
-                event_logs.sort(function(a, b) {
-                    return b.event_type - a.event_type;
-                });
                 event_logs.sort(function(a, b) {
                     return new Date(a.event_time) - new Date(b.event_time) ;
                 });
@@ -2204,8 +2203,10 @@ function quiz_sessions(course_metadata_map, log_files, index, total, chunk, tota
             let table = document.getElementById("progress_tab");
             let row = table.insertRow();
             let cell1 = row.insertCell();
-            cell1.innerHTML = ('Done! at ' + new Date().toLocaleString('en-GB'));
-            setTimeout(function(){ alert("Done, please reload the page"); }, 5000);
+            setTimeout(function(){
+                alert("Done, please reload the page");
+                cell1.innerHTML = ('Done! at ' + new Date().toLocaleString('en-GB'));
+            }, 30000);
             // loader.hide();
         }
     }
@@ -2233,7 +2234,7 @@ function processSessions(tablename, headers) {
                         data.push(array)
                     }
                     if (counter === total_count){
-                        downloadCsv(tablename + '_v5_' + course_id + '.csv', data);
+                        downloadCsv(tablename + '_1510_' + course_id + '.csv', data);
                     }
                 });
                 console.log(counter)

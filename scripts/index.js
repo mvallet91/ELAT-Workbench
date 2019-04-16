@@ -116,7 +116,7 @@ function readMetaFiles(files, callback){
             f.size, ' bytes', '</li>');
 
         if (f.name.includes(sqlType) || (f.name.includes(jsonType)) || (f.name.includes(mongoType))) {
-            const reader = new FileReader();
+            let reader = new FileReader();
             reader.onloadend = function () {
                 let content = reader.result;
                 checkedFiles[f.name] = reader.result;
@@ -187,33 +187,29 @@ function readMetaFiles(files, callback){
 //     }
 // }
 
-let chunk_size = 800 * 1024 * 1024;
+let chunk_size = 750 * 1024 * 1024;
 
 function processLogFiles(index, chunk){
     let  multiFileInputLogs = document.getElementById('logFilesInput');
     let files = multiFileInputLogs.files;
     let counter = 0;
-    // let chunk_size = 80 * 1024 * 1024;
     let total = files.length;
-    let total_chunks = 1;
     for (const f of files) {
         if (counter === index){
             let today = new Date();
-            total_chunks = Math.ceil(f.size / chunk_size);
-
             console.log('Starting with file ' + index + ' at ' + today);
-            readAndPassLog(f, reader, index, total, chunk, total_chunks, passLogFiles)
+            readAndPassLog(f, reader, index, total, chunk, passLogFiles)
         }
         counter += 1;
     }
 }
 
 
-function readAndPassLog(f, reader, index, total, chunk, total_chunks, callback){
+function readAndPassLog(f, reader, index, total, chunk, callback){
     let output = [];
     let processedFiles = [];
     let gzipType = /gzip/;
-    // let chunk_size = 80 * 1024 * 1024; // 50 MB
+    let total_chunks = 1;
     output.push('<li><strong>', f.name, '</strong> (', f.type || 'n/a', ') - ',
                 f.size, ' bytes', '</li>');
 
@@ -227,6 +223,9 @@ function readAndPassLog(f, reader, index, total, chunk, total_chunks, callback){
                 value: string_content.slice(string_content.indexOf('{"username":'),
                                             string_content.lastIndexOf('\n{'))
             });
+            if (string_content.lastIndexOf('\n') + 2 < string_content.length ){
+                total_chunks++;
+            }
             callback([processedFiles, output, index, total, chunk, total_chunks]);
             reader.abort();
         };
@@ -285,11 +284,11 @@ function passLogFiles(result){
             let row = table.insertRow();
             let cell1 = row.insertCell();
             cell1.innerHTML = ('Processing file ' + (index + 1) + '/' + total +
-                               '\nat' + new Date().toLocaleString('en-GB'));
+                               '\n at ' + new Date().toLocaleString('en-GB'));
         }
 
-        session_mode(course_metadata_map, files, index, total);
-        forum_sessions(course_metadata_map, files, index, total);
+        session_mode(course_metadata_map, files, index, total, chunk);
+        forum_sessions(course_metadata_map, files, index, total, chunk);
         video_interaction(course_metadata_map, files, index, total, chunk);
         quiz_mode(course_metadata_map, files, index, total, chunk);
         quiz_sessions(course_metadata_map, files, index, total, chunk, total_chunks);
@@ -339,7 +338,7 @@ function sqlInsert(table, data) {
         if (rowsAdded > 0 && table !== 'forum_interaction') {
             let today = new Date();
             let time = today.getHours() + ":" + today.getMinutes() + ":" + today.getSeconds() + '.' + today.getMilliseconds();
-            console.log('Successfully added: ', rowsAdded.length, 'to' , table, ' at ', time);
+            console.log('Successfully added to' , table, ' at ', time);
             if (table === 'metadata'){
                 alert('Please reload the page now')
             }
@@ -351,7 +350,7 @@ function sqlInsert(table, data) {
 
 
 function sqlLogInsert(table, data) {
-    // console.log('Not saving ', data.length, ' for ', table)
+    // console.log('Not saving ', data.length, ' for ', table);
 
     let query = new SqlWeb.Query("INSERT INTO " + table + " values='@val'");
     for (let v of data) {
@@ -1065,7 +1064,7 @@ function coucourseElementsFinder_string(eventlog_item, course_id) {
 
 
 // TRANSLATION MODULES
-function session_mode(course_metadata_map, log_files, index, total){
+function session_mode(course_metadata_map, log_files, index, total, chunk){
     // // loader.show();
     let zero_start = performance.now();
     // let current_date = course_metadata_map["start_date"];
@@ -1092,17 +1091,18 @@ function session_mode(course_metadata_map, log_files, index, total){
             for (const course_learner_id in learner_all_event_logs){
                 course_learner_id_set.add(course_learner_id)
             }
+            console.log(input_file.length);
             let lines = input_file.split('\n');
             console.log(lines.length + ' lines to process in file');
 
             for (let line of lines){
                 if (line.length < 10) { continue; }
                 let jsonObject = JSON.parse(line);
-                if (jsonObject['context'].hasOwnProperty('user_id') === false ){continue;}
+                if (jsonObject['context'].hasOwnProperty('user_id') === false ){ continue; }
                 let global_learner_id = jsonObject["context"]["user_id"];
                 let event_type = jsonObject["event_type"];
 
-                if (global_learner_id !== ''){
+                if (global_learner_id != ''){
                     let course_id = jsonObject["context"]["course_id"];
                     let course_learner_id = course_id + "_" + global_learner_id;
 
@@ -1153,7 +1153,7 @@ function session_mode(course_metadata_map, log_files, index, total){
                         } else {
                             if (event_logs[i]["event_type"] === "page_close"){
                                 end_time = new Date(event_logs[i]["event_time"]);
-                                let session_id = course_learner_id + '_' + start_time + '_' + end_time;
+                                session_id = course_learner_id + '_' + start_time + '_' + end_time;
                                 let duration = (end_time - start_time)/1000;
 
                                 if (duration > 5){
@@ -1189,14 +1189,14 @@ function session_mode(course_metadata_map, log_files, index, total){
             // Filter duplicated records
             let updated_session_record = [];
             let session_id_set = new Set();
-            for (let x in session_record){
-                let array = session_record[x];
+            for (let array of session_record){
                 let session_id = array[0];
                 if (!(session_id_set.has(session_id))){
                     session_id_set.add(session_id);
                     updated_session_record.push(array);
                 }
             }
+            console.log('Session record:', session_record.length, 'session_id_set', session_id_set.length);
 
             session_record = updated_session_record;
             if (session_record.length > 0){
@@ -1204,6 +1204,9 @@ function session_mode(course_metadata_map, log_files, index, total){
                 for (let x in session_record){
                     let array = session_record[x];
                     let session_id = array[0];
+                    if (chunk !== 0) {
+                        session_id = session_id + '_' + chunk
+                    }
                     let course_learner_id = array[1];
                     let start_time = array[2];
                     let end_time = array[3];
@@ -1275,7 +1278,7 @@ function forum_interaction(forum_file, course_metadata_map){
 }
 
 
-function forum_sessions(course_metadata_map, log_files, index, total) {
+function forum_sessions(course_metadata_map, log_files, index, total, chunk) {
     // // loader.show();
 
     let start_date = new Date(course_metadata_map['start_date']);
@@ -1474,6 +1477,9 @@ function forum_sessions(course_metadata_map, log_files, index, total) {
         let data = [];
         for (let array of forum_sessions_record){
             let session_id = array[0];
+            if (chunk !== 0) {
+                session_id = session_id + '_' + chunk
+            }
             let course_learner_id = array[1];
             let times_search = process_null(array[2]);
             let start_time = array[3];
@@ -1798,9 +1804,6 @@ function video_interaction(course_metadata_map, log_files, index, total, chunk) 
     let video_interaction_record = [];
     for (let interaction_id in video_interaction_map) {
         let video_interaction_id = interaction_id;
-        if (chunk !== 0) {
-            video_interaction_id = video_interaction_id + '_' + chunk
-        }
         let course_learner_id = video_interaction_map[interaction_id]['course_learner_id'];
         let video_id = video_interaction_map[interaction_id]['video_id'];
         let duration = video_interaction_map[interaction_id]['watch_duration'];
@@ -1835,6 +1838,12 @@ function video_interaction(course_metadata_map, log_files, index, total, chunk) 
         let data = [];
         for (let array of video_interaction_record) {
             let interaction_id = array[0];
+            if (index !== 0){
+                interaction_id = interaction_id + '_' + index;
+            }
+            if (chunk !== 0) {
+                interaction_id = interaction_id + '_' + chunk
+            }
             let course_learner_id = array[1];
             let video_id = array[2];
             let duration = process_null(array[3]);
@@ -1848,7 +1857,7 @@ function video_interaction(course_metadata_map, log_files, index, total, chunk) 
             let duration_pause = process_null(array[11]);
             let start_time = array[12];
             let end_time = array[13];
-            let values = {'interaction_id':interaction_id, 'course_learner_id':course_learner_id, 'video_id': video_id,
+            let values = {'interaction_id': interaction_id, 'course_learner_id':course_learner_id, 'video_id': video_id,
                 'duration':duration, 'times_forward_seek':times_forward_seek, 'duration_forward_seek':duration_forward_seek,
                 'times_backward_seek': times_backward_seek, 'duration_backward_seek':duration_backward_seek,
                 'times_speed_up':times_speed_up, 'times_speed_down':times_speed_down, 'times_pause':times_pause,
@@ -2173,6 +2182,9 @@ function quiz_sessions(course_metadata_map, log_files, index, total, chunk, tota
         let data = [];
         for (let array of quiz_session_record) {
             let session_id = array[0];
+            if (chunk !== 0) {
+                session_id = session_id + '_' + chunk
+            }
             let course_learner_id = array[1];
             let start_time = array[2];
             let end_time = array[3];

@@ -1207,6 +1207,9 @@ function session_mode(course_metadata_map, log_files, index, total, chunk){
                     if (chunk !== 0) {
                         session_id = session_id + '_' + chunk
                     }
+                    if (index !== 0) {
+                        session_id = session_id + '_' + index
+                    }
                     let course_learner_id = array[1];
                     let start_time = array[2];
                     let end_time = array[3];
@@ -1479,6 +1482,9 @@ function forum_sessions(course_metadata_map, log_files, index, total, chunk) {
             let session_id = array[0];
             if (chunk !== 0) {
                 session_id = session_id + '_' + chunk
+            }
+            if (index !== 0) {
+                session_id = session_id + '_' + index
             }
             let course_learner_id = array[1];
             let times_search = process_null(array[2]);
@@ -2184,6 +2190,9 @@ function quiz_sessions(course_metadata_map, log_files, index, total, chunk, tota
             let session_id = array[0];
             if (chunk !== 0) {
                 session_id = session_id + '_' + chunk
+            }
+            if (index !== 0) {
+                session_id = session_id + '_' + index
             }
             let course_learner_id = array[1];
             let start_time = array[2];

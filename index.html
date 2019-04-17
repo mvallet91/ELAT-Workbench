@@ -25,6 +25,8 @@
     <!--<script type="text/javascript" src="scripts/pako.js"></script>-->
     <script src="https://cdn.jsdelivr.net/gh/mvallet91/untitled/scripts/pako.js"></script>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.8.0/Chart.bundle.min.js"></script>
+
     <script src="scripts/index.js"></script>
 </head>
 
@@ -75,12 +77,9 @@
     <table id="progress_bar">
     </table>
 
+
     <div class="row row-centered " style="margin-top:10px; ">
         <div class="col-xs-12 col-sm-10 col-centered ">
-            <!--<div style="text-align:center;">-->
-            <!--<button id="btnAddStudent" class="btn btn-success">-->
-            <!--<i class="fa fa-plus" aria-hidden="true"></i> Add Course</button>-->
-            <!--</div>-->
             <table id="dbGrid" class="table table-hover ">
                 <caption style="text-align:center;padding:7px 0 7px 0;background:#4f4f86;color:white;font-size:18px; ">
                     Database Details
@@ -132,17 +131,132 @@
     </div>
 
 
-    <!--<div>-->
-        <!--<br>-->
-        <!--Click to download Session comma-separated value (.csv) file for the Course in your Database-->
-        <!--<br>-->
-        <!--&lt;!&ndash;<button id="dl_sessions">Download Sessions</button>&ndash;&gt;-->
-        <!--<br>-->
-        <!--Click to download Video Interaction comma-separated value (.csv) file for the Course in your Database-->
-        <!--<br>-->
-        <!--&lt;!&ndash;<button id="vid_sessions">Download Video Interaction</button>&ndash;&gt;-->
-        <!--<br>-->
-    <!--</div>-->
+    <canvas id="myChart" width="400" height="120"></canvas>
+    <script>
+        let query = "SELECT * FROM courses";
+        connection.runSql(query).then(function (courses) {
+            courses.forEach(function (course) {
+                let name = course["course_name"];
+                let course_start = new Date(course["start_time"].toDateString());
+                let course_end = new Date(course["end_time"].toDateString());
+
+                let dailySessions = {};
+                let dailyDurations = {};
+
+                query = "SELECT * FROM sessions";
+                connection.runSql(query).then(function (sessions) {
+                    sessions.forEach(function (session) {
+                        let start = session["start_time"].toDateString();
+                        start = new Date(start);
+
+                        if (dailyDurations.hasOwnProperty(start)){
+
+                            dailyDurations[start].push(session["duration"]);
+                            dailySessions[start].push(session["course_learner_id"]);
+
+                        } else {
+                            dailyDurations[start] = [];
+                            dailyDurations[start].push(session["duration"]);
+
+                            dailySessions[start] = [];
+                            dailySessions[start].push(session["course_learner_id"]);
+                        }
+                    });
+
+                    let orderedSessions = {};
+                    let orderedDurations = {};
+                    let dateList = Object.keys(dailySessions);
+                    let dateListChart = [];
+                    dateList.sort(function(a,b){
+                        return new Date(a) - new Date(b);
+                    });
+
+                    for (let date of dateList){
+                        orderedSessions[date] = dailySessions[date].length;
+
+                        let total = 0;
+                        for(let i = 0; i < dailyDurations[date].length; i++) {
+                            total += dailyDurations[date][i];
+                        }
+                        let avg = total / dailyDurations[date].length;
+                        orderedDurations[date] = avg
+
+                        dateListChart.push(new Date(date));
+                    }
+
+                    let ctx = document.getElementById('myChart').getContext('2d');
+
+                    let data = {
+                        // Labels should be Date objects
+                        labels: dateListChart,
+                        datasets: [{
+                            fill: false,
+                            label: 'Total Sessions',
+                            yAxisID: 'A',
+                            data: Object.values(orderedSessions),
+                            borderColor: '#fe8b36',
+                            backgroundColor: '#fe8b36',
+                            lineTension: 0,
+                        }, {
+                            fill: false,
+                            label: 'Avg. Duration (sec)',
+                            yAxisID: 'B',
+                            data: Object.values(orderedDurations),
+                            borderColor: '#36a2eb',
+                            backgroundColor: '#36a2eb',
+                            lineTension: 0,
+                        }]
+                    };
+
+                    let options = {
+                        type: 'line',
+                        data: data,
+                        options: {
+                            fill: false,
+                            responsive: true,
+                            scales: {
+                                xAxes: [{
+                                    type: 'time',
+                                    display: true,
+                                    scaleLabel: {
+                                        display: true,
+                                        labelString: "Date",
+                                    }
+                                }],
+                                yAxes: [{
+                                    id: 'A',
+                                    ticks: {
+                                        beginAtZero: true,
+                                    },
+                                    position: 'left',
+                                    display: true,
+                                    scaleLabel: {
+                                        display: true,
+                                        labelString: "Total Sessions",
+                                    }
+                                }, {
+                                    id: 'B',
+                                    ticks: {
+                                        beginAtZero: true,
+                                    },
+                                    position: 'right',
+                                    display: true,
+                                    scaleLabel: {
+                                        display: true,
+                                        labelString: "Avg. Duration (sec)",
+                                    }
+                                }]
+                            }
+                        }
+                    };
+
+                    let chart = new Chart(ctx, options);
+                });
+            });
+        });
+
+    </script>
+
 
     <!-- BRYTHON SCRIPT /////////////////////////////////////////////////////////////////////// -->
     <!--<script type="text/python" id="fileToMsg">-->

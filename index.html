@@ -27,6 +27,8 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.8.0/Chart.bundle.min.js"></script>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-annotation/0.5.7/chartjs-plugin-annotation.js"></script>
+
     <script src="scripts/index.js"></script>
 </head>
 
@@ -131,7 +133,10 @@
     </div>
 
 
-    <canvas id="myChart" width="400" height="120"></canvas>
+    <canvas id="barChart" width="400" height="120"></canvas>
+    <br>
+    <canvas id="lineChart" width="400" height="120"></canvas>
+
     <script>
         let query = "SELECT * FROM courses";
         connection.runSql(query).then(function (courses) {
@@ -140,11 +145,30 @@
                 let course_start = new Date(course["start_time"].toDateString());
                 let course_end = new Date(course["end_time"].toDateString());
 
-                let dailySessions = {};
-                let dailyDurations = {};
+                let dateListChart = [];
+
+                let orderedSessions = {};
+                let orderedDurations = {};
+                let orderedStudents = {};
+                let orderedAvgDurations = {};
+
+                let orderedQuizSessions = {};
+                let orderedQuizDurations = {};
+
+                let orderedVideoSessions = {};
+                let orderedVideoDurations = {};
 
                 query = "SELECT * FROM sessions";
                 connection.runSql(query).then(function (sessions) {
+                    let dailySessions = {};
+                    let dailyDurations = {};
+
+                    let quizSessions = {};
+                    let quizDurations = {};
+
+                    let videoSessions = {};
+                    let videoDurations = {};
+
                     sessions.forEach(function (session) {
                         let start = session["start_time"].toDateString();
                         start = new Date(start);
@@ -163,94 +187,272 @@
                         }
                     });
 
-                    let orderedSessions = {};
-                    let orderedDurations = {};
-                    let dateList = Object.keys(dailySessions);
-                    let dateListChart = [];
-                    dateList.sort(function(a,b){
-                        return new Date(a) - new Date(b);
-                    });
+                    query = "SELECT * FROM quiz_sessions";
+                    connection.runSql(query).then(function (q_sessions) {
+                        q_sessions.forEach(function (session) {
+                            let start = session["start_time"].toDateString();
+                            start = new Date(start);
 
-                    for (let date of dateList){
-                        orderedSessions[date] = dailySessions[date].length;
+                            if (quizDurations.hasOwnProperty(start)) {
 
-                        let total = 0;
-                        for(let i = 0; i < dailyDurations[date].length; i++) {
-                            total += dailyDurations[date][i];
-                        }
-                        let avg = total / dailyDurations[date].length;
-                        orderedDurations[date] = avg
+                                quizDurations[start].push(session["duration"]);
+                                quizSessions[start].push(session["course_learner_id"]);
 
-                        dateListChart.push(new Date(date));
-                    }
+                            } else {
+                                quizDurations[start] = [];
+                                quizDurations[start].push(session["duration"]);
 
-                    let ctx = document.getElementById('myChart').getContext('2d');
-
-                    let data = {
-                        // Labels should be Date objects
-                        labels: dateListChart,
-                        datasets: [{
-                            fill: false,
-                            label: 'Total Sessions',
-                            yAxisID: 'A',
-                            data: Object.values(orderedSessions),
-                            borderColor: '#fe8b36',
-                            backgroundColor: '#fe8b36',
-                            lineTension: 0,
-                        }, {
-                            fill: false,
-                            label: 'Avg. Duration (sec)',
-                            yAxisID: 'B',
-                            data: Object.values(orderedDurations),
-                            borderColor: '#36a2eb',
-                            backgroundColor: '#36a2eb',
-                            lineTension: 0,
-                        }]
-                    };
-
-                    let options = {
-                        type: 'line',
-                        data: data,
-                        options: {
-                            fill: false,
-                            responsive: true,
-                            scales: {
-                                xAxes: [{
-                                    type: 'time',
-                                    display: true,
-                                    scaleLabel: {
-                                        display: true,
-                                        labelString: "Date",
-                                    }
-                                }],
-                                yAxes: [{
-                                    id: 'A',
-                                    ticks: {
-                                        beginAtZero: true,
-                                    },
-                                    position: 'left',
-                                    display: true,
-                                    scaleLabel: {
-                                        display: true,
-                                        labelString: "Total Sessions",
-                                    }
-                                }, {
-                                    id: 'B',
-                                    ticks: {
-                                        beginAtZero: true,
-                                    },
-                                    position: 'right',
-                                    display: true,
-                                    scaleLabel: {
-                                        display: true,
-                                        labelString: "Avg. Duration (sec)",
-                                    }
-                                }]
+                                quizSessions[start] = [];
+                                quizSessions[start].push(session["course_learner_id"]);
                             }
-                        }
-                    };
+                        });
 
-                    let chart = new Chart(ctx, options);
+                        query = "SELECT * FROM video_interaction";
+                        connection.runSql(query).then(function (v_sessions) {
+                            v_sessions.forEach(function (session) {
+                                let start = session["start_time"].toDateString();
+                                start = new Date(start);
+
+                                if (videoDurations.hasOwnProperty(start)) {
+
+                                    videoDurations[start].push(session["duration"]);
+                                    videoSessions[start].push(session["course_learner_id"]);
+
+                                } else {
+                                    videoDurations[start] = [];
+                                    videoDurations[start].push(session["duration"]);
+
+                                    videoSessions[start] = [];
+                                    videoSessions[start].push(session["course_learner_id"]);
+                                }
+                            });
+
+                            let quizDates = [new Date(2015, 10, 12), new Date(2015, 10, 19), new Date(2015, 10, 26)];
+
+                            let annotations = quizDates.map(function(date, index) {
+                                return {
+                                    type: 'line',
+                                    id: 'line' + index,
+                                    mode: 'vertical',
+                                    scaleID: 'x-axis-0',
+                                    value: date,
+                                    borderColor: 'red',
+                                    borderWidth: 1,
+                                    label: {
+                                        enabled: true,
+                                        position: "top",
+                                        content: 'quiz'
+                                    }
+                                }
+                            });
+
+                            let dateList = Object.keys(dailySessions);
+                            dateList.sort(function (a, b) {
+                                return new Date(a) - new Date(b);
+                            });
+
+                            for (let date of dateList) {
+                                orderedSessions[date] = dailySessions[date].length;
+                                orderedStudents[date] = new Set(dailySessions[date]).size;
+                                orderedDurations[date] = dailyDurations[date];
+                                orderedQuizSessions[date] = quizSessions[date].length;
+                                orderedVideoSessions[date] = videoSessions[date].length;
+
+                                let total = 0;
+                                for (let i = 0; i < dailyDurations[date].length; i++) {
+                                    total += dailyDurations[date][i];
+                                }
+                                orderedAvgDurations[date] = (total / dailyDurations[date].length).toFixed(2);
+
+                                let quizTotal = 0;
+                                for (let i = 0; i < quizDurations[date].length; i++) {
+                                    quizTotal += quizDurations[date][i];
+                                }
+                                orderedQuizDurations[date] = quizTotal / quizDurations[date].length;
+
+                                let vidTotal = 0;
+                                for (let i = 0; i < videoDurations[date].length; i++) {
+                                    vidTotal += videoDurations[date][i];
+                                }
+                                orderedQuizDurations[date] = vidTotal / videoDurations[date].length;
+
+                                dateListChart.push(new Date(date));
+                            }
+
+                            let ctx = document.getElementById('barChart').getContext('2d');
+
+                            let data = {
+                                labels: dateListChart,
+                                datasets: [{
+                                    fill: false,
+                                    label: 'Total Students',
+                                    yAxisID: 'A',
+                                    data: Object.values(orderedStudents),
+                                    borderColor: '#fe8b36',
+                                    backgroundColor: '#fe8b36',
+                                    lineTension: 0.2,
+                                }, {
+                                    fill: false,
+                                    label: 'Total Sessions',
+                                    yAxisID: 'B',
+                                    data: Object.values(orderedSessions),
+                                    borderColor: '#36a2eb',
+                                    backgroundColor: '#36a2eb',
+                                    lineTension: 0.2,
+                                }]
+                            };
+
+                            let options = {
+                                type: 'line',
+                                data: data,
+                                options: {
+                                    fill: true,
+                                    responsive: true,
+                                    scales: {
+                                        xAxes: [{
+                                            type: 'time',
+                                            display: true,
+                                            time: {
+                                                unit: 'day',
+                                                min: new Date(course_start),
+                                                suggestedMax: new Date(course_end)
+                                            },
+                                            scaleLabel: {
+                                                display: true,
+                                                labelString: "Date",
+                                            }
+                                        }],
+                                        yAxes: [{
+                                            id: 'A',
+                                            ticks: {
+                                                beginAtZero: true,
+                                            },
+                                            position: 'left',
+                                            display: true,
+                                            scaleLabel: {
+                                                display: true,
+                                                labelString: "Total Students",
+                                            }
+                                        }, {
+                                            id: 'B',
+                                            ticks: {
+                                                beginAtZero: true,
+                                            },
+                                            position: 'right',
+                                            display: true,
+                                            scaleLabel: {
+                                                display: true,
+                                                labelString: "Total Sessions",
+                                            }
+                                        }]
+                                    }
+                                }
+                            };
+
+                            let chart = new Chart(ctx, options);
+
+                            let lineCtx = document.getElementById('lineChart').getContext('2d');
+
+                            let lineData = {
+                                labels: dateListChart,
+                                datasets: [{
+                                    fill: false,
+                                    label: 'Avg. Session Duration',
+                                    yAxisID: 'A',
+                                    data: Object.values(orderedAvgDurations),
+                                    borderColor: '#fe49e7',
+                                    backgroundColor: '#fe49e7',
+                                    lineTension: 0,
+                                }, {
+                                    fill: true,
+                                    label: 'Quiz Session Count',
+                                    yAxisID: 'B',
+                                    data: Object.values(orderedQuizSessions),
+                                    borderColor: '#0919fe',
+                                    backgroundColor: '#0919fe',
+                                    lineTension: 0,
+                                } , {
+                                    fill: true,
+                                    label: 'Video Session Count',
+                                    yAxisID: 'B',
+                                    data: Object.values(orderedVideoSessions),
+                                    borderColor: '#0a8d1b',
+                                    backgroundColor: '#0a8d1b',
+                                    lineTension: 0,
+                                }]
+                            };
+
+                            let lineOptions = {
+                                type: 'line',
+                                data: lineData,
+                                options: {
+
+                                    annotation: {
+                                        annotations: annotations
+                                        //     [
+                                        //     {
+                                        //         type: "line",
+                                        //         mode: "vertical",
+                                        //         scaleID: "x-axis-0",
+                                        //         value: new Date(2015, 10, 12),
+                                        //         borderWidth: 2,
+                                        //         borderColor: "#ff0000",
+                                        //         label: {
+                                        //             content: "Question Due",
+                                        //             enabled: true,
+                                        //             position: "top"
+                                        //         }
+                                        //     }
+                                        // ]
+                                    },
+
+                                    fill: false,
+                                    responsive: true,
+                                    scales: {
+                                        xAxes: [{
+                                            type: 'time',
+                                            display: true,
+                                            time: {
+                                                unit: 'day',
+                                                min: new Date(course_start),
+                                                suggestedMax: new Date(course_end)
+                                            },
+                                            scaleLabel: {
+                                                display: true,
+                                                labelString: "Date",
+                                            }
+                                        }],
+                                        yAxes: [{
+                                            id: 'A',
+                                            ticks: {
+                                                beginAtZero: true,
+                                            },
+                                            position: 'left',
+                                            display: true,
+                                            scaleLabel: {
+                                                display: true,
+                                                labelString: "Duration in Seconds",
+                                            }
+                                        }, {
+                                            id: 'B',
+                                            stacked: true,
+                                            ticks: {
+                                                beginAtZero: true,
+                                            },
+                                            position: 'right',
+                                            display: true,
+                                            scaleLabel: {
+                                                display: true,
+                                                labelString: "Number of Sessions",
+                                            }
+                                        }]
+                                    }
+                                }
+                            };
+                            let lineChart = new Chart(lineCtx, lineOptions);
+
+                        });
+                    });
                 });
             });
         });

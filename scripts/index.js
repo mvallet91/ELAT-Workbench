@@ -424,8 +424,8 @@ function initiateEdxDb() {
             connection.runSql('OPENDB ' + dbName).then(function () {
                 console.log('edx db ready');
 
-                showCoursesTableDataExtra();
-                showSessionTable();
+                // showCoursesTableDataExtra();
+                // showSessionTable();
 
             });
         } else {

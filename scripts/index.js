@@ -2336,7 +2336,6 @@ function mainIndicators() {
     });
 }
 
-
 function getEdxDbQuery() {
     let db = "DEFINE DB edxdb;";
 

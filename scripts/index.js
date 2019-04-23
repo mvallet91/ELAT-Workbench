@@ -8,49 +8,10 @@ let connection = new JsStore.Instance();
 window.onload = function () {
     // brython();
 
-    //// DATABASE INITIALIZATION SCRIPTS //////////////////////////////////////////////////////////////////////////////
+    //// DATABASE INITIALIZATION  //////////////////////////////////////////////////////////////////////////////
     initiateEdxDb();
 
-    //// FILE SYSTEM SCRIPTS ///////////////////////////////////////////////////////////////////////////
-    // const fileInput = document.getElementById('fileInput');
-    // const fileDisplayArea = document.getElementById('fileDisplayArea');
-    //
-    // fileInput.addEventListener('change', function(e) {
-    //     let file = fileInput.files[0];
-    //     let textType = /text.*/;
-    //     let gzipType = /gzip/;
-    //
-    //     if (file.type.match(textType)) {
-    //         let reader = new FileReader();
-    //         reader.onload = function (e) {
-    //             fileDisplayArea.innerText = reader.result;
-    //         };
-    //         reader.readAsText(file);
-    //
-    //     } else if (file.type.match(gzipType)) {
-    //         let reader = new FileReader();
-    //         reader.onload = function(event) {
-    //             let result = pako.inflate(event.target.result, { to: 'string' });
-    //             // console.log(result);
-    //             let message = result.split('\n');
-    //             fileDisplayArea.innerText = 'This document is '.concat(result.length, ' characters long' +
-    //                 ' and the first line is: \n', message[0]);
-    //         };
-    //         reader.readAsArrayBuffer(file);
-    //
-    //     } else if (file.name.endsWith('sql')) {
-    //         let reader = new FileReader();
-    //         reader.onload = function (e) {
-    //             fileDisplayArea.innerText = reader.result;
-    //         };
-    //         reader.readAsText(file);
-    //
-    //     } else {
-    //         fileDisplayArea.innerText = "File not supported!"
-    //     }
-    // });
-
-    //// MULTI FILE SYSTEM SCRIPTS ///////////////////////////////////////////////////////////////////////////
+    //// MULTI FILE SYSTEM  ///////////////////////////////////////////////////////////////////////////
     let  multiFileInput = document.getElementById('filesInput');
     multiFileInput.value = '';
     multiFileInput.addEventListener('change', function () {
@@ -156,54 +117,6 @@ function readMetaFiles(files, callback){
     }
 }
 
-// function readLogFiles(files, callback){
-//     let output = [];
-//     let processedFiles = [];
-//     let counter = 1;
-//     let gzipType = /gzip/;
-//     let sqlType = 'sql';
-//     let jsonType = 'json';
-//
-//     for (const f of files) {
-//         output.push('<li><strong>', f.name, '</strong> (', f.type || 'n/a', ') - ',
-//             f.size, ' bytes', '</li>');
-//
-//         if (f.type.match(gzipType)) {
-//             const reader = new FileReader();
-//             reader.onloadend = function (event) {
-//                 let content = pako.inflate(event.target.result, {to: 'string'});
-//                 processedFiles.push({
-//                     key: f.name,
-//                     value: content
-//                 });
-//                 if (counter === files.length) {
-//                     callback([processedFiles, output]);
-//                 }
-//                 counter++;
-//             };
-//             reader.readAsArrayBuffer(f);
-//
-//         // } else if (f.name.includes(sqlType) || (f.name.includes(jsonType))) {
-//         //     const reader = new FileReader();
-//         //     reader.onloadend = function () {
-//         //         let content = reader.result;
-//         //         processedFiles.push({
-//         //             key: f.name,
-//         //             value: content
-//         //         });
-//         //         if (counter === files.length) {
-//         //             callback([processedFiles, output]);
-//         //         }
-//         //         counter++;
-//         //     };
-//         //     reader.readAsText(f);
-//
-//         } else {
-//             counter ++;
-//         }
-//     }
-// }
-
 let chunk_size = 750 * 1024 * 1024;
 
 function processLogFiles(index, chunk){
@@ -248,18 +161,6 @@ function readAndPassLog(f, reader, index, total, chunk, callback){
         };
         reader.readAsArrayBuffer(f);
 
-    // } else if (f.name.includes('log')) {
-    //     reader.onload = function () {
-    //         let content = reader.result;
-    //         processedFiles.push({
-    //             key: f.name,
-    //             value: content.slice(content.indexOf('{"username":'),
-    //                                  content.lastIndexOf('\n{'))
-    //         });
-    //         callback([processedFiles, output, index, total, chunk, total_chunks]);
-    //     };
-    //     reader.readAsText(f.slice(chunk * chunk_size, (chunk + 1) * chunk_size));
-
     } else {
         alert(f.name + ' is not a log file (.gzip)');
     }
@@ -273,17 +174,6 @@ function passFiles(result){
     document.getElementById('list').innerHTML = '<ul>' + output.join('') + '</ul>';
     learner_mode(names);
 }
-
-// function passLogFiles(result){
-//     let files = result[0];
-//     let output = result[1];
-//     document.getElementById('list').innerHTML = '<ul>' + output.join('') + '</ul>';
-//     files = JSON.stringify(files);
-//     let readerEvent = new CustomEvent("logFileReader", {
-//         "detail": files
-//     });
-//     document.dispatchEvent(readerEvent);
-// }
 
 function passLogFiles(result){
     let files = result[0];
@@ -1138,10 +1028,6 @@ function session_mode(course_metadata_map, log_files, index, total, chunk){
                 if (jsonObject['context'].hasOwnProperty('user_id') === false ){ continue; }
                 let global_learner_id = jsonObject["context"]["user_id"];
                 let event_type = jsonObject["event_type"];
-
-                // console.log(line);
-                // console.log(current_course_id);
-                // console.log(jsonObject["context"]["course_id"]);
 
                 if (global_learner_id != ''){
                     let course_id = jsonObject["context"]["course_id"];

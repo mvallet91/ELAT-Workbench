@@ -1,5 +1,5 @@
 // let connection = new JsStore.Instance(new Worker('scripts/jsstore.worker.js'));
-let connection = new JsStore.Instance(new Worker('https://cdn.jsdelivr.net/npm/jsstore@2.7.2/dist/jsstore.worker.min.js'));
+let connection = new JsStore.Instance();
 
 // let define function (require) {
 //     pako = require('pako');
@@ -64,10 +64,6 @@ window.onload = function () {
     multiFileInputLogs.addEventListener('change', function () {
         // // loader.show();
         // $('#loading').show();
-
-        //let files = multiFileInputLogs.files;
-        // readLogFiles(files, passLogFiles);
-        // processLogFiles(files, 0)
         processLogFiles(0, 0)
     });
 
@@ -81,16 +77,6 @@ window.onload = function () {
                  'assessments': ['assessment_id', 'course_learner_id', 'max_grade', 'grade'],
                  'quiz_sessions': ['session_id', 'course_learner_id', 'start_time', 'end_time', 'duration']};
 
-    let dlSessionButton = document.getElementById('dl_sessions');
-    dlSessionButton.addEventListener('click', function() {
-        processSessions('sessions', pairs['sessions']);
-    });
-
-    let dlVidButton = document.getElementById('dl_vid_sessions');
-    dlVidButton.addEventListener('click', function() {
-        processSessions('video_interaction', pairs['video_interaction']);
-    });
-
     let dlAllButton = document.getElementById('dl_all');
     dlAllButton.addEventListener('click', function() {
         for (let table in pairs){
@@ -98,6 +84,35 @@ window.onload = function () {
         }
     });
 
+    let dlSessionButton = document.getElementById('dl_sessions');
+    dlSessionButton.addEventListener('click', function() {
+        processSessions('sessions', pairs['sessions']);
+    });
+
+    let dlForumSesButton = document.getElementById('dl_forum');
+    dlForumSesButton.addEventListener('click', function() {
+        processSessions('forum_sessions', pairs['forum_sessions']);
+    });
+
+    let dlVidButton = document.getElementById('dl_vid_sessions');
+    dlVidButton.addEventListener('click', function() {
+        processSessions('video_interaction', pairs['video_interaction']);
+    });
+
+    let dlSubButton = document.getElementById('dl_submissions');
+    dlSubButton.addEventListener('click', function() {
+        processSessions('submissions', pairs['submissions']);
+    });
+
+    let dlAssButton = document.getElementById('dl_assessments');
+    dlAssButton.addEventListener('click', function() {
+        processSessions('assessments', pairs['assessments']);
+    });
+
+    let dlQuizButton = document.getElementById('dl_quiz');
+    dlQuizButton.addEventListener('click', function() {
+        processSessions('quiz_sessions', pairs['quiz_sessions']);
+    });
 };
 
 // var // loader = $('#loading');
@@ -388,17 +403,6 @@ function download(filename, content) {
     document.body.removeChild(element);
 }
 
-// function downloadCsv(filename, content) {
-//     let joinedContent = "data:text/csv;charset=utf-8," + content.map(e=>e.join(",")).join("\n");
-//     let encodedUri = encodeURI(joinedContent);
-//     let link = document.createElement("a");
-//     link.setAttribute("href", encodedUri);
-//     link.setAttribute("download", filename);
-//     document.body.appendChild(link);
-//     link.click();
-//     document.body.removeChild(link);
-// }
-
 function downloadCsv(filename, content) {
     let a = document.createElement('a');
     let joinedContent = content.map(e=>e.join(",")).join("\n");
@@ -414,7 +418,6 @@ function progress_display(content, index){
     let row = table.rows[index];
     let cell1 = row.insertCell();
     cell1.innerHTML = '  ' + content + '  ';
-    //document.getElementById("progress").innerHTML = content;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -425,10 +428,8 @@ function initiateEdxDb() {
         if (isExist) {
             connection.runSql('OPENDB ' + dbName).then(function () {
                 console.log('edx db ready');
-
-                // showCoursesTableDataExtra();
-                // showSessionTable();
-
+                showCoursesTableDataExtra();
+                showSessionTable();
             });
         } else {
             console.log('Generating edx database');
@@ -447,148 +448,168 @@ function initiateEdxDb() {
 
 function showCoursesTableDataExtra() {
     // document.getElementById("loading").style.display = "block";
-    connection.runSql('select * from courses').then(function (courses) {
-        let HtmlString = "";
-        let questionCounter = 0;
-        let forumInteractionCounter = 0;
-        let options = { weekday: 'short', year: 'numeric', month: 'long', day: 'numeric' };
-
-        courses.forEach(function (course) {
-            HtmlString += "<tr ItemId=" + course.course_id + "><td>" +
-                course.course_name + "</td><td>" +
-                course.start_time.toLocaleDateString('en-EN', options) + "</td><td>" +
-                course.end_time.toLocaleDateString('en-EN', options) + "</td><td>" ;
-            let query = "count from course_elements where course_id = '" + course.course_id + "'";
-            connection.runSql(query).then(function (result) {
-                HtmlString += result + "</td><td>" ;
-                let query = "count from learner_index where course_id = '" + course.course_id + "'";
-                connection.runSql(query).then(function (result) {
-                    HtmlString += result + "</td><td>";
-                    let query = "SELECT * FROM quiz_questions";
-                    connection.runSql(query).then(function (results) {
-                        results.forEach(function (result) {
-                            if (result['question_id'].includes(course.course_id.slice(10,))){
-                                questionCounter++;
-                            }
-                        });
-                        HtmlString += questionCounter + "</td><td>";
-                        query = "SELECT * FROM forum_interaction";
-                        connection.runSql(query).then(function (sessions) {
-                            sessions.forEach(function (session) {
-                                if (session['course_learner_id'].includes(course.course_id)) {
-                                    forumInteractionCounter++;
-                                }
-                            });
-                            HtmlString += forumInteractionCounter;
-                            $('#tblGrid tbody').html(HtmlString);
-                            // document.getElementById("loading").style.display = "none";
+    let HtmlString = "";
+    connection.runSql("SELECT * FROM metadata WHERE name = 'courseDetails' ").then(function(result) {
+        if (result.length === 1) {
+            HtmlString = result[0]['object']['details'];
+            document.getElementById("loading").style.display = "none";
+            $('#tblGrid tbody').html(HtmlString);
+        } else {
+            connection.runSql('select * from courses').then(function (courses) {
+                let questionCounter = 0;
+                let forumInteractionCounter = 0;
+                let options = {weekday: 'short', year: 'numeric', month: 'long', day: 'numeric'};
+                courses.forEach(function (course) {
+                    HtmlString += "<tr ItemId=" + course.course_id + "><td>" +
+                        course.course_name + "</td><td>" +
+                        course.start_time.toLocaleDateString('en-EN', options) + "</td><td>" +
+                        course.end_time.toLocaleDateString('en-EN', options) + "</td><td>";
+                    let query = "count from course_elements where course_id = '" + course.course_id + "'";
+                    connection.runSql(query).then(function (result) {
+                        HtmlString += result + "</td><td>";
+                        let query = "count from learner_index where course_id = '" + course.course_id + "'";
+                        connection.runSql(query).then(function (result) {
+                            HtmlString += result + "</td><td>";
+                            let query = "SELECT * FROM quiz_questions";
+                            connection.runSql(query).then(function (results) {
+                                results.forEach(function (result) {
+                                    if (result['question_id'].includes(course.course_id.slice(10,))) {
+                                        questionCounter++;
+                                    }
+                                });
+                                HtmlString += questionCounter + "</td><td>";
+                                query = "SELECT * FROM forum_interaction";
+                                connection.runSql(query).then(function (sessions) {
+                                    sessions.forEach(function (session) {
+                                        if (session['course_learner_id'].includes(course.course_id)) {
+                                            forumInteractionCounter++;
+                                        }
+                                    });
+                                    HtmlString += forumInteractionCounter;
+                                    $('#tblGrid tbody').html(HtmlString);
+                                    // document.getElementById("loading").style.display = "none";
+                                    let courseDetails = [{'name': 'courseDetails', 'object': {'details': HtmlString}}];
+                                    sqlInsert('metadata', courseDetails);
+                                })
+                            })
                         })
                     })
-                })
-            })
-        });
-    }).catch(function (error) {
-        console.log(error);
-        // document.getElementById("loading").style.display = "none";
-    });
+                });
+            }).catch(function (error) {
+                console.log(error);
+                // document.getElementById("loading").style.display = "none";
+            });
+        }
+    })
 }
 
 
 function showSessionTable() {
     // document.getElementById("loading").style.display = "block";
-    connection.runSql('select * from courses').then(function (courses) {
-        let HtmlString = "";
-        let totalHtmlString = "";
-        courses.forEach(function (course) {
-            let tsessionCounter = 0;
-            let tforumSessionCounter = 0;
-            let tvideoInteractionCounter = 0;
-            let tsubmissionCounter = 0;
-            let tassessmentCounter = 0;
-            let tquizSessionCounter = 0;
-            let sessionCounter = 0;
-            let forumSessionCounter = 0;
-            let videoInteractionCounter = 0;
-            let submissionCounter = 0;
-            let assessmentCounter = 0;
-            let quizSessionCounter = 0;
-            totalHtmlString += "<tr ItemId=" + 'total' + "><td>" +
-                "Total" + "</td><td>";
-            HtmlString += "<tr ItemId=" + course.course_id + "><td>" +
-                course.course_name + "</td><td>";
-            let query = "SELECT * FROM sessions";
-            connection.runSql(query).then(function (sessions) {
-                sessions.forEach(function (session) {
-                    tsessionCounter++;
-                    if (session['course_learner_id'].includes(course.course_id)){
-                        sessionCounter++;
-                    }
-                });
-                query = "SELECT * FROM forum_sessions";
-                connection.runSql(query).then(function (sessions) {
-                    sessions.forEach(function (session) {
-                        tforumSessionCounter++;
-                        if (session['course_learner_id'].includes(course.course_id)){
-                            forumSessionCounter++;
-                        }
-                    });
-                    query = "SELECT * FROM video_interaction";
+    let HtmlString = "";
+    let totalHtmlString = "";
+
+    connection.runSql("SELECT * FROM metadata WHERE name = 'databaseDetails' ").then(function(result) {
+        if (result.length === 1) {
+            HtmlString = result[0]['object']['details'];
+            document.getElementById("loading").style.display = "none";
+            $('#dbGrid tbody').html(HtmlString);
+        } else {
+            connection.runSql('select * from courses').then(function (courses) {
+                courses.forEach(function (course) {
+                    let tsessionCounter = 0;
+                    let tforumSessionCounter = 0;
+                    let tvideoInteractionCounter = 0;
+                    let tsubmissionCounter = 0;
+                    let tassessmentCounter = 0;
+                    let tquizSessionCounter = 0;
+                    let sessionCounter = 0;
+                    let forumSessionCounter = 0;
+                    let videoInteractionCounter = 0;
+                    let submissionCounter = 0;
+                    let assessmentCounter = 0;
+                    let quizSessionCounter = 0;
+                    totalHtmlString += "<tr ItemId=" + 'total' + "><td>" +
+                        "Total" + "</td><td>";
+                    HtmlString += "<tr ItemId=" + course.course_id + "><td>" +
+                        course.course_name + "</td><td>";
+                    let query = "SELECT * FROM sessions";
                     connection.runSql(query).then(function (sessions) {
                         sessions.forEach(function (session) {
-                            tvideoInteractionCounter++;
-                            if (session['course_learner_id'].includes(course.course_id)){
-                                videoInteractionCounter++;
+                            tsessionCounter++;
+                            if (session['course_learner_id'].includes(course.course_id)) {
+                                sessionCounter++;
                             }
                         });
-                        query = "SELECT * FROM submissions";
+                        query = "SELECT * FROM forum_sessions";
                         connection.runSql(query).then(function (sessions) {
                             sessions.forEach(function (session) {
-                                tsubmissionCounter++;
-                                if (session['course_learner_id'].includes(course.course_id)){
-                                    submissionCounter++;
+                                tforumSessionCounter++;
+                                if (session['course_learner_id'].includes(course.course_id)) {
+                                    forumSessionCounter++;
                                 }
                             });
-                            query = "SELECT * FROM assessments";
+                            query = "SELECT * FROM video_interaction";
                             connection.runSql(query).then(function (sessions) {
                                 sessions.forEach(function (session) {
-                                    tassessmentCounter++;
-                                    if (session['course_learner_id'].includes(course.course_id)){
-                                        assessmentCounter++;
+                                    tvideoInteractionCounter++;
+                                    if (session['course_learner_id'].includes(course.course_id)) {
+                                        videoInteractionCounter++;
                                     }
                                 });
-                                query = "SELECT * FROM quiz_sessions";
+                                query = "SELECT * FROM submissions";
                                 connection.runSql(query).then(function (sessions) {
                                     sessions.forEach(function (session) {
-                                        tquizSessionCounter++;
-                                        if (session['course_learner_id'].includes(course.course_id)){
-                                            quizSessionCounter++;
+                                        tsubmissionCounter++;
+                                        if (session['course_learner_id'].includes(course.course_id)) {
+                                            submissionCounter++;
                                         }
                                     });
-                                    totalHtmlString += tsessionCounter + "</td><td>" +
-                                        tforumSessionCounter + "</td><td>" +
-                                        tvideoInteractionCounter + "</td><td>" +
-                                        tsubmissionCounter + "</td><td>" +
-                                        tassessmentCounter + "</td><td>" +
-                                        tquizSessionCounter;
-                                    HtmlString += sessionCounter + "</td><td>" +
-                                        forumSessionCounter + "</td><td>" +
-                                        videoInteractionCounter + "</td><td>" +
-                                        submissionCounter + "</td><td>" +
-                                        assessmentCounter + "</td><td>" +
-                                        quizSessionCounter;
-                                    document.getElementById("loading").style.display = "none";
-                                    $('#dbGrid tbody').html(HtmlString);
+                                    query = "SELECT * FROM assessments";
+                                    connection.runSql(query).then(function (sessions) {
+                                        sessions.forEach(function (session) {
+                                            tassessmentCounter++;
+                                            if (session['course_learner_id'].includes(course.course_id)) {
+                                                assessmentCounter++;
+                                            }
+                                        });
+                                        query = "SELECT * FROM quiz_sessions";
+                                        connection.runSql(query).then(function (sessions) {
+                                            sessions.forEach(function (session) {
+                                                tquizSessionCounter++;
+                                                if (session['course_learner_id'].includes(course.course_id)) {
+                                                    quizSessionCounter++;
+                                                }
+                                            });
+                                            totalHtmlString += tsessionCounter + "</td><td>" +
+                                                tforumSessionCounter + "</td><td>" +
+                                                tvideoInteractionCounter + "</td><td>" +
+                                                tsubmissionCounter + "</td><td>" +
+                                                tassessmentCounter + "</td><td>" +
+                                                tquizSessionCounter;
+                                            HtmlString += sessionCounter + "</td><td>" +
+                                                forumSessionCounter + "</td><td>" +
+                                                videoInteractionCounter + "</td><td>" +
+                                                submissionCounter + "</td><td>" +
+                                                assessmentCounter + "</td><td>" +
+                                                quizSessionCounter;
+                                            document.getElementById("loading").style.display = "none";
+                                            $('#dbGrid tbody').html(HtmlString);
+                                            let databaseDetails = [{'name': 'databaseDetails', 'object': {'details':HtmlString}}];
+                                            sqlInsert('metadata', databaseDetails);
+                                        });
+                                    });
                                 });
                             });
                         });
-                    });
+                    })
                 });
-            })
-        });
-    }).catch(function (error) {
-        console.log(error);
-        // document.getElementById("loading").style.display = "none";
-    });
+            }).catch(function (error) {
+                console.log(error);
+                // document.getElementById("loading").style.display = "none";
+            });
+        }
+    })
 }
 
 // METADATA MODULES ////////////////////////////////////////////////////////////////////

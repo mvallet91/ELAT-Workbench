@@ -1,5 +1,6 @@
 // let connection = new JsStore.Instance(new Worker('scripts/jsstore.worker.js'));
-let connection = new JsStore.Instance(new Worker('https://cdn.jsdelivr.net/npm/jsstore/dist/jsstore.worker.min.js'));
+let connection = new JsStore.Instance(new Worker('https://cdn.jsdelivr.net/npm/jsstore@2.7.2/dist/jsstore.worker.min.js'));
+
 // let define function (require) {
 //     pako = require('pako');
 // };

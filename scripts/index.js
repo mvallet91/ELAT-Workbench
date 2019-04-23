@@ -1,4 +1,5 @@
-let connection = new JsStore.Instance(new Worker('scripts/jsstore.worker.js'));
+// let connection = new JsStore.Instance(new Worker('scripts/jsstore.worker.js'));
+let connection = new JsStore.Instance(new Worker('https://cdn.jsdelivr.net/npm/jsstore/dist/jsstore.worker.min.js'));
 // let define function (require) {
 //     pako = require('pako');
 // };
@@ -277,7 +278,7 @@ function passLogFiles(result){
     let total_chunks = result[5];
     let list = document.getElementById('listLogs').innerHTML;
     document.getElementById('listLogs').innerHTML = list +'<ul>' + output.join('') + '</ul>';
-    connection.runSql('SELECT * FROM metadata').then(function(result) {
+    connection.runSql("SELECT * FROM metadata WHERE name = 'metadata_map' ").then(function(result) {
         let course_metadata_map = result[0]['object'];
         if (chunk === 0){
             let table = document.getElementById("progress_tab");
@@ -321,7 +322,7 @@ function passLogFiles(result){
 
 
 function sqlInsert(table, data) {
-    if (table !== 'forum_interaction'){
+    if (!(['forum_interaction', 'metadata'].includes(table))){
         connection.runSql('DELETE FROM ' + table);
     }
     let query = new SqlWeb.Query("INSERT INTO " + table + " values='@val'");
@@ -947,7 +948,7 @@ function learner_mode(files) {
         sqlInsert('quiz_questions', data);
 
         let store_map = [{'name': 'metadata_map', 'object': course_metadata_map}];
-        sqlInsert ('metadata', store_map);
+        sqlInsert('metadata', store_map);
         // // loader.hide();
 
     }
@@ -2266,6 +2267,7 @@ function quiz_sessions(course_metadata_map, log_files, index, total, chunk, tota
             let table = document.getElementById("progress_tab");
             let row = table.insertRow();
             let cell1 = row.insertCell();
+            connection.runSql("DELETE FROM metadata WHERE name = 'graphElements'");
             setTimeout(function(){
                 alert("Done, please reload the page");
                 cell1.innerHTML = ('Done! at ' + new Date().toLocaleString('en-GB'));

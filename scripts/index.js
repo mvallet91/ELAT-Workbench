@@ -320,6 +320,7 @@ function initiateEdxDb() {
                 console.log('edx db ready');
                 showCoursesTableDataExtra();
                 showSessionTable();
+                showMainIndicators();
             });
         } else {
             console.log('Generating edx database');
@@ -501,6 +502,103 @@ function showSessionTable() {
         }
     })
 }
+
+
+function showMainIndicators() {
+
+    let HtmlString = "";
+    connection.runSql("SELECT * FROM metadata WHERE name = 'mainIndicators' ").then(function(result) {
+        if (result.length === 1) {
+            HtmlString = result[0]['object']['details'];
+            // document.getElementById("loading").style.display = "none";
+            $('#indicatorGrid tbody').html(HtmlString);
+        } else {
+            connection.runSql('select * from courses').then(function (courses) {
+                courses.forEach(function (course) {
+                    let course_id = course.course_id;
+
+                    connection.runSql("COUNT * from course_learner WHERE certificate_status = 'downloadable' ").then(function (result) {
+                        let completed = result;
+
+                        connection.runSql("COUNT * from course_learner").then(function (result) {
+                            let completionRate = completed/result;
+
+                            connection.runSql("SELECT [avg(final_grade)] from course_learner WHERE certificate_status = 'downloadable' ").then(function (result) {
+                                let avgGrade = result[0]['avg(final_grade)'];
+
+                                connection.runSql("COUNT * from course_learner WHERE enrollment_mode = 'verified' ").then(function (result) {
+                                    let verifiedLearners = result;
+
+                                    connection.runSql("COUNT * from course_learner WHERE enrollment_mode = 'honor' ").then(function (result) {
+                                        let honorLearners = result;
+
+                                        connection.runSql("COUNT * from course_learner WHERE enrollment_mode = 'audit' ").then(function (result) {
+                                            let auditLearners = result;
+
+                                            connection.runSql("SELECT [avg(final_grade)] from course_learner WHERE certificate_status = 'downloadable' GROUP BY enrollment_mode").then(function (results) {
+                                                let avgGrades = [];
+                                                results.forEach(function (result) {
+                                                    avgGrades.push([result.enrollment_mode, result.final_grade])
+                                                });
+
+                                                connection.runSql("SELECT [avg(duration)] from video_interaction GROUP BY course_learner_id").then(function (watchers) {
+                                                    let videoWatchers = result.length;
+                                                    let videoDuration = 0;
+                                                    watchers.forEach(function (watcher) {
+                                                        videoDuration += watcher['avg(duration)']
+                                                    });
+                                                    let avgDuration = videoDuration / videoWatchers;
+
+
+                                                    HtmlString += completionRate.toFixed(2)  + "</td><td>" +
+                                                        avgGrades  + "</td><td>" +
+                                                        "Verified: " + verifiedLearners + "</td><td>" +
+                                                        avgGrade  + "</td><td>" +
+                                                        videoWatchers + "</td><td>" +
+                                                        avgDuration;
+
+                                                    console.log(HtmlString);
+
+                                                    $('#indicatorGrid tbody').html(HtmlString);
+                                                })
+
+                                                // let joinLogic = {
+                                                //     table1: {
+                                                //         table: 'quiz_questions',
+                                                //         column: 'question_id'
+                                                //     },
+                                                //     join: 'inner',
+                                                //     table2: {
+                                                //         table: 'submissions',
+                                                //         column: 'question_id'
+                                                //     }
+                                                // };
+                                                // connection.select({
+                                                //     from: joinLogic
+                                                // }).then(function (results) {
+                                                //     results.forEach(function (row) {
+                                                //         console.log(row)
+                                                //     })
+                                                // }).catch(function (error) {
+                                                //     alert(error.message);
+                                                // });
+
+                                            })
+                                        })
+                                    })
+                                })
+                            })
+                        })
+                    });
+                });
+            }).catch(function (error) {
+                console.log(error);
+                // document.getElementById("loading").style.display = "none";
+            });
+        }
+    })
+}
+
 
 // METADATA MODULES ////////////////////////////////////////////////////////////////////
 
@@ -2217,34 +2315,6 @@ function processSessions(tablename, headers) {
 }
 
 
-function mainIndicators() {
-    connection.runSql('select * from courses').then(function (courses) {
-        courses.forEach(function (course) {
-            let course_id = course.course_id;
-            console.log(course_id);
-            let joinLogic = {
-                table1: {
-                    table: 'quiz_questions',
-                    column: 'question_id'
-                },
-                join: 'inner',
-                table2: {
-                    table: 'submissions',
-                    column: 'question_id'
-                }
-            };
-            connection.select({
-                from: joinLogic
-            }).then(function (results) {
-                results.forEach(function (row) {
-                    console.log(row)
-                })
-            }).catch(function (error) {
-                alert(error.message);
-            });
-        });
-    });
-}
 
 function getEdxDbQuery() {
     let db = "DEFINE DB edxdb;";

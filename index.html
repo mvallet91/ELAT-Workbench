@@ -113,11 +113,11 @@
                 <thead>
                 <tr>
                     <th>Completion Rate</th>
-                    <th>Average Grade (completed course)</th>
-                    <th>Enrollment Mode (E.M.)</th>
+                    <th>Average Grade <br>(completed course)</th>
+                    <th># of Students per<br> Enrollment Mode (E.M.)</th>
                     <th>Avg. Grade by E.M.</th>
-                    <th>Avg. Time Spent Watching Video</th>
-                    <th>Students that watched at least 1 video</th>
+                    <th>Avg. Time Spent<br> Watching Video</th>
+                    <th>Students that watched<br> at least 1 video</th>
                 </tr>
                 </thead>
                 <tbody></tbody>
@@ -393,7 +393,7 @@
                             time: {
                                 unit: 'day',
                                 min: new Date(elementMap['start_date']),
-                                suggestedMax: new Date(Math.min(endDate, elementMap['dateListChart'][-1]))
+                                max: new Date(Math.min(endDate, elementMap['dateListChart'][-1]))
                             },
                             scaleLabel: {
                                 display: true,

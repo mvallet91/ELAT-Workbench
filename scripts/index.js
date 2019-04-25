@@ -516,7 +516,7 @@ function showMainIndicators() {
             connection.runSql('select * from courses').then(function (courses) {
                 courses.forEach(function (course) {
                     let course_id = course.course_id;
-
+                    HtmlString += "<tr ItemId=" + course.course_id + "><td>";
                     connection.runSql("COUNT * from course_learner WHERE certificate_status = 'downloadable' ").then(function (result) {
                         let completed = result;
 
@@ -536,30 +536,36 @@ function showMainIndicators() {
                                             let auditLearners = result;
 
                                             connection.runSql("SELECT [avg(final_grade)] from course_learner WHERE certificate_status = 'downloadable' GROUP BY enrollment_mode").then(function (results) {
-                                                let avgGrades = [];
+                                                let avgGrades = {};
                                                 results.forEach(function (result) {
-                                                    avgGrades.push([result.enrollment_mode, result.final_grade])
+                                                    avgGrades[result.enrollment_mode] =result.final_grade;
                                                 });
 
-                                                connection.runSql("SELECT [avg(duration)] from video_interaction GROUP BY course_learner_id").then(function (watchers) {
-                                                    let videoWatchers = result.length;
+                                                connection.runSql("SELECT [sum(duration)] from video_interaction GROUP BY course_learner_id").then(function (watchers) {
+                                                    let videoWatchers = watchers.length;
                                                     let videoDuration = 0;
                                                     watchers.forEach(function (watcher) {
-                                                        videoDuration += watcher['avg(duration)']
+                                                        videoDuration += watcher['sum(duration)'];
                                                     });
+
                                                     let avgDuration = videoDuration / videoWatchers;
 
-
                                                     HtmlString += completionRate.toFixed(2)  + "</td><td>" +
-                                                        avgGrades  + "</td><td>" +
-                                                        "Verified: " + verifiedLearners + "</td><td>" +
-                                                        avgGrade  + "</td><td>" +
-                                                        videoWatchers + "</td><td>" +
-                                                        avgDuration;
-
-                                                    console.log(HtmlString);
+                                                        avgGrade.toFixed(2)  + "</td><td>" +
+                                                            "Verified: " + verifiedLearners + "<br>" +
+                                                            "Honor: " + honorLearners + "<br>" +
+                                                            "Audit: " + auditLearners + "<br>" +
+                                                        "</td><td>" +
+                                                            "Verified: " + avgGrades['verified'] + "<br>" +
+                                                            "Honor: " + avgGrades['honor'] + "<br>" +
+                                                            "Audit: " + avgGrades['audit'] + "<br>" +
+                                                        "</td><td>" +
+                                                        (avgDuration/60).toFixed(2) + " minutes" + "</td><td>" +
+                                                        videoWatchers;
 
                                                     $('#indicatorGrid tbody').html(HtmlString);
+                                                    let indicators = [{'name': 'mainIndicators', 'object': {'details': HtmlString}}];
+                                                    sqlInsert('metadata', indicators);
                                                 })
 
                                                 // let joinLogic = {

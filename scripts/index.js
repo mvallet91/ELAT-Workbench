@@ -228,7 +228,7 @@ function passLogFiles(result){
 
 
 function sqlInsert(table, data) {
-    if (!(['forum_interaction', 'metadata'].includes(table))){
+    if (!(['forum_interaction', 'webdata'].includes(table))){
         connection.runSql('DELETE FROM ' + table);
     }
     let query = new SqlWeb.Query("INSERT INTO " + table + " values='@val'");
@@ -340,7 +340,7 @@ function initiateEdxDb() {
 function showCoursesTableDataExtra() {
     // document.getElementById("loading").style.display = "block";
     let HtmlString = "";
-    connection.runSql("SELECT * FROM metadata WHERE name = 'courseDetails' ").then(function(result) {
+    connection.runSql("SELECT * FROM webdata WHERE name = 'courseDetails' ").then(function(result) {
         if (result.length === 1) {
             HtmlString = result[0]['object']['details'];
             document.getElementById("loading").style.display = "none";
@@ -380,7 +380,7 @@ function showCoursesTableDataExtra() {
                                     $('#tblGrid tbody').html(HtmlString);
                                     // document.getElementById("loading").style.display = "none";
                                     let courseDetails = [{'name': 'courseDetails', 'object': {'details': HtmlString}}];
-                                    sqlInsert('metadata', courseDetails);
+                                    sqlInsert('webdata', courseDetails);
                                 })
                             })
                         })
@@ -400,7 +400,7 @@ function showSessionTable() {
     let HtmlString = "";
     let totalHtmlString = "";
 
-    connection.runSql("SELECT * FROM metadata WHERE name = 'databaseDetails' ").then(function(result) {
+    connection.runSql("SELECT * FROM webdata WHERE name = 'databaseDetails' ").then(function(result) {
         if (result.length === 1) {
             HtmlString = result[0]['object']['details'];
             document.getElementById("loading").style.display = "none";
@@ -487,7 +487,7 @@ function showSessionTable() {
                                             document.getElementById("loading").style.display = "none";
                                             $('#dbGrid tbody').html(HtmlString);
                                             let databaseDetails = [{'name': 'databaseDetails', 'object': {'details':HtmlString}}];
-                                            sqlInsert('metadata', databaseDetails);
+                                            sqlInsert('webdata', databaseDetails);
                                         });
                                     });
                                 });
@@ -507,7 +507,7 @@ function showSessionTable() {
 function showMainIndicators() {
 
     let HtmlString = "";
-    connection.runSql("SELECT * FROM metadata WHERE name = 'mainIndicators' ").then(function(result) {
+    connection.runSql("SELECT * FROM webdata WHERE name = 'mainIndicators' ").then(function(result) {
         if (result.length === 1) {
             HtmlString = result[0]['object']['details'];
             // document.getElementById("loading").style.display = "none";
@@ -565,7 +565,7 @@ function showMainIndicators() {
 
                                                     $('#indicatorGrid tbody').html(HtmlString);
                                                     let indicators = [{'name': 'mainIndicators', 'object': {'details': HtmlString}}];
-                                                    sqlInsert('metadata', indicators);
+                                                    sqlInsert('webdata', indicators);
                                                 })
 
                                                 // let joinLogic = {
@@ -1258,7 +1258,9 @@ function session_mode(course_metadata_map, log_files, index, total, chunk){
                 console.log(performance.now() - zero_start);
 
                 sqlLogInsert('sessions', data);
-
+                connection.runSql("DELETE FROM webdata WHERE name = 'graphElements'");
+                connection.runSql("DELETE FROM webdata WHERE name = 'databaseDetails'");
+                connection.runSql("DELETE FROM webdata WHERE name = 'mainIndicators'");
                 progress_display(data.length + ' session elements', index);
                 // loader.hide();
             } else {
@@ -1552,7 +1554,7 @@ function video_interaction(course_metadata_map, log_files, index, total, chunk) 
 
     // This is only for one course! It has to be changed to allow for more courses
     let current_course_id = course_metadata_map["course_id"];
-    current_course_id = current_course_id.slice(current_course_id.indexOf('+')+1, current_course_id.lastIndexOf('+'));
+    current_course_id = current_course_id.slice(current_course_id.indexOf('+') + 1, current_course_id.lastIndexOf('+'));
 
     console.log('Starting video session processing');
     let current_date = new Date(course_metadata_map['start_date']);
@@ -1620,6 +1622,7 @@ function video_interaction(course_metadata_map, log_files, index, total, chunk) 
                             let old_time = 0;
                             let new_speed = 0;
                             let old_speed = 0;
+
                             if (typeof jsonObject['event'] === "string") {
                                 let event_jsonObject = JSON.parse(jsonObject['event']);
                                 video_id = event_jsonObject['id'];
@@ -1729,6 +1732,7 @@ function video_interaction(course_metadata_map, log_files, index, total, chunk) 
                             }
                             continue;
                         }
+                        if (video_id.length < 3){console.log(log)}
                         if (video_start_time !== '') {
                             let verification_time = new Date(video_start_time);
                             if (log["event_time"] > verification_time.setMinutes(verification_time.getMinutes() + 30)){
@@ -2279,7 +2283,6 @@ function quiz_sessions(course_metadata_map, log_files, index, total, chunk, tota
             let table = document.getElementById("progress_tab");
             let row = table.insertRow();
             let cell1 = row.insertCell();
-            connection.runSql("DELETE FROM metadata WHERE name = 'graphElements'");
             setTimeout(function(){
                 alert("Done, please reload the page");
                 cell1.innerHTML = ('Done! at ' + new Date().toLocaleString('en-GB'));
@@ -2382,6 +2385,12 @@ function getEdxDbQuery() {
         )
     `;
 
+    let webdata = `DEFINE TABLE webdata (
+        name PRIMARYKEY STRING,
+        object OBJECT
+        )
+    `;
+
     let quiz_questions = `DEFINE TABLE quiz_questions (
         question_id PRIMARYKEY STRING,
         question_type STRING,
@@ -2474,6 +2483,6 @@ function getEdxDbQuery() {
 
     return (db + metadata + courses + demographic + elements + learners + learner_index +
         sessions + quiz_questions + submissions + assessments + quiz_sessions + video_interaction +
-        forum_interaction + forum_sessions + survey_descriptions + survey_responses )
+        forum_interaction + forum_sessions + survey_descriptions + survey_responses + webdata )
     ;
 }

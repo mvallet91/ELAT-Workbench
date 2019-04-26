@@ -464,8 +464,8 @@
                     label: 'Video Session Count',
                     yAxisID: 'B',
                     data: Object.values(elementMap['orderedVideoSessions']),
-                    borderColor: '#999573',
-                    backgroundColor: '#999573',
+                    borderColor: '#753599',
+                    backgroundColor: '#753599',
                     lineTension: 0,
                 }]
             };
@@ -488,7 +488,7 @@
                             time: {
                                 unit: 'day',
                                 min: new Date(elementMap['start_date']),
-                                max: new Date(Math.min(endDate, lastDay))
+                                max: new Date(Math.min(endDate, elementMap['dateListChart'][-1]))
                             },
                             scaleLabel: {
                                 display: true,

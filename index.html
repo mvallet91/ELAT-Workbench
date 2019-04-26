@@ -157,6 +157,9 @@
     <br>
     <canvas id="lineChart" width="400" height="120"></canvas>
 
+    <br>
+    <button onclick="deleteEverything()">Clear Database</button>
+
     <script>
 
         function getGraphElementMap(callback) {
@@ -520,6 +523,62 @@
                 }
             };
             let lineChart = new Chart(lineCtx, lineOptions);
+        }
+
+        function deleteEverything() {
+
+            // connection.dropDb()
+            //     .then(function() {
+            //         console.log('Db deleted successfully');
+            //     }).catch(function(error) {
+            //     console.log(error);
+            // });
+
+            let query = 'DELETE FROM sessions';
+            let r = confirm("WARNING!\nTHIS WILL DELETE EVERYTHING IN THE DATABASE");
+            if (r === true) {
+                connection.clear('sessions').then(function () {
+                    console.log('Cleared sessions table');
+                    connection.clear('video_interaction').then(function () {
+                        console.log('Cleared video_interaction table');
+                        connection.clear('submissions').then(function () {
+                            console.log('Cleared submissions ');
+                            connection.runSql(query).then(function () {
+                                console.log('Cleared quiz_sessions ');
+                                connection.clear('course_learner').then(function () {
+                                    console.log('Cleared course_learner ');
+                                    connection.clear('forum_sessions').then(function () {
+                                        console.log('Cleared forum_sessions ');
+                                        connection.dropDb().then(function(result){
+                                            if (result === 1){alert('Database has been deleted!')}
+                                        });
+                                    }).catch(function (err) {
+                                        console.log(err);
+                                        alert('The deletion process started but did not finish,\n please refresh and try again');
+                                    });
+                                }).catch(function (err) {
+                                    console.log(err);
+                                    alert('The deletion process started but did not finish,\n please refresh and try again');
+                                });
+                            }).catch(function (err) {
+                                console.log(err);
+                                alert('The deletion process started but did not finish,\n please refresh and try again');
+                            });
+                        }).catch(function (err) {
+                            console.log(err);
+                            alert('The deletion process started but did not finish,\n please refresh and try again');
+                        });
+                    }).catch(function (err) {
+                        console.log(err);
+                        alert('The deletion process started but did not finish,\n please refresh and try again');
+                    });
+                }).catch(function (err) {
+                    console.log(err);
+                    alert('Could not delete database, please try again');
+                });
+            } else {
+                alert('Nothing was deleted')
+            }
         }
     </script>
 

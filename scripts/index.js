@@ -15,7 +15,7 @@ window.onload = function () {
     let  multiFileInput = document.getElementById('filesInput');
     multiFileInput.value = '';
     multiFileInput.addEventListener('change', function () {
-        // $('#loading').show();
+        $('#loading').show();
         let files = multiFileInput.files;
         readMetaFiles(files, passFiles);
     });
@@ -23,8 +23,7 @@ window.onload = function () {
     let  multiFileInputLogs = document.getElementById('logFilesInput');
     multiFileInputLogs.value = '';
     multiFileInputLogs.addEventListener('change', function () {
-        // // loader.show();
-        // $('#loading').show();
+        $('#loading').show();
         processLogFiles(0, 0)
     });
 
@@ -76,7 +75,6 @@ window.onload = function () {
     });
 };
 
-// var // loader = $('#loading');
 let reader = new FileReader();
 
 function readMetaFiles(files, callback){
@@ -172,6 +170,7 @@ function passFiles(result){
     let names = result[0];
     let output = result[1];
     document.getElementById('list').innerHTML = '<ul>' + output.join('') + '</ul>';
+    $('#loading').hide();
     learner_mode(names);
 }
 
@@ -247,7 +246,8 @@ function sqlInsert(table, data) {
             let time = today.getHours() + ":" + today.getMinutes() + ":" + today.getSeconds() + '.' + today.getMilliseconds();
             console.log('Successfully added to' , table, ' at ', time);
             if (table === 'metadata'){
-                alert('Please reload the page now')
+                $('#loading').hide();
+                alert('Please reload the page now');
             }
         }
     }).catch(function (err) {
@@ -318,16 +318,18 @@ function initiateEdxDb() {
         if (isExist) {
             connection.runSql('OPENDB ' + dbName).then(function () {
                 console.log('edx db ready');
+                toastr.success('Database ready', 'ELAT',  {timeOut: 1500});
                 showCoursesTableDataExtra();
                 showSessionTable();
                 showMainIndicators();
             });
         } else {
             console.log('Generating edx database');
+            toastr.info('Welcome! If this is your first time here, visit ELAT Home for more info', 'ELAT',  {timeOut: 5000});
             let dbQuery = getEdxDbQuery();
             connection.runSql(dbQuery).then(function (tables) {
                 console.log(tables);
-                alert('Database prepared, please refresh the page');
+                toastr.success('Database generated, please reload the page', 'ELAT',  {timeOut: 1500});
             });
         }
     }).catch(function (err) {
@@ -705,6 +707,7 @@ function ExtractCourseInformation(files) {
 
 
 function learner_mode(files) {
+    $('#loading').show();
     let course_record = [];
     let course_element_record = [];
     let learner_index_record = [];
@@ -965,11 +968,10 @@ function learner_mode(files) {
 
         let store_map = [{'name': 'metadata_map', 'object': course_metadata_map}];
         sqlInsert('metadata', store_map);
-        // // loader.hide();
-
     }
     else {
         console.log('Course structure file not found');
+        $('#loading').hide();
         // jq ('#loading').hide ();
     }
 }
@@ -1732,7 +1734,6 @@ function video_interaction(course_metadata_map, log_files, index, total, chunk) 
                             }
                             continue;
                         }
-                        if (video_id.length < 3){console.log(log)}
                         if (video_start_time !== '') {
                             let verification_time = new Date(video_start_time);
                             if (log["event_time"] > verification_time.setMinutes(verification_time.getMinutes() + 30)){
@@ -2270,6 +2271,7 @@ function quiz_sessions(course_metadata_map, log_files, index, total, chunk, tota
     }
 
     chunk++;
+    toastr.info('Starting to process a new day!');
     if (chunk < total_chunks){
         progress_display('Part\n' + (chunk+1) + ' of ' + total_chunks, index);
         processLogFiles(index, chunk);
@@ -2286,7 +2288,8 @@ function quiz_sessions(course_metadata_map, log_files, index, total, chunk, tota
             setTimeout(function(){
                 alert("Done, please reload the page");
                 cell1.innerHTML = ('Done! at ' + new Date().toLocaleString('en-GB'));
-            }, 30000);
+                $('#loading').hide();
+            }, 10000);
             // loader.hide();
         }
     }

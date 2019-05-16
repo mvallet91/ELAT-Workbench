@@ -91,6 +91,12 @@ function readMetaFiles(files, callback){
         output.push('<li><strong>', f.name, '</strong> (', f.type || 'n/a', ') - ',
             f.size, ' bytes', '</li>');
 
+        if (f.name.includes('zip')) {
+            $('#loading').hide();
+            toastr.error('Metadata files cannot be in zip!');
+            break;
+        }
+
         if (f.name.includes(sqlType) || (f.name.includes(jsonType)) || (f.name.includes(mongoType))) {
             let reader = new FileReader();
             reader.onloadend = function () {
@@ -249,6 +255,9 @@ function sqlInsert(table, data) {
                 $('#loading').hide();
                 alert('Please reload the page now');
             }
+            if (table === 'webdata'){
+                $('#loading').hide();
+            }
         }
     }).catch(function (err) {
         console.log(err);
@@ -325,11 +334,11 @@ function initiateEdxDb() {
             });
         } else {
             console.log('Generating edx database');
-            toastr.info('Welcome! If this is your first time here, visit ELAT Home for more info', 'ELAT',  {timeOut: 5000});
+            toastr.info('Welcome! If this is your first time here, visit ELAT Home for more info', 'ELAT',  {timeOut: 7000});
             let dbQuery = getEdxDbQuery();
             connection.runSql(dbQuery).then(function (tables) {
                 console.log(tables);
-                toastr.success('Database generated, please reload the page', 'ELAT',  {timeOut: 1500});
+                toastr.success('Database generated, please reload the page', 'ELAT',  {timeOut: 5000});
             });
         }
     }).catch(function (err) {
@@ -2271,16 +2280,17 @@ function quiz_sessions(course_metadata_map, log_files, index, total, chunk, tota
     }
 
     chunk++;
-    toastr.info('Starting to process a new day!');
+
     if (chunk < total_chunks){
         progress_display('Part\n' + (chunk+1) + ' of ' + total_chunks, index);
+        toastr.info('Processing a new chunk of file number ' + (index + 1));
         processLogFiles(index, chunk);
     } else {
         index++;
         if (index < total){
             chunk = 0;
+            toastr.info('Starting with file number ' + (index + 1));
             processLogFiles(index, chunk);
-            // loader.hide();
         } else {
             let table = document.getElementById("progress_tab");
             let row = table.insertRow();

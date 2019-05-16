@@ -233,7 +233,7 @@
                                 let videoSessions = {};
                                 let videoDurations = {};
 
-                                toastr.info('Calculating graph map');
+                                toastr.info('Processing indicators');
 
                                 $('#loading').show();
 
@@ -379,6 +379,7 @@
                                                 'annotations': annotations
                                             };
                                             let graphElements = [{'name': 'graphElements', 'object': graphElementMap}];
+                                            toastr.info('Processing graph data');
                                             sqlInsert('webdata', graphElements);
                                             callback(graphElementMap);
                                         });
@@ -555,7 +556,6 @@
                 }
             };
             let lineChart = new Chart(lineCtx, lineOptions);
-            $('#loading').hide();
         }
 
         function deleteEverything() {

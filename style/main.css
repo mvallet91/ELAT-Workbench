@@ -22,6 +22,10 @@ table tr td {
     margin-right: -4px;
 }
 
+.navbar-brand {
+    padding:0;
+}
+
 #loading {
     background: url('../icons/loading-hourglass.gif') no-repeat center center;
     position: absolute;

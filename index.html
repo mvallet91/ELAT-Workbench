@@ -3,38 +3,20 @@
 
 <head>
     <meta charset="utf-8" />
-    <title>edX-log Processing Tool</title>
+    <title>ELAT Workbench</title>
     <link rel="shortcut icon" type="image/x-icon" href="icons/favicon.ico">
     <meta name="viewport" content="width=device-width,initial-scale=1.0">
 
-    <!--<script src="scripts/jquery.js"></script>-->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.js"></script>
-
-    <!--<link rel="stylesheet" type="text/css" href="style/bootstrap.css" />-->
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
-
-    <!--<script src="scripts/bootstrap.js"></script>-->
-    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
 
     <link rel="stylesheet" href="style/font-awesome.min.css" />
 
-    <!--<script src="scripts/jsstore.js"></script>-->
     <script src="https://cdn.jsdelivr.net/npm/jsstore@2.11.0/dist/jsstore.min.js"></script>
 
     <script src="https://cdn.jsdelivr.net/npm/jsstore@2.11.0/dist/jsstore.worker.min.js"></script>
 
-    <!--<script src="scripts/sqlweb.js"></script>-->
     <script src="https://cdn.jsdelivr.net/npm/sqlweb@1.2.1/dist/sqlweb.min.js"></script>
 
-    <!--<script data-main="scripts/index" src="scripts/require.js"></script>-->
-    <!--<script data-main="scripts/index" src="https://cdn.jsdelivr.net/gh/mvallet91/untitled/scripts/require.js"></script>-->
-
-    <!--<script src="brython/brython.js"></script>-->
-    <!--<script type="text/javascript" src="brython/brython_stdlib.js"></script>-->
-    <!--<script type="text/javascript" src="https://cdn.jsdelivr.net/gh/mvallet91/untitled/brython/brython_stdlib.js"></script>-->
-
-    <!--<script src="scripts/pako.js"></script>-->
-    <!--<script type="text/javascript" src="scripts/pako.js"></script>-->
     <script src="https://cdn.jsdelivr.net/gh/mvallet91/untitled/scripts/pako.js"></script>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.8.0/Chart.bundle.min.js"></script>
@@ -48,29 +30,26 @@
 <body>
 
     <header>
-        <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
-            <a class="navbar-brand" href="https://mvallet91.github.io/ELAT/">ELAT - Home</a>
-            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <nav class="navbar navbar-expand-lg navbar-light  bg-light">
+            <a class="navbar-brand" href="https://mvallet91.github.io/ELAT/">ELAT Home</a>
+            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarText" aria-controls="navbarText" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
             </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav">
-                    <li class="nav-item active">
-                        <a class="nav-link" href="#">Home <span class="sr-only">(current)</span></a>
+            <div class="collapse navbar-collapse" id="navbarText">
+                <ul class="navbar-nav mr-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="https://mvallet91.github.io/ELAT/docs/home/">Learn More</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="#">Features</a>
+                        <a class="nav-link" href="https://mvallet91.github.io/ELAT/docs/quickstart/">Quick Start</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="#">Pricing</a>
+                        <a class="nav-link" href="https://mvallet91.github.io/ELAT/docs/about/">About</a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link disabled" href="#">Disabled</a>
-                    </li>
-                    <!--<li class="nav-item">-->
-                        <!--<a class="nav-link pull-right" href="#" ><img src="img/2000px-TU_Delft_Logo.svg.png" width="100px" ></a>-->
-                    <!--</li>-->
                 </ul>
+                <span class="navbar-brand">
+                    <a class="nav-link pull-right" href="#" ><img src="img/2000px-TU_Delft_Logo.svg.png" width="90px" ></a>
+                </span>
             </div>
         </nav>
     </header>
@@ -80,7 +59,7 @@
     <div class="row justify-content-md-center " style="margin-top:10px; ">
         <div class="col-xs-12 col-sm-10  ">
             <table id="tblGrid" class="table table-hover ">
-                <caption style="text-align:center;padding:7px 0 7px 0;background:#12B1C7;color:white;font-size:18px;caption-side: top; ">
+                <caption style="text-align:center;padding:7px 0 7px 0;background:#00A6D6;color:white;font-size:18px;caption-side: top; ">
                     Course Details
                 </caption>
                 <thead>
@@ -99,35 +78,40 @@
         </div>
     </div>
     <!-- FILE SYSTEM FIELDS /////////////////////////////////////////////////////////////////////// -->
-    <!--<div class="row row-centered " style="margin-top:10px; ">-->
-        <!--<button type="button" class="btn btn-info" data-toggle="collapse" data-target="#uploadBoxes" aria-expanded="false"  aria-controls="uploadBoxes">-->
-            <!--Upload Files-->
-        <!--</button>-->
-    <!--</div>-->
-    <!--<div id="uploadBoxes" class="collapse">-->
-    <div id="uploadBoxes" >
-        Select all metadata files:
-        <input type="file" id="filesInput" multiple >
-        <output id="list"></output>
+    <div class="row justify-content-md-center " style="margin-top:10px; ">
+        <div class="col-xs-12 col-sm-10  ">
+            <button type="button" class="btn btn-primary" data-toggle="collapse" data-target="#uploadBoxes" aria-expanded="false"  aria-controls="uploadBoxes">
+                Upload Files
+            </button>
+            <button type="button" class="btn btn-primary float-right" onclick="deleteEverything()">
+                Clear Database
+            </button>
+        </div>
+        <div class="col-xs-12 col-sm-10  ">
+            <div id="uploadBoxes" class="collapse">
+                Select all metadata files:<br>
+                <input type="file" id="filesInput" multiple >
+                <output id="list"></output>
+                <br><br>
 
-        Select log files:
-        <input type="file" id="logFilesInput" multiple >
-        <output id="listLogs"></output>
+                Select log files:<br>
+                <input type="file" id="logFilesInput" multiple >
+                <output id="listLogs"></output>
 
-        <table id="progress_tab">
-        </table>
-        <table id="progress_time">
-        </table>
-        <table id="progress_bar">
-        </table>
+                <table id="progress_tab">
+                </table>
+                <table id="progress_time">
+                </table>
+                <table id="progress_bar">
+                </table>
+            </div>
+        </div>
     </div>
-
-    <br>
 
     <div class="row justify-content-md-center " style="margin-top:10px; ">
         <div class="col-xs-12 col-sm-10  ">
             <table id="dbGrid" class="table table-hover ">
-                <caption style="text-align:center;padding:7px 0 7px 0;background:#12B1C7;color:white;font-size:18px;caption-side: top; ">
+                <caption style="text-align:center;padding:7px 0 7px 0;background:#00A6D6;color:white;font-size:18px;caption-side: top; ">
                     Database Details
                 </caption>
                 <thead>
@@ -145,7 +129,7 @@
             </table>
 
             <table id="indicatorGrid" class="table table-hover ">
-                <caption style="text-align:center;padding:7px 0 7px 0;background:#12B1C7;color:white;font-size:18px;caption-side: top; ">
+                <caption style="text-align:center;padding:7px 0 7px 0;background:#00A6D6;color:white;font-size:18px;caption-side: top; ">
                     Main Indicators
                 </caption>
                 <thead>
@@ -162,7 +146,7 @@
             </table>
 
             <table id="dlGrid" class="table table-hover ">
-                <caption style="text-align:center;padding:7px 0 7px 0;background:#12B1C7;color:white;font-size:18px;caption-side: top; ">
+                <caption style="text-align:center;padding:7px 0 7px 0;background:#00A6D6;color:white;font-size:18px;caption-side: top; ">
                     Database Downloads
                 </caption>
                 <thead>
@@ -191,12 +175,29 @@
         </div>
     </div>
 
-    <canvas id="barChart" width="400" height="120"></canvas>
-    <br>
-    <canvas id="lineChart" width="400" height="120"></canvas>
+    <div class="row justify-content-md-center " style="margin-top:10px; ">
+        <div class="col-xs-12 col-sm-11  ">
+            <canvas id="barChart" width="400" height="120"></canvas>
+            <br>
+            <canvas id="lineChart" width="400" height="120"></canvas>
+        </div>
+    </div>
 
-    <br>
-    <button onclick="deleteEverything()">Clear Database</button>
+    <script src = "https://code.jquery.com/jquery-3.3.1.slim.min.js"
+            integrity = "sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo"
+            crossorigin = "anonymous">
+    </script>
+
+    <script src = "https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js"
+            integrity = "sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49"
+            crossorigin = "anonymous">
+    </script>
+
+    <script src = "https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.min.js"
+            integrity = "sha384-ChfqqxuZUCnJSK3+MXmPNIyE6ZbWh2IMqE241rYiqJxyMiZ6OW/JmZQ5stwEULTy"
+            crossorigin = "anonymous">
+    </script>
+
 
     <script>
 

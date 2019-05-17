@@ -24,32 +24,7 @@
 
 <body>
 
-    <!--<header>-->
-        <!--<nav class="navbar navbar-expand-lg navbar-light  bg-light">-->
-            <!--<a class="navbar-brand" href="https://mvallet91.github.io/ELAT/">ELAT Home</a>-->
-            <!--<button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarText" aria-controls="navbarText" aria-expanded="false" aria-label="Toggle navigation">-->
-                <!--<span class="navbar-toggler-icon"></span>-->
-            <!--</button>-->
-            <!--<div class="collapse navbar-collapse" id="navbarText">-->
-                <!--<ul class="navbar-nav mr-auto">-->
-                    <!--<li class="nav-item">-->
-                        <!--<a class="nav-link" href="https://mvallet91.github.io/ELAT/docs/home/">Learn More</a>-->
-                    <!--</li>-->
-                    <!--<li class="nav-item">-->
-                        <!--<a class="nav-link" href="https://mvallet91.github.io/ELAT/docs/quickstart/">Quick Start</a>-->
-                    <!--</li>-->
-                    <!--<li class="nav-item">-->
-                        <!--<a class="nav-link" href="https://mvallet91.github.io/ELAT/docs/about/">About</a>-->
-                    <!--</li>-->
-                <!--</ul>-->
-                <!--<span class="navbar-brand">-->
-                    <!--<a class="nav-link pull-right" href="#" ><img src="img/2000px-TU_Delft_Logo.svg.png" width="90px" ></a>-->
-                <!--</span>-->
-            <!--</div>-->
-        <!--</nav>-->
-    <!--</header>-->
     <nav class="navbar navbar-expand-lg navbar-light bg-light container-fluid">
-        <!--<a class="navbar-brand" href="https://mvallet91.github.io/ELAT/">ELAT Home</a>-->
         <a class="navbar-brand" href="https://mvallet91.github.io/ELAT/">
             <span><img src="img/logonav.png" width="30" alt="Logo"></span> edX Logfile Analysis Tool
         </a>
@@ -185,33 +160,55 @@
                 </thead>
                 <tbody>
                 <tr>
-                    <th><button id="dl_all">Download All</button></th>
-                    <th><button id="dl_sessions">Download</button></th>
-                    <th><button id="dl_forum">Download</button></th>
-                    <th><button id="dl_vid_sessions">Download</button></th>
-                    <th><button id="dl_submissions">Download</button></th>
-                    <th><button id="dl_assessments">Download</button></th>
-                    <th><button id="dl_quiz">Download</button></th>
+                    <th><button type="button" class="btn btn-primary btn-sm" id="dl_all">Download All</button></th>
+                    <th><button type="button" class="btn btn-primary btn-sm" id="dl_sessions">Download</button></th>
+                    <th><button type="button" class="btn btn-primary btn-sm" id="dl_forum">Download</button></th>
+                    <th><button type="button" class="btn btn-primary btn-sm" id="dl_vid_sessions">Download</button></th>
+                    <th><button type="button" class="btn btn-primary btn-sm" id="dl_submissions">Download</button></th>
+                    <th><button type="button" class="btn btn-primary btn-sm" id="dl_assessments">Download</button></th>
+                    <th><button type="button" class="btn btn-primary btn-sm" id="dl_quiz">Download</button></th>
                 </tr>
                 </tbody>
             </table>
+            <button type="button" class="btn btn-primary btn-sm" data-toggle="collapse" data-target="#graphOptions" aria-expanded="false" >
+                Graph Options
+            </button>
+            <div id="graphOptions" class="collapse">
+                <br>
+                <h6>Date Range</h6>
+                <div class="form-check" >
+                    <label class="form-check-label">
+                        <input type="radio" class="form-check-input" name="optradio" value="allDates" onchange="getGraphElementMap(drawCharts)">
+                        All uploaded files
+                    </label>
+                </div>
+                <div class="form-check">
+                    <label class="form-check-label">
+                        <input type="radio" class="form-check-input" name="optradio" value="courseDates" onchange="getGraphElementMap(drawCharts)">
+                        Only in official course dates
+                    </label>
+                </div>
+            </div>
         </div>
     </div>
 
     <div class="row justify-content-md-center " style="margin-top:10px; ">
         <div class="col-xs-12 col-sm-11  ">
             <canvas id="barChart" width="400" height="120"></canvas>
+            <div class="col text-right">
+                <button type="button" class="btn btn-secondary btn-sm" id="save-btn-totals" onclick="exportChart('barChart')">Save Chart Image</button>
+            </div>
             <br>
             <canvas id="lineChart" width="400" height="120"></canvas>
+            <div class="col text-right">
+                <button type="button" class="btn btn-secondary btn-sm" id="save-btn-counts" onclick="exportChart('lineChart')">Save Chart Image</button>
+            </div>
         </div>
     </div>
 
     <script src = "https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
-
     <script src = "https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.15.0/umd/popper.min.js"></script>
-
     <script src = "https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
-
     <script src = "https://cdnjs.cloudflare.com/ajax/libs/toastr.js/2.1.1/toastr.min.js"></script>
 
     <script src="scripts/index.js"></script>
@@ -424,11 +421,19 @@
 
         getGraphElementMap(drawCharts);
 
+        let chart = null;
+        let lineChart = null;
+
         function drawCharts(elementMap) {
-            let ctx = document.getElementById('barChart').getContext('2d');
+
+            let canvas = document.getElementById('barChart');
+            let ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // let ctx = document.getElementById('barChart').getContext('2d');
+            // ctx.clearRect(0, 0,  document.getElementById('barChart').width,  document.getElementById('barChart').height);
             let endDate = new Date(elementMap['end_date']);
             let startDate = new Date(elementMap['start_date']);
-            let lastDay = new Date(elementMap['dateListChart'][elementMap['dateListChart'].length - 1]);
 
             let data = {
                 labels: elementMap['dateListChart'],
@@ -451,6 +456,14 @@
                 }]
             };
 
+            let radioValue = $("input[name='optradio']:checked").val();
+            if (radioValue){
+                if (radioValue === 'allDates'){
+                    startDate = new Date(elementMap['dateListChart'][0]);
+                    endDate = new Date(elementMap['dateListChart'][elementMap['dateListChart'].length - 1]);
+                }
+            }
+
             let options = {
                 type: 'line',
                 data: data,
@@ -464,8 +477,8 @@
                             display: true,
                             time: {
                                 unit: 'day',
-                                min: new Date(elementMap['start_date']),
-                                max: new Date(Math.min(endDate, elementMap['dateListChart'][-1]))
+                                min: startDate,
+                                max: endDate
                             },
                             scaleLabel: {
                                 display: true,
@@ -499,7 +512,11 @@
                 }
             };
 
-            let chart = new Chart(ctx, options);
+            if (chart !== null) {
+                chart.destroy();
+            }
+
+            chart = new Chart(ctx, options);
 
             let lineCtx = document.getElementById('lineChart').getContext('2d');
 
@@ -549,8 +566,8 @@
                             display: true,
                             time: {
                                 unit: 'day',
-                                min: new Date(elementMap['start_date']),
-                                max: new Date(Math.min(endDate, elementMap['dateListChart'][-1]))
+                                min: startDate,
+                                max: endDate
                             },
                             scaleLabel: {
                                 display: true,
@@ -584,7 +601,12 @@
                     }
                 }
             };
-            let lineChart = new Chart(lineCtx, lineOptions);
+
+            if (lineChart !== null) {
+                lineChart.destroy();
+            }
+
+            lineChart = new Chart(lineCtx, lineOptions);
         }
 
         function deleteEverything() {
@@ -634,6 +656,23 @@
             } else {
                 alert('Nothing was deleted')
             }
+        }
+
+        // $("#save-btn").click(function() {
+        //     $("#myChart").get(0).toBlob(function(blob) {
+        //         saveAs(blob, "chart_1");
+        //     });
+        // });
+
+        function exportChart(chartId) {
+            document.getElementById(chartId).toBlob(function(blob) {
+                // console.log(blob)
+                let a = document.createElement('a');
+                let filename = chartId;
+                a.href = URL.createObjectURL(blob);
+                a.download = filename;
+                a.click();
+            });
         }
     </script>
 

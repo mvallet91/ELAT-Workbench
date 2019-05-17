@@ -11,42 +11,71 @@
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/2.1.1/toastr.min.css">
 
-    <link rel="stylesheet" href="style/font-awesome.min.css" />
+    <link href="style/font-awesome.min.css" rel="stylesheet" />
     <script src="https://cdn.jsdelivr.net/npm/jsstore@2.11.0/dist/jsstore.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jsstore@2.11.0/dist/jsstore.worker.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sqlweb@1.2.1/dist/sqlweb.min.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/mvallet91/ELAT-Workbench/scripts/pako.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.8.0/Chart.bundle.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-annotation/0.5.7/chartjs-plugin-annotation.js"></script>
+    <link href="https://fonts.googleapis.com/css?family=Roboto:300,400" rel="stylesheet">
 
 </head>
 
 <body>
 
-    <header>
-        <nav class="navbar navbar-expand-lg navbar-light  bg-light">
-            <a class="navbar-brand" href="https://mvallet91.github.io/ELAT/">ELAT Home</a>
-            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarText" aria-controls="navbarText" aria-expanded="false" aria-label="Toggle navigation">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarText">
-                <ul class="navbar-nav mr-auto">
-                    <li class="nav-item">
-                        <a class="nav-link" href="https://mvallet91.github.io/ELAT/docs/home/">Learn More</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="https://mvallet91.github.io/ELAT/docs/quickstart/">Quick Start</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="https://mvallet91.github.io/ELAT/docs/about/">About</a>
-                    </li>
-                </ul>
-                <span class="navbar-brand">
-                    <a class="nav-link pull-right" href="#" ><img src="img/2000px-TU_Delft_Logo.svg.png" width="90px" ></a>
-                </span>
-            </div>
-        </nav>
-    </header>
+    <!--<header>-->
+        <!--<nav class="navbar navbar-expand-lg navbar-light  bg-light">-->
+            <!--<a class="navbar-brand" href="https://mvallet91.github.io/ELAT/">ELAT Home</a>-->
+            <!--<button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarText" aria-controls="navbarText" aria-expanded="false" aria-label="Toggle navigation">-->
+                <!--<span class="navbar-toggler-icon"></span>-->
+            <!--</button>-->
+            <!--<div class="collapse navbar-collapse" id="navbarText">-->
+                <!--<ul class="navbar-nav mr-auto">-->
+                    <!--<li class="nav-item">-->
+                        <!--<a class="nav-link" href="https://mvallet91.github.io/ELAT/docs/home/">Learn More</a>-->
+                    <!--</li>-->
+                    <!--<li class="nav-item">-->
+                        <!--<a class="nav-link" href="https://mvallet91.github.io/ELAT/docs/quickstart/">Quick Start</a>-->
+                    <!--</li>-->
+                    <!--<li class="nav-item">-->
+                        <!--<a class="nav-link" href="https://mvallet91.github.io/ELAT/docs/about/">About</a>-->
+                    <!--</li>-->
+                <!--</ul>-->
+                <!--<span class="navbar-brand">-->
+                    <!--<a class="nav-link pull-right" href="#" ><img src="img/2000px-TU_Delft_Logo.svg.png" width="90px" ></a>-->
+                <!--</span>-->
+            <!--</div>-->
+        <!--</nav>-->
+    <!--</header>-->
+    <nav class="navbar navbar-expand-lg navbar-light bg-light container-fluid">
+        <!--<a class="navbar-brand" href="https://mvallet91.github.io/ELAT/">ELAT Home</a>-->
+        <a class="navbar-brand" href="https://mvallet91.github.io/ELAT/">
+            <span><img src="img/logonav.png" width="30" alt="Logo"></span> edX Logfile Analysis Tool
+        </a>
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarText" aria-controls="navbarText" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarText">
+            <ul class="navbar-nav mr-auto">
+                <li class="nav-item">
+                    <a class="nav-link" href="https://mvallet91.github.io/ELAT/docs/home/">Learn More</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="https://mvallet91.github.io/ELAT/docs/quickstart/">Quick Start</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="https://mvallet91.github.io/ELAT/docs/about/">About</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="https://github.com/mvallet91/ELAT-Workbench" ><i class="fa fa-github fa-2x" aria-hidden="true"></i></a>
+                </li>
+            </ul>
+            <span class="navbar-brand">
+                <a class="nav-link pull-right" href="https://www.tudelft.nl/ewi/over-de-faculteit/afdelingen/software-technology/web-information-systems/" ><img src="img/2000px-TU_Delft_Logo.svg.png" width="90px" ></a>
+            </span>
+        </div>
+    </nav>
 
     <div id="loading" style="display: none"></div>
 
@@ -77,7 +106,7 @@
             <button type="button" class="btn btn-primary" data-toggle="collapse" data-target="#uploadBoxes" aria-expanded="false"  aria-controls="uploadBoxes">
                 Upload Files
             </button>
-            <button type="button" class="btn btn-primary float-right" onclick="deleteEverything()">
+            <button type="button" class="btn btn-secondary float-right" onclick="deleteEverything()">
                 Clear Database
             </button>
         </div>
@@ -559,13 +588,6 @@
         }
 
         function deleteEverything() {
-
-            // connection.dropDb()
-            //     .then(function() {
-            //         console.log('Db deleted successfully');
-            //     }).catch(function(error) {
-            //     console.log(error);
-            // });
 
             let query = 'DELETE FROM sessions';
             let r = confirm("WARNING!\nTHIS WILL DELETE EVERYTHING IN THE DATABASE");

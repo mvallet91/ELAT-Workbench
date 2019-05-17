@@ -2,11 +2,18 @@
     margin-top: 20px;
 }
 
-#tblGrid tr th,
+tr th,
 table tr td {
     border: 1px solid black;
     padding: 5px 0px 5px 0px;
     text-align: center;
+}
+
+.p, span, a {
+    font-family: "Helvetica Neue", sans-serif;
+    font-weight: bold;
+    font-size: 14px;
+    letter-spacing: .1px;
 }
 
 .row-centered {

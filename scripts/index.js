@@ -187,8 +187,8 @@ function passLogFiles(result){
     let total = result[3];
     let chunk = result[4];
     let total_chunks = result[5];
-    let list = document.getElementById('listLogs').innerHTML;
-    document.getElementById('listLogs').innerHTML = list +'<ul>' + output.join('') + '</ul>';
+    // let list = document.getElementById('listLogs').innerHTML;
+    // document.getElementById('listLogs').innerHTML = list +'<ul>' + output.join('') + '</ul>';
     connection.runSql("SELECT * FROM metadata WHERE name = 'metadata_map' ").then(function(result) {
         let course_metadata_map = result[0]['object'];
         if (chunk === 0){
@@ -389,7 +389,6 @@ function showCoursesTableDataExtra() {
                                     });
                                     HtmlString += forumInteractionCounter;
                                     $('#tblGrid tbody').html(HtmlString);
-                                    // document.getElementById("loading").style.display = "none";
                                     let courseDetails = [{'name': 'courseDetails', 'object': {'details': HtmlString}}];
                                     sqlInsert('webdata', courseDetails);
                                 })
@@ -399,7 +398,7 @@ function showCoursesTableDataExtra() {
                 });
             }).catch(function (error) {
                 console.log(error);
-                // document.getElementById("loading").style.display = "none";
+                $('#loading').hide();
             });
         }
     })
@@ -516,12 +515,10 @@ function showSessionTable() {
 
 
 function showMainIndicators() {
-
     let HtmlString = "";
     connection.runSql("SELECT * FROM webdata WHERE name = 'mainIndicators' ").then(function(result) {
         if (result.length === 1) {
             HtmlString = result[0]['object']['details'];
-            // document.getElementById("loading").style.display = "none";
             $('#indicatorGrid tbody').html(HtmlString);
         } else {
             connection.runSql('select * from courses').then(function (courses) {
@@ -610,7 +607,7 @@ function showMainIndicators() {
                 });
             }).catch(function (error) {
                 console.log(error);
-                // document.getElementById("loading").style.display = "none";
+                $('#loading').hide();
             });
         }
     })
@@ -981,7 +978,6 @@ function learner_mode(files) {
     else {
         console.log('Course structure file not found');
         $('#loading').hide();
-        // jq ('#loading').hide ();
     }
 }
 
@@ -1097,7 +1093,7 @@ function session_mode(course_metadata_map, log_files, index, total, chunk){
 
     // This is only for one course! It has to be changed to allow for more courses
     let current_course_id = course_metadata_map["course_id"];
-    current_course_id = current_course_id.slice(current_course_id.indexOf('+')+1, current_course_id.lastIndexOf('+'));
+    current_course_id = current_course_id.slice(current_course_id.indexOf('+') + 1, current_course_id.lastIndexOf('+') + 6);
 
     let zero_start = performance.now();
     // let current_date = course_metadata_map["start_date"];
@@ -1334,7 +1330,7 @@ function forum_sessions(course_metadata_map, log_files, index, total, chunk) {
 
     // This is only for one course! It has to be changed to allow for more courses
     let current_course_id = course_metadata_map["course_id"];
-    current_course_id = current_course_id.slice(current_course_id.indexOf('+')+1, current_course_id.lastIndexOf('+'));
+    current_course_id = current_course_id.slice(current_course_id.indexOf('+') + 1, current_course_id.lastIndexOf('+') + 6);
 
     let start_date = new Date(course_metadata_map['start_date']);
     // let end_date = new Date(course_metadata_map['end_date']);
@@ -1565,7 +1561,7 @@ function video_interaction(course_metadata_map, log_files, index, total, chunk) 
 
     // This is only for one course! It has to be changed to allow for more courses
     let current_course_id = course_metadata_map["course_id"];
-    current_course_id = current_course_id.slice(current_course_id.indexOf('+') + 1, current_course_id.lastIndexOf('+'));
+    current_course_id = current_course_id.slice(current_course_id.indexOf('+') + 1, current_course_id.lastIndexOf('+') + 6);
 
     console.log('Starting video session processing');
     let current_date = new Date(course_metadata_map['start_date']);
@@ -1887,7 +1883,9 @@ function video_interaction(course_metadata_map, log_files, index, total, chunk) 
             times_pause = video_interaction_map[interaction_id]['watch_duration'];
             duration_pause = video_interaction_map[interaction_id]['duration_pause'];
         }
-        let array = [video_interaction_id, course_learner_id, video_id, duration, times_forward_seek, duration_forward_seek, times_backward_seek, duration_backward_seek, times_speed_up, times_speed_down, times_pause, duration_pause, start_time, end_time];
+        let array = [video_interaction_id, course_learner_id, video_id, duration, times_forward_seek,
+            duration_forward_seek, times_backward_seek, duration_backward_seek, times_speed_up, times_speed_down,
+            times_pause, duration_pause, start_time, end_time];
         array = array.map(function(value){
             if (typeof value === "number"){
                 return Math.round(value);
@@ -1910,6 +1908,10 @@ function video_interaction(course_metadata_map, log_files, index, total, chunk) 
             }
             let course_learner_id = array[1];
             let video_id = array[2];
+            if (video_id.length < 3){
+                console.log(array);
+                continue
+            }
             let duration = process_null(array[3]);
             let times_forward_seek = process_null(array[4]);
             let duration_forward_seek = process_null(array[5]);
@@ -1947,7 +1949,7 @@ function quiz_mode(course_metadata_map, log_files, index, total, chunk) {
 
     // This is only for one course! It has to be changed to allow for more courses
     let current_course_id = course_metadata_map["course_id"];
-    current_course_id = current_course_id.slice(current_course_id.indexOf('+')+1, current_course_id.lastIndexOf('+'));
+    current_course_id = current_course_id.slice(current_course_id.indexOf('+') + 1, current_course_id.lastIndexOf('+') + 6);
 
     console.log('Starting quiz processing');
     let zero_start = performance.now();
@@ -2029,7 +2031,7 @@ function quiz_sessions(course_metadata_map, log_files, index, total, chunk, tota
 
     // This is only for one course! It has to be changed to allow for more courses
     let current_course_id = course_metadata_map["course_id"];
-    current_course_id = current_course_id.slice(current_course_id.indexOf('+')+1, current_course_id.lastIndexOf('+'));
+    current_course_id = current_course_id.slice(current_course_id.indexOf('+') + 1, current_course_id.lastIndexOf('+') + 6);
 
     let submission_event_collection = [];
     submission_event_collection.push('problem_check');
@@ -2337,6 +2339,451 @@ function processSessions(tablename, headers) {
 }
 
 
+function drawCharts(elementMap) {
+    let canvas = document.getElementById('barChart');
+    let ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    let endDate = new Date(elementMap['end_date']);
+    let startDate = new Date(elementMap['start_date']);
+
+    let data = {
+        labels: elementMap['dateListChart'],
+        datasets: [{
+            fill: false,
+            label: 'Total Students',
+            yAxisID: 'A',
+            data: Object.values(elementMap['orderedStudents']),
+            borderColor: '#FAB930',
+            backgroundColor: '#FAB930',
+            lineTension: 0.2,
+        }, {
+            fill: false,
+            label: 'Total Sessions',
+            yAxisID: 'B',
+            data: Object.values(elementMap['orderedSessions']),
+            borderColor: '#12B1C7',
+            backgroundColor: '#12B1C7',
+            lineTension: 0.2,
+        }]
+    };
+
+    let radioValue = $("input[name='optradio']:checked").val();
+    if (radioValue){
+        if (radioValue === 'allDates'){
+            startDate = new Date(elementMap['dateListChart'][0]);
+            endDate = new Date(elementMap['dateListChart'][elementMap['dateListChart'].length - 1]);
+        }
+    }
+
+    let options = {
+        type: 'line',
+        data: data,
+        title: elementMap['course_name'],
+        options: {
+            fill: true,
+            responsive: true,
+            scales: {
+                xAxes: [{
+                    type: 'time',
+                    display: true,
+                    time: {
+                        unit: 'day',
+                        min: startDate,
+                        max: endDate
+                    },
+                    scaleLabel: {
+                        display: true,
+                        labelString: "Date",
+                    }
+                }],
+                yAxes: [{
+                    id: 'A',
+                    ticks: {
+                        beginAtZero: true,
+                    },
+                    position: 'left',
+                    display: true,
+                    scaleLabel: {
+                        display: true,
+                        labelString: "Total Students",
+                    }
+                }, {
+                    id: 'B',
+                    ticks: {
+                        beginAtZero: true,
+                    },
+                    position: 'right',
+                    display: true,
+                    scaleLabel: {
+                        display: true,
+                        labelString: "Total Sessions",
+                    }
+                }]
+            }
+        }
+    };
+
+    if (chart !== null) {
+        chart.destroy();
+    }
+
+    chart = new Chart(ctx, options);
+
+    let lineCtx = document.getElementById('lineChart').getContext('2d');
+
+    let lineData = {
+        labels: elementMap['dateListChart'],
+        datasets: [{
+            fill: false,
+            label: 'Avg. Session Duration',
+            yAxisID: 'A',
+            data: Object.values(elementMap['orderedAvgDurations']),
+            borderColor: '#6EC5FB',
+            backgroundColor: '#6EC5FB',
+            lineTension: 0,
+        }, {
+            fill: true,
+            label: 'Quiz Session Count',
+            yAxisID: 'B',
+            data: Object.values(elementMap['orderedQuizSessions']),
+            borderColor: '#13c70e',
+            backgroundColor: '#13c70e',
+            lineTension: 0,
+        }, {
+            fill: true,
+            label: 'Video Session Count',
+            yAxisID: 'B',
+            data: Object.values(elementMap['orderedVideoSessions']),
+            borderColor: '#753599',
+            backgroundColor: '#753599',
+            lineTension: 0,
+        }]
+    };
+
+    let lineOptions = {
+        type: 'line',
+        data: lineData,
+        options: {
+
+            annotation: {
+                annotations: elementMap['annotations']
+            },
+
+            fill: false,
+            responsive: true,
+            scales: {
+                xAxes: [{
+                    type: 'time',
+                    display: true,
+                    time: {
+                        unit: 'day',
+                        min: startDate,
+                        max: endDate
+                    },
+                    scaleLabel: {
+                        display: true,
+                        labelString: "Date",
+                    }
+                }],
+                yAxes: [{
+                    id: 'A',
+                    ticks: {
+                        beginAtZero: true,
+                    },
+                    position: 'left',
+                    display: true,
+                    scaleLabel: {
+                        display: true,
+                        labelString: "Duration in Seconds",
+                    }
+                }, {
+                    id: 'B',
+                    stacked: true,
+                    ticks: {
+                        beginAtZero: true,
+                    },
+                    position: 'right',
+                    display: true,
+                    scaleLabel: {
+                        display: true,
+                        labelString: "Number of Sessions",
+                    }
+                }]
+            }
+        }
+    };
+    if (lineChart !== null) {
+        lineChart.destroy();
+    }
+    lineChart = new Chart(lineCtx, lineOptions);
+}
+
+
+function getGraphElementMap(callback) {
+    let graphElementMap = {};
+    connection.runSql("SELECT * FROM webdata WHERE name = 'graphElements' ").then(function(result) {
+        if (result.length === 1) {
+            graphElementMap = result[0]['object'];
+            callback(graphElementMap);
+        } else {
+
+            let dateListChart = [];
+
+            let orderedSessions = {};
+            let orderedDurations = {};
+            let orderedStudents = {};
+            let orderedAvgDurations = {};
+
+            let orderedQuizSessions = {};
+            let orderedQuizDurations = {};
+
+            let orderedVideoSessions = {};
+            let orderedVideoDurations = {};
+
+            let start_date = '';
+            let end_date = '';
+            let course_name = '';
+
+            let query = "SELECT * FROM courses";
+            connection.runSql(query).then(function (courses) {
+
+                courses.forEach(function (course) {
+                    course_name = course['course_name'];
+                    start_date = course['start_time'].toDateString();
+                    end_date = course['end_time'].toDateString();
+
+                    query = "SELECT * FROM sessions";
+                    connection.runSql(query).then(function (sessions) {
+                        let dailySessions = {};
+                        let dailyDurations = {};
+
+                        let quizSessions = {};
+                        let quizDurations = {};
+
+                        let videoSessions = {};
+                        let videoDurations = {};
+
+                        toastr.info('Processing indicators');
+
+                        $('#loading').show();
+
+                        sessions.forEach(function (session) {
+
+                            let start = session["start_time"].toDateString();
+                            start = new Date(start);
+
+                            if (dailyDurations.hasOwnProperty(start)) {
+
+                                dailyDurations[start].push(session["duration"]);
+                                dailySessions[start].push(session["course_learner_id"]);
+
+                            } else {
+                                dailyDurations[start] = [];
+                                dailyDurations[start].push(session["duration"]);
+
+                                dailySessions[start] = [];
+                                dailySessions[start].push(session["course_learner_id"]);
+                            }
+                        });
+
+                        query = "SELECT * FROM quiz_sessions";
+                        connection.runSql(query).then(function (q_sessions) {
+                            q_sessions.forEach(function (session) {
+                                let start = session["start_time"].toDateString();
+                                start = new Date(start);
+
+                                if (quizDurations.hasOwnProperty(start)) {
+
+                                    quizDurations[start].push(session["duration"]);
+                                    quizSessions[start].push(session["course_learner_id"]);
+
+                                } else {
+                                    quizDurations[start] = [];
+                                    quizDurations[start].push(session["duration"]);
+
+                                    quizSessions[start] = [];
+                                    quizSessions[start].push(session["course_learner_id"]);
+                                }
+                            });
+
+                            query = "SELECT * FROM video_interaction";
+                            connection.runSql(query).then(function (v_sessions) {
+                                v_sessions.forEach(function (session) {
+                                    let start = session["start_time"].toDateString();
+                                    start = new Date(start);
+
+                                    if (videoDurations.hasOwnProperty(start)) {
+
+                                        videoDurations[start].push(session["duration"]);
+                                        videoSessions[start].push(session["course_learner_id"]);
+
+                                    } else {
+                                        videoDurations[start] = [];
+                                        videoDurations[start].push(session["duration"]);
+
+                                        videoSessions[start] = [];
+                                        videoSessions[start].push(session["course_learner_id"]);
+                                    }
+                                });
+
+                                let dueDates = [];
+                                query = "SELECT * FROM quiz_questions";
+                                connection.runSql(query).then(function (questions) {
+                                    questions.forEach(function (question) {
+                                        dueDates.push(question['question_due'].toDateString())
+                                    });
+
+                                    let quizDates = Array.from(new Set(dueDates));
+                                    let annotations = quizDates.map(function (date, index) {
+                                        return {
+                                            type: 'line',
+                                            id: 'line' + index,
+                                            mode: 'vertical',
+                                            scaleID: 'x-axis-0',
+                                            value: new Date(date),
+                                            borderColor: 'red',
+                                            borderWidth: 1,
+                                            label: {
+                                                enabled: true,
+                                                position: "top",
+                                                content: 'quiz'
+                                            }
+                                        }
+                                    });
+
+                                    let dateList = Object.keys(dailySessions);
+                                    dateList.sort(function (a, b) {
+                                        return new Date(a) - new Date(b);
+                                    });
+
+                                    for (let date of dateList) {
+                                        orderedSessions[date] = dailySessions[date].length;
+                                        orderedStudents[date] = new Set(dailySessions[date]).size;
+                                        orderedDurations[date] = dailyDurations[date];
+                                        if (quizSessions.hasOwnProperty(date)) {
+                                            orderedQuizSessions[date] = quizSessions[date].length;
+                                        } else {
+                                            orderedQuizSessions[date] = 0
+                                        }
+
+                                        if (videoSessions.hasOwnProperty(date)) {
+                                            orderedVideoSessions[date] = videoSessions[date].length;
+                                        } else {
+                                            orderedVideoSessions[date] = 0
+                                        }
+
+                                        let total = 0;
+                                        for (let i = 0; i < dailyDurations[date].length; i++) {
+                                            total += dailyDurations[date][i];
+                                        }
+                                        orderedAvgDurations[date] = (total / dailyDurations[date].length).toFixed(2);
+
+                                        let quizTotal = 0;
+                                        for (let i = 0; i < orderedQuizSessions[date]; i++) {
+                                            quizTotal += quizDurations[date][i];
+                                        }
+                                        orderedQuizDurations[date] = quizTotal / orderedQuizSessions[date];
+
+                                        let vidTotal = 0;
+                                        for (let i = 0; i < orderedVideoSessions[date].length; i++) {
+                                            vidTotal += videoDurations[date][i];
+                                        }
+                                        orderedVideoDurations[date] = vidTotal / orderedVideoSessions[date].length;
+
+                                        dateListChart.push(new Date(date));
+                                    }
+
+                                    graphElementMap = {
+                                        'course_name': course_name,
+                                        'start_date': start_date,
+                                        'end_date': end_date,
+                                        'dateListChart': dateListChart,
+                                        'orderedSessions': orderedSessions,
+                                        'orderedStudents': orderedStudents,
+                                        'orderedDurations': orderedDurations,
+                                        'orderedAvgDurations': orderedAvgDurations,
+                                        'orderedQuizSessions': orderedQuizSessions,
+                                        'orderedQuizDurations': orderedQuizDurations,
+                                        'orderedVideoSessions': orderedVideoSessions,
+                                        'orderedVideoDurations': orderedVideoDurations,
+                                        'annotations': annotations
+                                    };
+                                    let graphElements = [{'name': 'graphElements', 'object': graphElementMap}];
+                                    toastr.info('Processing graph data');
+                                    sqlInsert('webdata', graphElements);
+                                    callback(graphElementMap);
+                                });
+                            })
+                        })
+                    });
+                });
+            });
+        }
+    })
+}
+
+function exportChart(chartId) {
+    document.getElementById(chartId).toBlob(function(blob) {
+        let a = document.createElement('a');
+        let filename = chartId;
+        a.href = URL.createObjectURL(blob);
+        a.download = filename;
+        a.click();
+    });
+}
+
+function deleteEverything() {
+    let query = 'DELETE FROM sessions';
+    let r = confirm("WARNING!\nTHIS WILL DELETE EVERYTHING IN THE DATABASE");
+    if (r === true) {
+        $('#loading').show();
+        connection.clear('sessions').then(function () {
+            console.log('Cleared sessions table');
+            connection.clear('video_interaction').then(function () {
+                console.log('Cleared video_interaction table');
+                connection.clear('submissions').then(function () {
+                    console.log('Cleared submissions ');
+                    connection.runSql(query).then(function () {
+                        console.log('Cleared quiz_sessions ');
+                        connection.clear('course_learner').then(function () {
+                            console.log('Cleared course_learner ');
+                            connection.clear('forum_sessions').then(function () {
+                                console.log('Cleared forum_sessions ');
+                                connection.dropDb().then(function(result){
+                                    if (result === 1){
+                                        $('#loading').hide();
+                                        toastr.success('Database has been deleted!')
+                                    }
+                                });
+                            }).catch(function (err) {
+                                console.log(err);
+                                alert('The deletion process started but did not finish,\n please refresh and try again');
+                            });
+                        }).catch(function (err) {
+                            console.log(err);
+                            alert('The deletion process started but did not finish,\n please refresh and try again');
+                        });
+                    }).catch(function (err) {
+                        console.log(err);
+                        alert('The deletion process started but did not finish,\n please refresh and try again');
+                    });
+                }).catch(function (err) {
+                    console.log(err);
+                    alert('The deletion process started but did not finish,\n please refresh and try again');
+                });
+            }).catch(function (err) {
+                console.log(err);
+                alert('The deletion process started but did not finish,\n please refresh and try again');
+            });
+        }).catch(function (err) {
+            console.log(err);
+            alert('Could not delete database, please try again');
+        });
+    } else {
+        alert('Nothing was deleted')
+    }
+}
 
 function getEdxDbQuery() {
     let db = "DEFINE DB edxdb;";

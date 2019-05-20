@@ -93,7 +93,7 @@ function readMetaFiles(files, callback){
 
         if (f.name.includes('zip')) {
             $('#loading').hide();
-            toastr.error('Metadata files cannot be in zip!');
+            toastr.error('Metadata files cannot be zipped!');
             break;
         }
 
@@ -166,7 +166,7 @@ function readAndPassLog(f, reader, index, total, chunk, callback){
         reader.readAsArrayBuffer(f);
 
     } else {
-        alert(f.name + ' is not a log file (.gzip)');
+        alert(f.name + ' is not a log file (should end with: .log.gz)');
     }
 }
 

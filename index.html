@@ -15,6 +15,8 @@
           integrity="sha384-oS3vJWv+0UjzBfQzYUhtDYW+Pj2yciDJxpsK1OYPAYjqT085Qq/1cq5FLXAZQ7Ay"
           crossorigin="anonymous">
 
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.6.4/css/bootstrap-datepicker.min.css" />
+
     <script src="https://cdn.jsdelivr.net/npm/jsstore@2.11.0/dist/jsstore.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jsstore@2.11.0/dist/jsstore.worker.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sqlweb@1.2.1/dist/sqlweb.min.js"></script>
@@ -181,14 +183,20 @@
                 <h6>Date Range</h6>
                 <div class="form-check" >
                     <label class="form-check-label">
-                        <input type="radio" class="form-check-input" name="optradio" value="allDates" onchange="getGraphElementMap(drawCharts)">
+                        <input type="radio" id="allDatesRadio" class="form-check-input" name="optradio" value="allDates" onchange="getGraphElementMap(drawCharts)">
                         All uploaded files
                     </label>
                 </div>
                 <div class="form-check">
                     <label class="form-check-label">
-                        <input type="radio" class="form-check-input" name="optradio" value="courseDates" onchange="getGraphElementMap(drawCharts)">
+                        <input type="radio" id="courseDatesRadio" class="form-check-input" name="optradio" value="courseDates" checked onchange="getGraphElementMap(drawCharts)">
                         Only in official course dates
+                    </label>
+                </div>
+                <div class="form-check">
+                    <label class="form-check-label">
+                        <!--<input type="radio" class="form-check-input" name="optradio" value="specificDates" onchange="getGraphElementMap(drawCharts)">-->
+                        Specific Dates - <input type="text" name="daterange" />
                     </label>
                 </div>
                 <br>
@@ -216,6 +224,9 @@
     <script src = "https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.15.0/umd/popper.min.js"></script>
     <script src = "https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
     <script src = "https://cdnjs.cloudflare.com/ajax/libs/toastr.js/2.1.1/toastr.min.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
 
     <script src="scripts/index.js"></script>
 
@@ -223,6 +234,16 @@
         getGraphElementMap(drawCharts);
         let chart = null;
         let lineChart = null;
+
+        $(function() {
+            $('input[name="daterange"]').daterangepicker({
+                opens: 'left'
+            }, function(start, end, label) {
+                document.getElementById('allDatesRadio').checked = false;
+                document.getElementById('courseDatesRadio').checked = false;
+                getGraphElementMap(drawCharts, start.format('YYYY-MM-DD'), end.format('YYYY-MM-DD'));
+            });
+        });
     </script>
 
 

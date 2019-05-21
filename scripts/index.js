@@ -164,9 +164,9 @@ function readAndPassLog(f, reader, index, total, chunk, callback){
             reader.abort();
         };
         reader.readAsArrayBuffer(f);
-
     } else {
-        alert(f.name + ' is not a log file (should end with: .log.gz)');
+        $('#loading').hide();
+        toastr.error(f.name + ' is not a log file (should end with: .log.gz)');
     }
 }
 
@@ -190,20 +190,25 @@ function passLogFiles(result){
     // let list = document.getElementById('listLogs').innerHTML;
     // document.getElementById('listLogs').innerHTML = list +'<ul>' + output.join('') + '</ul>';
     connection.runSql("SELECT * FROM metadata WHERE name = 'metadata_map' ").then(function(result) {
-        let course_metadata_map = result[0]['object'];
-        if (chunk === 0){
-            let table = document.getElementById("progress_tab");
-            let row = table.insertRow();
-            let cell1 = row.insertCell();
-            cell1.innerHTML = ('Processing file ' + (index + 1) + '/' + total +
-                               '\n at ' + new Date().toLocaleString('en-GB'));
-        }
+        if (result.length > 0) {
+            let course_metadata_map = result[0]['object'];
+            if (chunk === 0) {
+                let table = document.getElementById("progress_tab");
+                let row = table.insertRow();
+                let cell1 = row.insertCell();
+                cell1.innerHTML = ('Processing file ' + (index + 1) + '/' + total +
+                    '\n at ' + new Date().toLocaleString('en-GB'));
+            }
 
-        session_mode(course_metadata_map, files, index, total, chunk);
-        forum_sessions(course_metadata_map, files, index, total, chunk);
-        video_interaction(course_metadata_map, files, index, total, chunk);
-        quiz_mode(course_metadata_map, files, index, total, chunk);
-        quiz_sessions(course_metadata_map, files, index, total, chunk, total_chunks);
+            session_mode(course_metadata_map, files, index, total, chunk);
+            forum_sessions(course_metadata_map, files, index, total, chunk);
+            video_interaction(course_metadata_map, files, index, total, chunk);
+            quiz_mode(course_metadata_map, files, index, total, chunk);
+            quiz_sessions(course_metadata_map, files, index, total, chunk, total_chunks);
+        } else {
+            $('#loading').hide();
+            toastr.error('Metadata has not been processed! Please upload all metadata files first');
+        }
     });
 }
 
@@ -253,7 +258,8 @@ function sqlInsert(table, data) {
             console.log('Successfully added to' , table, ' at ', time);
             if (table === 'metadata'){
                 $('#loading').hide();
-                alert('Please reload the page now');
+                // alert('Please reload the page now');
+                toastr.success('Please reload the page now', 'Metadata ready', {timeOut: 0})
             }
             if (table === 'webdata'){
                 $('#loading').hide();
@@ -528,7 +534,7 @@ function showMainIndicators() {
                     connection.runSql("COUNT * from course_learner WHERE certificate_status = 'downloadable' ").then(function (result) {
                         let completed = result;
 
-                        connection.runSql("COUNT * from course_learner").then(function (result) {
+                        connection.runSql("COUNT * from learner_index").then(function (result) {
                             let completionRate = completed/result;
 
                             connection.runSql("SELECT [avg(final_grade)] from course_learner WHERE certificate_status = 'downloadable' ").then(function (result) {
@@ -1268,7 +1274,7 @@ function session_mode(course_metadata_map, log_files, index, total, chunk){
                 connection.runSql("DELETE FROM webdata WHERE name = 'graphElements'");
                 connection.runSql("DELETE FROM webdata WHERE name = 'databaseDetails'");
                 connection.runSql("DELETE FROM webdata WHERE name = 'mainIndicators'");
-                progress_display(data.length + ' session elements', index);
+                progress_display(data.length + ' sessions', index);
                 // loader.hide();
             } else {
                 console.log('no session info', index, total);
@@ -1547,7 +1553,7 @@ function forum_sessions(course_metadata_map, log_files, index, total, chunk) {
         }
         console.log('Send to storage at ' + new Date());
         sqlLogInsert('forum_sessions', data);
-        progress_display(data.length + ' forum elements', index);
+        progress_display(data.length + ' forum interaction sessions', index);
         // loader.hide();
     } else {
         console.log('no forum session info', index, total);
@@ -1632,6 +1638,19 @@ function video_interaction(course_metadata_map, log_files, index, total, chunk) 
 
                             if (typeof jsonObject['event'] === "string") {
                                 let event_jsonObject = JSON.parse(jsonObject['event']);
+                                video_id = event_jsonObject['id'];
+                                video_id = video_id.replace('-', '://');
+                                video_id = video_id.replace(/-/g, '/');
+                                if ('new_time' in event_jsonObject && 'old_time' in event_jsonObject) {
+                                    new_time = event_jsonObject['new_time'];
+                                    old_time = event_jsonObject['old_time'];
+                                }
+                                if ('new_speed' in event_jsonObject && 'old_speed' in event_jsonObject){
+                                    new_speed = event_jsonObject['new_speed'];
+                                    old_speed = event_jsonObject['old_speed'];
+                                }
+                            } else {
+                                let event_jsonObject = jsonObject['event'];
                                 video_id = event_jsonObject['id'];
                                 video_id = video_id.replace('-', '://');
                                 video_id = video_id.replace(/-/g, '/');
@@ -1910,7 +1929,7 @@ function video_interaction(course_metadata_map, log_files, index, total, chunk) 
             let video_id = array[2];
             if (video_id.length < 3){
                 console.log(array);
-                continue
+                // continue
             }
             let duration = process_null(array[3]);
             let times_forward_seek = process_null(array[4]);
@@ -1935,7 +1954,7 @@ function video_interaction(course_metadata_map, log_files, index, total, chunk) 
         sqlLogInsert('video_interaction', data);
         // console.log('not storing ', data.length, ' elements in video_interaction');
 
-        progress_display(data.length + ' video interaction elements', index);
+        progress_display(data.length + ' video interaction sessions', index);
         // loader.hide();
     } else {
         console.log('no forum session info', index, total);
@@ -2276,7 +2295,7 @@ function quiz_sessions(course_metadata_map, log_files, index, total, chunk, tota
             data.push(values)
         }
         sqlLogInsert('quiz_sessions', data);
-        progress_display(data.length + ' quiz elements', index);
+        progress_display(data.length + ' quiz interaction sessions', index);
     } else {
         console.log('No quiz session data')
     }
@@ -2298,11 +2317,10 @@ function quiz_sessions(course_metadata_map, log_files, index, total, chunk, tota
             let row = table.insertRow();
             let cell1 = row.insertCell();
             setTimeout(function(){
-                alert("Done, please reload the page");
+                toastr.success('Please reload the page now', 'Logfiles ready', {timeOut: 0});
                 cell1.innerHTML = ('Done! at ' + new Date().toLocaleString('en-GB'));
                 $('#loading').hide();
             }, 10000);
-            // loader.hide();
         }
     }
 }
@@ -2339,13 +2357,13 @@ function processSessions(tablename, headers) {
 }
 
 
-function drawCharts(elementMap) {
+function drawCharts(elementMap, start, end) {
     let canvas = document.getElementById('barChart');
     let ctx = canvas.getContext('2d');
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    let endDate = new Date(elementMap['end_date']);
-    let startDate = new Date(elementMap['start_date']);
+    let startDate = new Date(start);
+    let endDate = new Date(end);
 
     let data = {
         labels: elementMap['dateListChart'],
@@ -2373,6 +2391,9 @@ function drawCharts(elementMap) {
         if (radioValue === 'allDates'){
             startDate = new Date(elementMap['dateListChart'][0]);
             endDate = new Date(elementMap['dateListChart'][elementMap['dateListChart'].length - 1]);
+        } else if (radioValue === 'courseDates') {
+            endDate = new Date(elementMap['end_date']);
+            startDate = new Date(elementMap['start_date']);
         }
     }
 
@@ -2444,6 +2465,14 @@ function drawCharts(elementMap) {
             lineTension: 0,
         }, {
             fill: true,
+            label: 'Video Session Count',
+            yAxisID: 'B',
+            data: Object.values(elementMap['orderedVideoSessions']),
+            borderColor: '#753599',
+            backgroundColor: '#753599',
+            lineTension: 0,
+        }, {
+            fill: true,
             label: 'Quiz Session Count',
             yAxisID: 'B',
             data: Object.values(elementMap['orderedQuizSessions']),
@@ -2452,11 +2481,11 @@ function drawCharts(elementMap) {
             lineTension: 0,
         }, {
             fill: true,
-            label: 'Video Session Count',
+            label: 'Forum Session Count',
             yAxisID: 'B',
-            data: Object.values(elementMap['orderedVideoSessions']),
-            borderColor: '#753599',
-            backgroundColor: '#753599',
+            data: Object.values(elementMap['orderedForumSessions']),
+            borderColor: '#992425',
+            backgroundColor: '#992425',
             lineTension: 0,
         }]
     };
@@ -2520,14 +2549,13 @@ function drawCharts(elementMap) {
 }
 
 
-function getGraphElementMap(callback) {
+function getGraphElementMap(callback, start, end) {
     let graphElementMap = {};
     connection.runSql("SELECT * FROM webdata WHERE name = 'graphElements' ").then(function(result) {
         if (result.length === 1) {
             graphElementMap = result[0]['object'];
-            callback(graphElementMap);
+            callback(graphElementMap, start, end);
         } else {
-
             let dateListChart = [];
 
             let orderedSessions = {};
@@ -2540,6 +2568,9 @@ function getGraphElementMap(callback) {
 
             let orderedVideoSessions = {};
             let orderedVideoDurations = {};
+
+            let orderedForumSessions = {};
+            let orderedForumDurations = {};
 
             let start_date = '';
             let end_date = '';
@@ -2563,6 +2594,9 @@ function getGraphElementMap(callback) {
 
                         let videoSessions = {};
                         let videoDurations = {};
+
+                        let forumSessions = {};
+                        let forumDurations = {};
 
                         toastr.info('Processing indicators');
 
@@ -2652,67 +2686,103 @@ function getGraphElementMap(callback) {
                                         }
                                     });
 
-                                    let dateList = Object.keys(dailySessions);
-                                    dateList.sort(function (a, b) {
-                                        return new Date(a) - new Date(b);
-                                    });
+                                    query = "SELECT * FROM forum_sessions";
+                                    connection.runSql(query).then(function (f_sessions) {
+                                        f_sessions.forEach(function (session) {
+                                            let start = session["start_time"].toDateString();
+                                            start = new Date(start);
 
-                                    for (let date of dateList) {
-                                        orderedSessions[date] = dailySessions[date].length;
-                                        orderedStudents[date] = new Set(dailySessions[date]).size;
-                                        orderedDurations[date] = dailyDurations[date];
-                                        if (quizSessions.hasOwnProperty(date)) {
-                                            orderedQuizSessions[date] = quizSessions[date].length;
-                                        } else {
-                                            orderedQuizSessions[date] = 0
+                                            if (forumDurations.hasOwnProperty(start)) {
+
+                                                forumDurations[start].push(session["duration"]);
+                                                forumSessions[start].push(session["course_learner_id"]);
+
+                                            } else {
+                                                forumDurations[start] = [];
+                                                forumDurations[start].push(session["duration"]);
+
+                                                forumSessions[start] = [];
+                                                forumSessions[start].push(session["course_learner_id"]);
+                                            }
+                                        });
+
+                                        let dateList = Object.keys(dailySessions);
+                                        dateList.sort(function (a, b) {
+                                            return new Date(a) - new Date(b);
+                                        });
+
+                                        for (let date of dateList) {
+                                            orderedSessions[date] = dailySessions[date].length;
+                                            orderedStudents[date] = new Set(dailySessions[date]).size;
+                                            orderedDurations[date] = dailyDurations[date];
+
+                                            if (quizSessions.hasOwnProperty(date)) {
+                                                orderedQuizSessions[date] = quizSessions[date].length;
+                                            } else {
+                                                orderedQuizSessions[date] = 0
+                                            }
+
+                                            if (videoSessions.hasOwnProperty(date)) {
+                                                orderedVideoSessions[date] = videoSessions[date].length;
+                                            } else {
+                                                orderedVideoSessions[date] = 0
+                                            }
+
+                                            if (forumSessions.hasOwnProperty(date)) {
+                                                orderedForumSessions[date] = forumSessions[date].length;
+                                            } else {
+                                                orderedForumSessions[date] = 0
+                                            }
+
+                                            let total = 0;
+                                            for (let i = 0; i < dailyDurations[date].length; i++) {
+                                                total += dailyDurations[date][i];
+                                            }
+                                            orderedAvgDurations[date] = (total / dailyDurations[date].length).toFixed(2);
+
+                                            let quizTotal = 0;
+                                            for (let i = 0; i < orderedQuizSessions[date]; i++) {
+                                                quizTotal += quizDurations[date][i];
+                                            }
+                                            orderedQuizDurations[date] = quizTotal / orderedQuizSessions[date];
+
+                                            let vidTotal = 0;
+                                            for (let i = 0; i < orderedVideoSessions[date].length; i++) {
+                                                vidTotal += videoDurations[date][i];
+                                            }
+                                            orderedVideoDurations[date] = vidTotal / orderedVideoSessions[date].length;
+
+                                            let forumTotal = 0;
+                                            for (let i = 0; i < orderedForumSessions[date].length; i++) {
+                                                forumTotal += forumDurations[date][i];
+                                            }
+                                            orderedForumDurations[date] = forumTotal / orderedForumSessions[date].length;
+
+                                            dateListChart.push(new Date(date));
                                         }
 
-                                        if (videoSessions.hasOwnProperty(date)) {
-                                            orderedVideoSessions[date] = videoSessions[date].length;
-                                        } else {
-                                            orderedVideoSessions[date] = 0
-                                        }
-
-                                        let total = 0;
-                                        for (let i = 0; i < dailyDurations[date].length; i++) {
-                                            total += dailyDurations[date][i];
-                                        }
-                                        orderedAvgDurations[date] = (total / dailyDurations[date].length).toFixed(2);
-
-                                        let quizTotal = 0;
-                                        for (let i = 0; i < orderedQuizSessions[date]; i++) {
-                                            quizTotal += quizDurations[date][i];
-                                        }
-                                        orderedQuizDurations[date] = quizTotal / orderedQuizSessions[date];
-
-                                        let vidTotal = 0;
-                                        for (let i = 0; i < orderedVideoSessions[date].length; i++) {
-                                            vidTotal += videoDurations[date][i];
-                                        }
-                                        orderedVideoDurations[date] = vidTotal / orderedVideoSessions[date].length;
-
-                                        dateListChart.push(new Date(date));
-                                    }
-
-                                    graphElementMap = {
-                                        'course_name': course_name,
-                                        'start_date': start_date,
-                                        'end_date': end_date,
-                                        'dateListChart': dateListChart,
-                                        'orderedSessions': orderedSessions,
-                                        'orderedStudents': orderedStudents,
-                                        'orderedDurations': orderedDurations,
-                                        'orderedAvgDurations': orderedAvgDurations,
-                                        'orderedQuizSessions': orderedQuizSessions,
-                                        'orderedQuizDurations': orderedQuizDurations,
-                                        'orderedVideoSessions': orderedVideoSessions,
-                                        'orderedVideoDurations': orderedVideoDurations,
-                                        'annotations': annotations
-                                    };
-                                    let graphElements = [{'name': 'graphElements', 'object': graphElementMap}];
-                                    toastr.info('Processing graph data');
-                                    sqlInsert('webdata', graphElements);
-                                    callback(graphElementMap);
+                                        graphElementMap = {
+                                            'course_name': course_name,
+                                            'start_date': start_date,
+                                            'end_date': end_date,
+                                            'dateListChart': dateListChart,
+                                            'orderedSessions': orderedSessions,
+                                            'orderedStudents': orderedStudents,
+                                            'orderedDurations': orderedDurations,
+                                            'orderedAvgDurations': orderedAvgDurations,
+                                            'orderedQuizSessions': orderedQuizSessions,
+                                            'orderedQuizDurations': orderedQuizDurations,
+                                            'orderedVideoSessions': orderedVideoSessions,
+                                            'orderedVideoDurations': orderedVideoDurations,
+                                            'orderedForumSessions': orderedForumSessions,
+                                            'orderedForumDurations': orderedForumDurations,
+                                            'annotations': annotations
+                                        };
+                                        let graphElements = [{'name': 'graphElements', 'object': graphElementMap}];
+                                        toastr.info('Processing graph data');
+                                        sqlInsert('webdata', graphElements);
+                                        callback(graphElementMap, start, end);
+                                    })
                                 });
                             })
                         })

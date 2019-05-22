@@ -6,7 +6,6 @@ let connection = new JsStore.Instance();
 // };
 
 window.onload = function () {
-    // brython();
 
     //// DATABASE INITIALIZATION  //////////////////////////////////////////////////////////////////////////////
     initiateEdxDb();
@@ -16,6 +15,7 @@ window.onload = function () {
     multiFileInput.value = '';
     multiFileInput.addEventListener('change', function () {
         $('#loading').show();
+        $.blockUI();
         let files = multiFileInput.files;
         readMetaFiles(files, passFiles);
     });
@@ -24,6 +24,7 @@ window.onload = function () {
     multiFileInputLogs.value = '';
     multiFileInputLogs.addEventListener('change', function () {
         $('#loading').show();
+        $.blockUI();
         processLogFiles(0, 0)
     });
 
@@ -93,6 +94,7 @@ function readMetaFiles(files, callback){
 
         if (f.name.includes('zip')) {
             $('#loading').hide();
+            $.unblockUI();
             toastr.error('Metadata files cannot be zipped!');
             break;
         }
@@ -166,6 +168,7 @@ function readAndPassLog(f, reader, index, total, chunk, callback){
         reader.readAsArrayBuffer(f);
     } else {
         $('#loading').hide();
+        $.unblockUI();
         toastr.error(f.name + ' is not a log file (should end with: .log.gz)');
     }
 }
@@ -177,6 +180,7 @@ function passFiles(result){
     let output = result[1];
     document.getElementById('list').innerHTML = '<ul>' + output.join('') + '</ul>';
     $('#loading').hide();
+    $.unblockUI();
     learner_mode(names);
 }
 
@@ -200,6 +204,8 @@ function passLogFiles(result){
                     '\n at ' + new Date().toLocaleString('en-GB'));
             }
 
+            // weirdDateFinder(course_metadata_map, files, index, total, chunk, total_chunks)
+
             session_mode(course_metadata_map, files, index, total, chunk);
             forum_sessions(course_metadata_map, files, index, total, chunk);
             video_interaction(course_metadata_map, files, index, total, chunk);
@@ -207,34 +213,11 @@ function passLogFiles(result){
             quiz_sessions(course_metadata_map, files, index, total, chunk, total_chunks);
         } else {
             $('#loading').hide();
+            $.unblockUI();
             toastr.error('Metadata has not been processed! Please upload all metadata files first');
         }
     });
 }
-
-////////////////////////////////////////////////////////////////////////////////////////////////
-// USER INTERACTION FUNCTIONS
-
-// function sqlQuery(query){
-//     connection.runSql(query).then(function(result) {
-//         let answer = JSON.stringify(result);
-//         let passData = new CustomEvent("finishedQuery", {
-//             "detail": answer
-//         });
-//         document.dispatchEvent(passData);
-//     });
-// }
-//
-//
-// function getMetaMap(){
-//     connection.runSql('SELECT * FROM metadata').then(function(result) {
-//         let answer = JSON.stringify(result);
-//         let passData = new CustomEvent("metaMapReady", {
-//             "detail": answer
-//         });
-//         document.dispatchEvent(passData);
-//     });
-// }
 
 
 function sqlInsert(table, data) {
@@ -258,11 +241,12 @@ function sqlInsert(table, data) {
             console.log('Successfully added to' , table, ' at ', time);
             if (table === 'metadata'){
                 $('#loading').hide();
-                // alert('Please reload the page now');
+                $.unblockUI();
                 toastr.success('Please reload the page now', 'Metadata ready', {timeOut: 0})
             }
             if (table === 'webdata'){
                 $('#loading').hide();
+                $.unblockUI();
             }
         }
     }).catch(function (err) {
@@ -308,6 +292,7 @@ function download(filename, content) {
     document.body.removeChild(element);
 }
 
+
 function downloadCsv(filename, content) {
     let a = document.createElement('a');
     let joinedContent = content.map(e=>e.join(",")).join("\n");
@@ -333,6 +318,8 @@ function initiateEdxDb() {
         if (isExist) {
             connection.runSql('OPENDB ' + dbName).then(function () {
                 console.log('edx db ready');
+                $('#loading').hide();
+                $.unblockUI();
                 toastr.success('Database ready', 'ELAT',  {timeOut: 1500});
                 showCoursesTableDataExtra();
                 showSessionTable();
@@ -345,6 +332,8 @@ function initiateEdxDb() {
             connection.runSql(dbQuery).then(function (tables) {
                 console.log(tables);
                 toastr.success('Database generated, please reload the page', 'ELAT',  {timeOut: 5000});
+                $('#loading').hide();
+                $.unblockUI();
             });
         }
     }).catch(function (err) {
@@ -355,7 +344,6 @@ function initiateEdxDb() {
 
 
 function showCoursesTableDataExtra() {
-    // document.getElementById("loading").style.display = "block";
     let HtmlString = "";
     connection.runSql("SELECT * FROM webdata WHERE name = 'courseDetails' ").then(function(result) {
         if (result.length === 1) {
@@ -405,6 +393,7 @@ function showCoursesTableDataExtra() {
             }).catch(function (error) {
                 console.log(error);
                 $('#loading').hide();
+                $.unblockUI();
             });
         }
     })
@@ -412,10 +401,8 @@ function showCoursesTableDataExtra() {
 
 
 function showSessionTable() {
-    // document.getElementById("loading").style.display = "block";
     let HtmlString = "";
     let totalHtmlString = "";
-
     connection.runSql("SELECT * FROM webdata WHERE name = 'databaseDetails' ").then(function(result) {
         if (result.length === 1) {
             HtmlString = result[0]['object']['details'];
@@ -513,7 +500,6 @@ function showSessionTable() {
                 });
             }).catch(function (error) {
                 console.log(error);
-                // document.getElementById("loading").style.display = "none";
             });
         }
     })
@@ -614,14 +600,13 @@ function showMainIndicators() {
             }).catch(function (error) {
                 console.log(error);
                 $('#loading').hide();
+                $.unblockUI();
             });
         }
     })
 }
 
-
 // METADATA MODULES ////////////////////////////////////////////////////////////////////
-
 function ExtractCourseInformation(files) {
     let course_metadata_map = {};
     for (let file of files) {
@@ -720,6 +705,7 @@ function ExtractCourseInformation(files) {
 
 function learner_mode(files) {
     $('#loading').show();
+    $.blockUI();
     let course_record = [];
     let course_element_record = [];
     let learner_index_record = [];
@@ -946,8 +932,6 @@ function learner_mode(files) {
                     console.log(array)
                 }
             }
-            // sqlInsert('forum_interaction', data);
-
         } else {
             console.log('no forum interaction records')
         }
@@ -984,6 +968,7 @@ function learner_mode(files) {
     else {
         console.log('Course structure file not found');
         $('#loading').hide();
+        $.unblockUI();
     }
 }
 
@@ -1127,7 +1112,7 @@ function weirdDateFinder(course_metadata_map, log_files, index, total, chunk, to
                 }
                 let global_learner_id = jsonObject["context"]["user_id"];
                 let event_type = jsonObject["event_type"];
-                if (global_learner_id == 3862654 || global_learner_id == '3862654'){
+                if (global_learner_id == 4002686 || global_learner_id == '4002686'){
                     console.log(jsonObject)
                 }
             }
@@ -1153,6 +1138,7 @@ function weirdDateFinder(course_metadata_map, log_files, index, total, chunk, to
                 toastr.success('Please reload the page now', 'Logfiles ready', {timeOut: 0});
                 cell1.innerHTML = ('Done! at ' + new Date().toLocaleString('en-GB'));
                 $('#loading').hide();
+                $.unblockUI();
             }, 10000);
         }
     }
@@ -1161,8 +1147,6 @@ function weirdDateFinder(course_metadata_map, log_files, index, total, chunk, to
 
 // TRANSLATION MODULES
 function session_mode(course_metadata_map, log_files, index, total, chunk){
-    // // loader.show();
-
     // This is only for one course! It has to be changed to allow for more courses
     let current_course_id = course_metadata_map["course_id"];
     current_course_id = current_course_id.slice(current_course_id.indexOf('+') + 1, current_course_id.lastIndexOf('+') + 7);
@@ -1329,10 +1313,8 @@ function session_mode(course_metadata_map, log_files, index, total, chunk){
                 connection.runSql("DELETE FROM webdata WHERE name = 'databaseDetails'");
                 connection.runSql("DELETE FROM webdata WHERE name = 'mainIndicators'");
                 progress_display(data.length + ' sessions', index);
-                // loader.hide();
             } else {
                 console.log('no session info', index, total);
-                // // loader.hide()
             }
         }
     }
@@ -1373,7 +1355,6 @@ function forum_interaction(forum_file, course_metadata_map){
         if (jsonObject.hasOwnProperty("comment_thread_id" )) {
             post_thread_id = jsonObject["comment_thread_id"]["$oid"]
         }
-        // console.log(post_timestamp, Date(course_metadata_map["end_time"]));
         if (post_timestamp < new Date(course_metadata_map["end_time"])) {
             let array = [post_id, course_learner_id, post_type, post_title, escapeString(post_content),
                         post_timestamp, post_parent_id, post_thread_id];
@@ -1385,8 +1366,6 @@ function forum_interaction(forum_file, course_metadata_map){
 
 
 function forum_sessions(course_metadata_map, log_files, index, total, chunk) {
-    // // loader.show();
-
     // This is only for one course! It has to be changed to allow for more courses
     let current_course_id = course_metadata_map["course_id"];
     current_course_id = current_course_id.slice(current_course_id.indexOf('+') + 1, current_course_id.lastIndexOf('+') + 7);
@@ -2003,22 +1982,15 @@ function video_interaction(course_metadata_map, log_files, index, total, chunk) 
             data.push(values);
         }
         console.log('Sending', data.length, ' values to storage at ' + new Date());
-
         sqlLogInsert('video_interaction', data);
-        // console.log('not storing ', data.length, ' elements in video_interaction');
-
         progress_display(data.length + ' video interaction sessions', index);
-        // loader.hide();
     } else {
         console.log('no forum session info', index, total);
-        // loader.hide();
     }
 }
 
 
 function quiz_mode(course_metadata_map, log_files, index, total, chunk) {
-    // loader.show();
-
     // This is only for one course! It has to be changed to allow for more courses
     let current_course_id = course_metadata_map["course_id"];
     current_course_id = current_course_id.slice(current_course_id.indexOf('+') + 1, current_course_id.lastIndexOf('+') + 7);
@@ -2095,12 +2067,9 @@ function quiz_mode(course_metadata_map, log_files, index, total, chunk) {
         // current_date = getNextDay(current_date);
     // }
     console.log('Done with quiz questions ', performance.now()-zero_start, 'milliseconds');
-    // loader.hide();
 }
 
 function quiz_sessions(course_metadata_map, log_files, index, total, chunk, total_chunks) {
-    // loader.show();
-
     // This is only for one course! It has to be changed to allow for more courses
     let current_course_id = course_metadata_map["course_id"];
     current_course_id = current_course_id.slice(current_course_id.indexOf('+') + 1, current_course_id.lastIndexOf('+') + 7);
@@ -2373,6 +2342,7 @@ function quiz_sessions(course_metadata_map, log_files, index, total, chunk, tota
                 toastr.success('Please reload the page now', 'Logfiles ready', {timeOut: 0});
                 cell1.innerHTML = ('Done! at ' + new Date().toLocaleString('en-GB'));
                 $('#loading').hide();
+                $.unblockUI()
             }, 10000);
         }
     }
@@ -2609,6 +2579,7 @@ function getGraphElementMap(callback, start, end) {
             graphElementMap = result[0]['object'];
             callback(graphElementMap, start, end);
         } else {
+
             let dateListChart = [];
 
             let orderedSessions = {};
@@ -2625,6 +2596,9 @@ function getGraphElementMap(callback, start, end) {
             let orderedForumSessions = {};
             let orderedForumDurations = {};
 
+            let orderedForumPosts = {};
+            let orderedForumPosters = {};
+
             let start_date = '';
             let end_date = '';
             let course_name = '';
@@ -2633,6 +2607,8 @@ function getGraphElementMap(callback, start, end) {
             connection.runSql(query).then(function (courses) {
 
                 courses.forEach(function (course) {
+                    $('#loading').show();
+                    $.blockUI();
                     course_name = course['course_name'];
                     start_date = course['start_time'].toDateString();
                     end_date = course['end_time'].toDateString();
@@ -2651,20 +2627,17 @@ function getGraphElementMap(callback, start, end) {
                         let forumSessions = {};
                         let forumDurations = {};
 
+                        let forumPosts = {};
+                        let forumPosters = {};
+
                         toastr.info('Processing indicators');
 
-                        $('#loading').show();
-
                         sessions.forEach(function (session) {
-
                             let start = session["start_time"].toDateString();
                             start = new Date(start);
-
                             if (dailyDurations.hasOwnProperty(start)) {
-
                                 dailyDurations[start].push(session["duration"]);
                                 dailySessions[start].push(session["course_learner_id"]);
-
                             } else {
                                 dailyDurations[start] = [];
                                 dailyDurations[start].push(session["duration"]);
@@ -2679,12 +2652,9 @@ function getGraphElementMap(callback, start, end) {
                             q_sessions.forEach(function (session) {
                                 let start = session["start_time"].toDateString();
                                 start = new Date(start);
-
                                 if (quizDurations.hasOwnProperty(start)) {
-
                                     quizDurations[start].push(session["duration"]);
                                     quizSessions[start].push(session["course_learner_id"]);
-
                                 } else {
                                     quizDurations[start] = [];
                                     quizDurations[start].push(session["duration"]);
@@ -2699,12 +2669,9 @@ function getGraphElementMap(callback, start, end) {
                                 v_sessions.forEach(function (session) {
                                     let start = session["start_time"].toDateString();
                                     start = new Date(start);
-
                                     if (videoDurations.hasOwnProperty(start)) {
-
                                         videoDurations[start].push(session["duration"]);
                                         videoSessions[start].push(session["course_learner_id"]);
-
                                     } else {
                                         videoDurations[start] = [];
                                         videoDurations[start].push(session["duration"]);
@@ -2746,10 +2713,8 @@ function getGraphElementMap(callback, start, end) {
                                             start = new Date(start);
 
                                             if (forumDurations.hasOwnProperty(start)) {
-
                                                 forumDurations[start].push(session["duration"]);
                                                 forumSessions[start].push(session["course_learner_id"]);
-
                                             } else {
                                                 forumDurations[start] = [];
                                                 forumDurations[start].push(session["duration"]);
@@ -2759,82 +2724,109 @@ function getGraphElementMap(callback, start, end) {
                                             }
                                         });
 
-                                        let dateList = Object.keys(dailySessions);
-                                        dateList.sort(function (a, b) {
-                                            return new Date(a) - new Date(b);
-                                        });
+                                        query = "SELECT * FROM forum_interaction";
+                                        connection.runSql(query).then(function (f_interactions) {
+                                            f_interactions.forEach(function (interaction) {
+                                                let timestamp = interaction["post_timestamp"].toDateString();
+                                                timestamp = new Date(timestamp);
 
-                                        for (let date of dateList) {
-                                            orderedSessions[date] = dailySessions[date].length;
-                                            orderedStudents[date] = new Set(dailySessions[date]).size;
-                                            orderedDurations[date] = dailyDurations[date];
+                                                if (forumPosts.hasOwnProperty(timestamp)) {
 
-                                            if (quizSessions.hasOwnProperty(date)) {
-                                                orderedQuizSessions[date] = quizSessions[date].length;
-                                            } else {
-                                                orderedQuizSessions[date] = 0
+                                                    forumPosts[start].push(interaction["post_content"]);
+                                                    forumPosters[start].push(interaction["course_learner_id"]);
+
+                                                } else {
+                                                    forumPosts[start] = [];
+                                                    forumPosts[start].push(interaction["post_content"]);
+
+                                                    forumPosters[start] = [];
+                                                    forumPosters[start].push(interaction["course_learner_id"]);
+                                                }
+                                            });
+
+                                            let dateList = Object.keys(dailySessions);
+                                            dateList.sort(function (a, b) {
+                                                return new Date(a) - new Date(b);
+                                            });
+
+                                            for (let date of dateList) {
+                                                orderedSessions[date] = dailySessions[date].length;
+                                                orderedStudents[date] = new Set(dailySessions[date]).size;
+                                                orderedDurations[date] = dailyDurations[date];
+
+                                                if (quizSessions.hasOwnProperty(date)) {
+                                                    orderedQuizSessions[date] = quizSessions[date].length;
+                                                } else {
+                                                    orderedQuizSessions[date] = 0
+                                                }
+
+                                                if (videoSessions.hasOwnProperty(date)) {
+                                                    orderedVideoSessions[date] = videoSessions[date].length;
+                                                } else {
+                                                    orderedVideoSessions[date] = 0
+                                                }
+
+                                                if (forumSessions.hasOwnProperty(date)) {
+                                                    orderedForumSessions[date] = forumSessions[date].length;
+                                                } else {
+                                                    orderedForumSessions[date] = 0
+                                                }
+
+                                                if (forumPosters.hasOwnProperty(date)) {
+                                                    orderedForumPosters[date] = forumPosters[date].length;
+                                                } else {
+                                                    orderedForumPosters[date] = 0
+                                                }
+
+                                                let total = 0;
+                                                for (let i = 0; i < dailyDurations[date].length; i++) {
+                                                    total += dailyDurations[date][i];
+                                                }
+                                                orderedAvgDurations[date] = (total / dailyDurations[date].length).toFixed(2);
+
+                                                let quizTotal = 0;
+                                                for (let i = 0; i < orderedQuizSessions[date]; i++) {
+                                                    quizTotal += quizDurations[date][i];
+                                                }
+                                                orderedQuizDurations[date] = quizTotal / orderedQuizSessions[date];
+
+                                                let vidTotal = 0;
+                                                for (let i = 0; i < orderedVideoSessions[date].length; i++) {
+                                                    vidTotal += videoDurations[date][i];
+                                                }
+                                                orderedVideoDurations[date] = vidTotal / orderedVideoSessions[date].length;
+
+                                                let forumTotal = 0;
+                                                for (let i = 0; i < orderedForumSessions[date].length; i++) {
+                                                    forumTotal += forumDurations[date][i];
+                                                }
+                                                orderedForumDurations[date] = forumTotal / orderedForumSessions[date].length;
+
+                                                dateListChart.push(new Date(date));
                                             }
 
-                                            if (videoSessions.hasOwnProperty(date)) {
-                                                orderedVideoSessions[date] = videoSessions[date].length;
-                                            } else {
-                                                orderedVideoSessions[date] = 0
-                                            }
-
-                                            if (forumSessions.hasOwnProperty(date)) {
-                                                orderedForumSessions[date] = forumSessions[date].length;
-                                            } else {
-                                                orderedForumSessions[date] = 0
-                                            }
-
-                                            let total = 0;
-                                            for (let i = 0; i < dailyDurations[date].length; i++) {
-                                                total += dailyDurations[date][i];
-                                            }
-                                            orderedAvgDurations[date] = (total / dailyDurations[date].length).toFixed(2);
-
-                                            let quizTotal = 0;
-                                            for (let i = 0; i < orderedQuizSessions[date]; i++) {
-                                                quizTotal += quizDurations[date][i];
-                                            }
-                                            orderedQuizDurations[date] = quizTotal / orderedQuizSessions[date];
-
-                                            let vidTotal = 0;
-                                            for (let i = 0; i < orderedVideoSessions[date].length; i++) {
-                                                vidTotal += videoDurations[date][i];
-                                            }
-                                            orderedVideoDurations[date] = vidTotal / orderedVideoSessions[date].length;
-
-                                            let forumTotal = 0;
-                                            for (let i = 0; i < orderedForumSessions[date].length; i++) {
-                                                forumTotal += forumDurations[date][i];
-                                            }
-                                            orderedForumDurations[date] = forumTotal / orderedForumSessions[date].length;
-
-                                            dateListChart.push(new Date(date));
-                                        }
-
-                                        graphElementMap = {
-                                            'course_name': course_name,
-                                            'start_date': start_date,
-                                            'end_date': end_date,
-                                            'dateListChart': dateListChart,
-                                            'orderedSessions': orderedSessions,
-                                            'orderedStudents': orderedStudents,
-                                            'orderedDurations': orderedDurations,
-                                            'orderedAvgDurations': orderedAvgDurations,
-                                            'orderedQuizSessions': orderedQuizSessions,
-                                            'orderedQuizDurations': orderedQuizDurations,
-                                            'orderedVideoSessions': orderedVideoSessions,
-                                            'orderedVideoDurations': orderedVideoDurations,
-                                            'orderedForumSessions': orderedForumSessions,
-                                            'orderedForumDurations': orderedForumDurations,
-                                            'annotations': annotations
-                                        };
-                                        let graphElements = [{'name': 'graphElements', 'object': graphElementMap}];
-                                        toastr.info('Processing graph data');
-                                        sqlInsert('webdata', graphElements);
-                                        callback(graphElementMap, start, end);
+                                            graphElementMap = {
+                                                'course_name': course_name,
+                                                'start_date': start_date,
+                                                'end_date': end_date,
+                                                'dateListChart': dateListChart,
+                                                'orderedSessions': orderedSessions,
+                                                'orderedStudents': orderedStudents,
+                                                'orderedDurations': orderedDurations,
+                                                'orderedAvgDurations': orderedAvgDurations,
+                                                'orderedQuizSessions': orderedQuizSessions,
+                                                'orderedQuizDurations': orderedQuizDurations,
+                                                'orderedVideoSessions': orderedVideoSessions,
+                                                'orderedVideoDurations': orderedVideoDurations,
+                                                'orderedForumSessions': orderedForumSessions,
+                                                'orderedForumDurations': orderedForumDurations,
+                                                'annotations': annotations
+                                            };
+                                            let graphElements = [{'name': 'graphElements', 'object': graphElementMap}];
+                                            toastr.info('Processing graph data');
+                                            sqlInsert('webdata', graphElements);
+                                            callback(graphElementMap, start, end);
+                                        })
                                     })
                                 });
                             })
@@ -2856,11 +2848,118 @@ function exportChart(chartId) {
     });
 }
 
+function updateChart() {
+    $('#loading').show();
+    $.blockUI();
+    connection.runSql("DELETE FROM webdata WHERE name = 'graphElements'");
+    connection.runSql("DELETE FROM webdata WHERE name = 'databaseDetails'");
+    connection.runSql("DELETE FROM webdata WHERE name = 'mainIndicators'").then(function (e) {
+        $('#loading').hide();
+        $.unblockUI();
+        toastr.success('Please reload the page now', 'Updating Indicators and Charts', {timeOut: 0})
+    });
+}
+
+
+
+function testApex(graphElementMap, start, end){
+    let data = [];
+
+    for (let date in graphElementMap["orderedSessions"]){
+        let value = [date, graphElementMap["orderedSessions"][date]];
+        data.push(value)
+    }
+
+    let optionsline2 = {
+        chart: {
+            id: 'chart2',
+            type: 'line',
+            height: 230,
+            toolbar: {
+                autoSelected: 'pan',
+                show: false
+            }
+        },
+        colors: ['#546E7A'],
+        stroke: {
+            width: 3
+        },
+        dataLabels: {
+            enabled: false
+        },
+        fill: {
+            opacity: 1,
+        },
+        markers: {
+            size: 0
+        },
+        series: [{
+            data: data
+        }],
+        xaxis: {
+            type: 'datetime'
+        }
+    };
+
+    let chartline2 = new ApexCharts(
+        document.querySelector("#chart-line2"),
+        optionsline2
+    );
+
+    chartline2.render();
+
+    let options = {
+        chart: {
+            id: 'chart1',
+            height: 130,
+            type: 'area',
+            brush:{
+                target: 'chart2',
+                enabled: true
+            },
+            selection: {
+                enabled: true,
+                xaxis: {
+                    min: new Date('19 Jun 2017').getTime(),
+                    max: new Date('14 Aug 2017').getTime()
+                }
+            },
+        },
+        colors: ['#008FFB'],
+        series: [{
+            data: data
+        }],
+        fill: {
+            type: 'gradient',
+            gradient: {
+                opacityFrom: 0.91,
+                opacityTo: 0.1,
+            }
+        },
+        xaxis: {
+            type: 'datetime',
+            tooltip: {
+                enabled: false
+            }
+        },
+        yaxis: {
+            tickAmount: 2
+        }
+    };
+
+    let chart = new ApexCharts(
+        document.querySelector("#chart-line"),
+        options
+    );
+    chart.render();
+}
+
 function deleteEverything() {
     let query = 'DELETE FROM sessions';
     let r = confirm("WARNING!\nTHIS WILL DELETE EVERYTHING IN THE DATABASE");
     if (r === true) {
         $('#loading').show();
+        $.blockUI();
         connection.clear('sessions').then(function () {
             console.log('Cleared sessions table');
             connection.clear('video_interaction').then(function () {
@@ -2876,6 +2975,7 @@ function deleteEverything() {
                                 connection.dropDb().then(function(result){
                                     if (result === 1){
                                         $('#loading').hide();
+                                        $.unblockUI();
                                         toastr.success('Database has been deleted!')
                                     }
                                 });
@@ -2907,6 +3007,26 @@ function deleteEverything() {
         alert('Nothing was deleted')
     }
 }
+
+// Returns the ISO week of the date.
+Date.prototype.getWeek = function() {
+    let date = new Date(this.getTime());
+    date.setHours(0, 0, 0, 0);
+    // Thursday in current week decides the year.
+    date.setDate(date.getDate() + 3 - (date.getDay() + 6) % 7);
+    // January 4 is always in week 1.
+    let week1 = new Date(date.getFullYear(), 0, 4);
+    // Adjust to Thursday in week 1 and count number of weeks from date to week1.
+    return 1 + Math.round(((date.getTime() - week1.getTime()) / 86400000
+        - 3 + (week1.getDay() + 6) % 7) / 7);
+};
+
+// Returns the four-digit year corresponding to the ISO week of the date.
+Date.prototype.getWeekYear = function() {
+    let date = new Date(this.getTime());
+    date.setDate(date.getDate() + 3 - (date.getDay() + 6) % 7);
+    return date.getFullYear();
+};
 
 function getEdxDbQuery() {
     let db = "DEFINE DB edxdb;";

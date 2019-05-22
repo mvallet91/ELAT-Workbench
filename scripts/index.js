@@ -1092,6 +1092,72 @@ function coucourseElementsFinder_string(eventlog_item, course_id) {
     return elementsID;
 }
 
+function weirdDateFinder(course_metadata_map, log_files, index, total, chunk, total_chunks){
+    let current_course_id = course_metadata_map["course_id"];
+    current_course_id = current_course_id.slice(current_course_id.indexOf('+') + 1, current_course_id.lastIndexOf('+') + 7);
+
+    let learner_all_event_logs = [];
+    let updated_learner_all_event_logs = {};
+    let session_record = [];
+
+    for (let f in log_files) {
+        let file_name = log_files[f]['key'];
+        let input_file = log_files[f]['value'];
+        if (file_name.includes('log')) {
+
+            let today = new Date();
+            let start = today.getHours() + ":" + today.getMinutes() + ":" + today.getSeconds() + '.' + today.getMilliseconds();
+            console.log('Starting at', start);
+            learner_all_event_logs = [];
+            learner_all_event_logs = JSON.parse(JSON.stringify(updated_learner_all_event_logs));
+            updated_learner_all_event_logs = [];
+
+            let course_learner_id_set = new Set();
+            for (const course_learner_id in learner_all_event_logs) {
+                course_learner_id_set.add(course_learner_id)
+            }
+            let lines = input_file.split('\n');
+            for (let line of lines) {
+                if (line.length < 10 || !(line.includes(current_course_id))) { //
+                    continue;
+                }
+                let jsonObject = JSON.parse(line);
+                if (jsonObject['context'].hasOwnProperty('user_id') === false) {
+                    continue;
+                }
+                let global_learner_id = jsonObject["context"]["user_id"];
+                let event_type = jsonObject["event_type"];
+                if (global_learner_id == 3862654 || global_learner_id == '3862654'){
+                    console.log(jsonObject)
+                }
+            }
+        }
+    }
+    chunk++;
+
+    if (chunk < total_chunks){
+        progress_display('Part\n' + (chunk+1) + ' of ' + total_chunks, index);
+        toastr.info('Processing a new chunk of file number ' + (index + 1));
+        processLogFiles(index, chunk);
+    } else {
+        index++;
+        if (index < total){
+            chunk = 0;
+            toastr.info('Starting with file number ' + (index + 1));
+            processLogFiles(index, chunk);
+        } else {
+            let table = document.getElementById("progress_tab");
+            let row = table.insertRow();
+            let cell1 = row.insertCell();
+            setTimeout(function(){
+                toastr.success('Please reload the page now', 'Logfiles ready', {timeOut: 0});
+                cell1.innerHTML = ('Done! at ' + new Date().toLocaleString('en-GB'));
+                $('#loading').hide();
+            }, 10000);
+        }
+    }
+}
+
 
 // TRANSLATION MODULES
 function session_mode(course_metadata_map, log_files, index, total, chunk){
@@ -1099,7 +1165,7 @@ function session_mode(course_metadata_map, log_files, index, total, chunk){
 
     // This is only for one course! It has to be changed to allow for more courses
     let current_course_id = course_metadata_map["course_id"];
-    current_course_id = current_course_id.slice(current_course_id.indexOf('+') + 1, current_course_id.lastIndexOf('+') + 6);
+    current_course_id = current_course_id.slice(current_course_id.indexOf('+') + 1, current_course_id.lastIndexOf('+') + 7);
 
     let zero_start = performance.now();
     // let current_date = course_metadata_map["start_date"];
@@ -1115,8 +1181,6 @@ function session_mode(course_metadata_map, log_files, index, total, chunk){
 
             let today = new Date();
             let start = today.getHours() + ":" + today.getMinutes() + ":" + today.getSeconds() + '.' + today.getMilliseconds();
-
-            // let counter = 0;
             console.log('Starting at', start);
             learner_all_event_logs = [];
             learner_all_event_logs = JSON.parse(JSON.stringify(updated_learner_all_event_logs));
@@ -1130,17 +1194,10 @@ function session_mode(course_metadata_map, log_files, index, total, chunk){
             let lines = input_file.split('\n');
             console.log(lines.length + ' lines to process in file');
 
-            let skipped = 0;
-            let processed = 0;
-
             for (let line of lines){
-
                 if (line.length < 10 || !(line.includes(current_course_id)) ) { //
-                    skipped++;
                     continue;
                 }
-                processed++;
-
                 let jsonObject = JSON.parse(line);
                 if (jsonObject['context'].hasOwnProperty('user_id') === false ){ continue; }
                 let global_learner_id = jsonObject["context"]["user_id"];
@@ -1161,9 +1218,6 @@ function session_mode(course_metadata_map, log_files, index, total, chunk){
                     }
                 }
             }
-
-            console.log('Skipped, different course: ', skipped);
-            console.log('Processed: ', processed);
 
             for (let course_learner_id in learner_all_event_logs){
                 let event_logs = learner_all_event_logs[course_learner_id];
@@ -1285,7 +1339,6 @@ function session_mode(course_metadata_map, log_files, index, total, chunk){
 }
 
 function forum_interaction(forum_file, course_metadata_map){
-    // // loader.show();
     let forum_interaction_records = [];
     let lines = forum_file.split("\n");
     for (let line of lines) {
@@ -1336,7 +1389,7 @@ function forum_sessions(course_metadata_map, log_files, index, total, chunk) {
 
     // This is only for one course! It has to be changed to allow for more courses
     let current_course_id = course_metadata_map["course_id"];
-    current_course_id = current_course_id.slice(current_course_id.indexOf('+') + 1, current_course_id.lastIndexOf('+') + 6);
+    current_course_id = current_course_id.slice(current_course_id.indexOf('+') + 1, current_course_id.lastIndexOf('+') + 7);
 
     let start_date = new Date(course_metadata_map['start_date']);
     // let end_date = new Date(course_metadata_map['end_date']);
@@ -1567,7 +1620,7 @@ function video_interaction(course_metadata_map, log_files, index, total, chunk) 
 
     // This is only for one course! It has to be changed to allow for more courses
     let current_course_id = course_metadata_map["course_id"];
-    current_course_id = current_course_id.slice(current_course_id.indexOf('+') + 1, current_course_id.lastIndexOf('+') + 6);
+    current_course_id = current_course_id.slice(current_course_id.indexOf('+') + 1, current_course_id.lastIndexOf('+') + 7);
 
     console.log('Starting video session processing');
     let current_date = new Date(course_metadata_map['start_date']);
@@ -1968,7 +2021,7 @@ function quiz_mode(course_metadata_map, log_files, index, total, chunk) {
 
     // This is only for one course! It has to be changed to allow for more courses
     let current_course_id = course_metadata_map["course_id"];
-    current_course_id = current_course_id.slice(current_course_id.indexOf('+') + 1, current_course_id.lastIndexOf('+') + 6);
+    current_course_id = current_course_id.slice(current_course_id.indexOf('+') + 1, current_course_id.lastIndexOf('+') + 7);
 
     console.log('Starting quiz processing');
     let zero_start = performance.now();
@@ -2050,7 +2103,7 @@ function quiz_sessions(course_metadata_map, log_files, index, total, chunk, tota
 
     // This is only for one course! It has to be changed to allow for more courses
     let current_course_id = course_metadata_map["course_id"];
-    current_course_id = current_course_id.slice(current_course_id.indexOf('+') + 1, current_course_id.lastIndexOf('+') + 6);
+    current_course_id = current_course_id.slice(current_course_id.indexOf('+') + 1, current_course_id.lastIndexOf('+') + 7);
 
     let submission_event_collection = [];
     submission_event_collection.push('problem_check');

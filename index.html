@@ -227,8 +227,14 @@
 
     <div class="row justify-content-md-center " style="margin-top:10px; ">
         <div class="col-xs-12 col-sm-11  ">
-            <div id="chart-line"></div>
-            <div id="chart-line2"></div>
+            <div id="chartBrush"></div>
+            <div id="chartDetail"></div>
+        </div>
+    </div>
+
+    <div class="row justify-content-md-center " style="margin-top:10px; ">
+        <div class="col-xs-12 col-sm-11  ">
+            <div id="chartMixed"></div>
         </div>
     </div>
 
@@ -248,7 +254,7 @@
 
     <script>
         getGraphElementMap(drawCharts);
-        getGraphElementMap(testApex)
+
         let chart = null;
         let lineChart = null;
 
@@ -261,6 +267,10 @@
                 getGraphElementMap(drawCharts, start.format('YYYY-MM-DD'), end.format('YYYY-MM-DD'));
             });
         });
+        setTimeout(function(){
+            getGraphElementMap(testApex);
+        }, 1000);
+
     </script>
 
     <link href="style/main.css " rel="stylesheet " type="text/css " />

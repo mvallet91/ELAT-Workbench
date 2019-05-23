@@ -2594,7 +2594,9 @@ function getGraphElementMap(callback, start, end) {
             let orderedVideoDurations = {};
 
             let orderedForumSessions = {};
+            let orderedForumStudents = {};
             let orderedForumDurations = {};
+            let orderedForumAvgDurations = {};
 
             let orderedForumPosts = {};
             let orderedForumPosters = {};
@@ -2664,6 +2666,8 @@ function getGraphElementMap(callback, start, end) {
                                 }
                             });
 
+                            toastr.info('Crunching quiz data');
+
                             query = "SELECT * FROM video_interaction";
                             connection.runSql(query).then(function (v_sessions) {
                                 v_sessions.forEach(function (session) {
@@ -2680,6 +2684,7 @@ function getGraphElementMap(callback, start, end) {
                                         videoSessions[start].push(session["course_learner_id"]);
                                     }
                                 });
+                                toastr.info('Working on video sessions...');
 
                                 let dueDates = [];
                                 query = "SELECT * FROM quiz_questions";
@@ -2732,17 +2737,18 @@ function getGraphElementMap(callback, start, end) {
 
                                                 if (forumPosts.hasOwnProperty(timestamp)) {
 
-                                                    forumPosts[start].push(interaction["post_content"]);
-                                                    forumPosters[start].push(interaction["course_learner_id"]);
+                                                    forumPosts[timestamp].push(interaction["post_content"]);
+                                                    forumPosters[timestamp].push(interaction["course_learner_id"]);
 
                                                 } else {
-                                                    forumPosts[start] = [];
-                                                    forumPosts[start].push(interaction["post_content"]);
+                                                    forumPosts[timestamp] = [];
+                                                    forumPosts[timestamp].push(interaction["post_content"]);
 
-                                                    forumPosters[start] = [];
-                                                    forumPosters[start].push(interaction["course_learner_id"]);
+                                                    forumPosters[timestamp] = [];
+                                                    forumPosters[timestamp].push(interaction["course_learner_id"]);
                                                 }
                                             });
+                                            toastr.info('Almost there!');
 
                                             let dateList = Object.keys(dailySessions);
                                             dateList.sort(function (a, b) {
@@ -2753,6 +2759,8 @@ function getGraphElementMap(callback, start, end) {
                                                 orderedSessions[date] = dailySessions[date].length;
                                                 orderedStudents[date] = new Set(dailySessions[date]).size;
                                                 orderedDurations[date] = dailyDurations[date];
+
+                                                orderedForumStudents[date] = new Set(forumSessions[date]).size;
 
                                                 if (quizSessions.hasOwnProperty(date)) {
                                                     orderedQuizSessions[date] = quizSessions[date].length;
@@ -2774,8 +2782,10 @@ function getGraphElementMap(callback, start, end) {
 
                                                 if (forumPosters.hasOwnProperty(date)) {
                                                     orderedForumPosters[date] = forumPosters[date].length;
+                                                    orderedForumPosts[date] = forumPosts[date].length;
                                                 } else {
-                                                    orderedForumPosters[date] = 0
+                                                    orderedForumPosters[date] = 0;
+                                                    orderedForumPosts[date] = 0;
                                                 }
 
                                                 let total = 0;
@@ -2785,7 +2795,7 @@ function getGraphElementMap(callback, start, end) {
                                                 orderedAvgDurations[date] = (total / dailyDurations[date].length).toFixed(2);
 
                                                 let quizTotal = 0;
-                                                for (let i = 0; i < orderedQuizSessions[date]; i++) {
+                                                for (let i = 0; i < orderedQuizSessions[date].length; i++) {
                                                     quizTotal += quizDurations[date][i];
                                                 }
                                                 orderedQuizDurations[date] = quizTotal / orderedQuizSessions[date];
@@ -2797,10 +2807,11 @@ function getGraphElementMap(callback, start, end) {
                                                 orderedVideoDurations[date] = vidTotal / orderedVideoSessions[date].length;
 
                                                 let forumTotal = 0;
-                                                for (let i = 0; i < orderedForumSessions[date].length; i++) {
+                                                for (let i = 0; i < forumDurations[date].length; i++) {
                                                     forumTotal += forumDurations[date][i];
                                                 }
-                                                orderedForumDurations[date] = forumTotal / orderedForumSessions[date].length;
+                                                orderedForumDurations[date] = forumTotal;
+                                                orderedForumAvgDurations[date] = forumTotal / forumDurations[date].length;
 
                                                 dateListChart.push(new Date(date));
                                             }
@@ -2820,6 +2831,10 @@ function getGraphElementMap(callback, start, end) {
                                                 'orderedVideoDurations': orderedVideoDurations,
                                                 'orderedForumSessions': orderedForumSessions,
                                                 'orderedForumDurations': orderedForumDurations,
+                                                'orderedForumAvgDurations': orderedForumAvgDurations,
+                                                'orderedForumPosts': orderedForumPosts,
+                                                'orderedForumPosters': orderedForumPosters,
+                                                'orderedForumStudents': orderedForumStudents,
                                                 'annotations': annotations
                                             };
                                             let graphElements = [{'name': 'graphElements', 'object': graphElementMap}];
@@ -2870,11 +2885,11 @@ function testApex(graphElementMap, start, end){
         data.push(value)
     }
 
-    let optionsline2 = {
+    let optionsDetail = {
         chart: {
-            id: 'chart2',
+            id: 'chartDetail',
             type: 'line',
-            height: 230,
+            height: 250,
             toolbar: {
                 autoSelected: 'pan',
                 show: false
@@ -2898,30 +2913,37 @@ function testApex(graphElementMap, start, end){
         }],
         xaxis: {
             type: 'datetime'
+        },
+        yaxis: {
+            min: 0,
+            forceNiceScale: true
         }
     };
 
-    let chartline2 = new ApexCharts(
-        document.querySelector("#chart-line2"),
-        optionsline2
+    let chartDetail = new ApexCharts(
+        document.querySelector("#chartDetail"),
+        optionsDetail
     );
 
-    chartline2.render();
+    chartDetail.render();
 
-    let options = {
+    let optionsBrush = {
         chart: {
-            id: 'chart1',
-            height: 130,
+            id: 'chartBrush',
+            height: 150,
             type: 'area',
             brush:{
-                target: 'chart2',
+                target: 'chartDetail',
                 enabled: true
+            },
+            stroke: {
+                curve: 'straight'
             },
             selection: {
                 enabled: true,
                 xaxis: {
-                    min: new Date('19 Jun 2017').getTime(),
-                    max: new Date('14 Aug 2017').getTime()
+                    min: start,
+                    max: end
                 }
             },
         },
@@ -2943,15 +2965,93 @@ function testApex(graphElementMap, start, end){
             }
         },
         yaxis: {
-            tickAmount: 2
+            tickAmount: 2,
+            min: 0
         }
     };
 
-    let chart = new ApexCharts(
-        document.querySelector("#chart-line"),
-        options
+    let chartBrush= new ApexCharts(
+        document.querySelector("#chartBrush"),
+        optionsBrush
     );
-    chart.render();
+    chartBrush.render();
+
+    let dateLabels = [];
+    for (let date of graphElementMap["dateListChart"]){
+        dateLabels.push(date.toLocaleString())
+    }
+
+    let optionsMixed = {
+        chart: {
+            height: 350,
+            type: 'line',
+        },
+        series: [{
+            name: 'Forum Posts',
+            type: 'column',
+            data: Object.values(graphElementMap["orderedForumPosts"])
+        }, {
+            name: 'Average time spent in Forums',
+            type: 'line',
+            data: Object.values(graphElementMap['orderedForumAvgDurations'])
+        }, {
+            name: 'Number of Students in Forums',
+            type: 'line',
+            data: Object.values(graphElementMap['orderedForumStudents'])
+        }],
+        stroke: {
+            width: [0, 3, 3]
+        },
+        title: {
+            text: 'Forum Analysis'
+        },
+        labels: dateLabels,
+        xaxis: {
+            type: 'datetime'
+        },
+        yaxis: [{
+            title: {
+                text: 'New Forum Posts',
+            },
+            labels: {
+                show: true,
+                formatter: function(val, index) {
+                    return val.toFixed(0);
+                }
+            },
+            seriesName: 'Forum Posts'
+        }, {
+            title: {
+                text: 'Students visiting Forums',
+            },
+            labels: {
+                show: true,
+                formatter: function(val, index) {
+                    return val.toFixed(0);
+                }
+            },
+            seriesName: 'Number of Students in Forums'
+        }, {
+            opposite: true,
+            title: {
+                text: 'Seconds in Forums'
+            },
+            labels: {
+                show: true,
+                formatter: function(val, index) {
+                    return val.toFixed(0);
+                }
+            },
+            seriesName: 'Average time spent in Forums'
+        }]
+    };
+
+    let chartMixed = new ApexCharts(
+        document.querySelector("#chartMixed"),
+        optionsMixed
+    );
+
+    chartMixed.render();
 }
 
 function deleteEverything() {

@@ -2380,7 +2380,8 @@ function processSessions(tablename, headers) {
 }
 
 
-function drawCharts(elementMap, start, end) {
+function drawCharts(graphElementMap, start, end) {
+    testApex(graphElementMap, start, end)
     let canvas = document.getElementById('barChart');
     let ctx = canvas.getContext('2d');
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -2389,12 +2390,12 @@ function drawCharts(elementMap, start, end) {
     let endDate = new Date(end);
 
     let data = {
-        labels: elementMap['dateListChart'],
+        labels: graphElementMap['dateListChart'],
         datasets: [{
             fill: false,
             label: 'Total Students',
             yAxisID: 'A',
-            data: Object.values(elementMap['orderedStudents']),
+            data: Object.values(graphElementMap['orderedStudents']),
             borderColor: '#FAB930',
             backgroundColor: '#FAB930',
             lineTension: 0.2,
@@ -2402,7 +2403,7 @@ function drawCharts(elementMap, start, end) {
             fill: false,
             label: 'Total Sessions',
             yAxisID: 'B',
-            data: Object.values(elementMap['orderedSessions']),
+            data: Object.values(graphElementMap['orderedSessions']),
             borderColor: '#12B1C7',
             backgroundColor: '#12B1C7',
             lineTension: 0.2,
@@ -2412,18 +2413,18 @@ function drawCharts(elementMap, start, end) {
     let radioValue = $("input[name='optradio']:checked").val();
     if (radioValue){
         if (radioValue === 'allDates'){
-            startDate = new Date(elementMap['dateListChart'][0]);
-            endDate = new Date(elementMap['dateListChart'][elementMap['dateListChart'].length - 1]);
+            startDate = new Date(graphElementMap['dateListChart'][0]);
+            endDate = new Date(graphElementMap['dateListChart'][graphElementMap['dateListChart'].length - 1]);
         } else if (radioValue === 'courseDates') {
-            endDate = new Date(elementMap['end_date']);
-            startDate = new Date(elementMap['start_date']);
+            endDate = new Date(graphElementMap['end_date']);
+            startDate = new Date(graphElementMap['start_date']);
         }
     }
 
     let options = {
         type: 'line',
         data: data,
-        title: elementMap['course_name'],
+        title: graphElementMap['course_name'],
         options: {
             fill: true,
             responsive: true,
@@ -2477,12 +2478,12 @@ function drawCharts(elementMap, start, end) {
     let lineCtx = document.getElementById('lineChart').getContext('2d');
 
     let lineData = {
-        labels: elementMap['dateListChart'],
+        labels: graphElementMap['dateListChart'],
         datasets: [{
             fill: false,
             label: 'Avg. Session Duration',
             yAxisID: 'A',
-            data: Object.values(elementMap['orderedAvgDurations']),
+            data: Object.values(graphElementMap['orderedAvgDurations']),
             borderColor: '#6EC5FB',
             backgroundColor: '#6EC5FB',
             lineTension: 0,
@@ -2490,7 +2491,7 @@ function drawCharts(elementMap, start, end) {
             fill: true,
             label: 'Video Session Count',
             yAxisID: 'B',
-            data: Object.values(elementMap['orderedVideoSessions']),
+            data: Object.values(graphElementMap['orderedVideoSessions']),
             borderColor: '#753599',
             backgroundColor: '#753599',
             lineTension: 0,
@@ -2498,7 +2499,7 @@ function drawCharts(elementMap, start, end) {
             fill: true,
             label: 'Quiz Session Count',
             yAxisID: 'B',
-            data: Object.values(elementMap['orderedQuizSessions']),
+            data: Object.values(graphElementMap['orderedQuizSessions']),
             borderColor: '#13c70e',
             backgroundColor: '#13c70e',
             lineTension: 0,
@@ -2506,7 +2507,7 @@ function drawCharts(elementMap, start, end) {
             fill: true,
             label: 'Forum Session Count',
             yAxisID: 'B',
-            data: Object.values(elementMap['orderedForumSessions']),
+            data: Object.values(graphElementMap['orderedForumSessions']),
             borderColor: '#992425',
             backgroundColor: '#992425',
             lineTension: 0,
@@ -2519,7 +2520,7 @@ function drawCharts(elementMap, start, end) {
         options: {
 
             annotation: {
-                annotations: elementMap['annotations']
+                annotations: graphElementMap['annotations']
             },
 
             fill: false,
@@ -2781,10 +2782,14 @@ function getGraphElementMap(callback, start, end) {
                                                 }
 
                                                 if (forumPosters.hasOwnProperty(date)) {
-                                                    orderedForumPosters[date] = forumPosters[date].length;
-                                                    orderedForumPosts[date] = forumPosts[date].length;
+                                                    orderedForumPosters[date] = Math.round(forumPosters[date].length);
                                                 } else {
                                                     orderedForumPosters[date] = 0;
+                                                }
+
+                                                if (forumPosts.hasOwnProperty(date)) {
+                                                    orderedForumPosts[date] = Math.round(forumPosts[date].length);
+                                                } else {
                                                     orderedForumPosts[date] = 0;
                                                 }
 
@@ -2807,11 +2812,16 @@ function getGraphElementMap(callback, start, end) {
                                                 orderedVideoDurations[date] = vidTotal / orderedVideoSessions[date].length;
 
                                                 let forumTotal = 0;
-                                                for (let i = 0; i < forumDurations[date].length; i++) {
-                                                    forumTotal += forumDurations[date][i];
+                                                if (forumDurations.hasOwnProperty(date)){
+                                                    for (let i = 0; i < forumDurations[date].length; i++) {
+                                                        forumTotal += forumDurations[date][i];
+                                                    }
+                                                    orderedForumDurations[date] = Math.round(forumTotal);
+                                                    orderedForumAvgDurations[date] = Math.round(forumTotal / forumDurations[date].length);
+                                                } else {
+                                                    orderedForumDurations[date] = 0;
+                                                    orderedForumAvgDurations[date] = 0;
                                                 }
-                                                orderedForumDurations[date] = forumTotal;
-                                                orderedForumAvgDurations[date] = forumTotal / forumDurations[date].length;
 
                                                 dateListChart.push(new Date(date));
                                             }
@@ -2899,9 +2909,9 @@ function testApex(graphElementMap, start, end){
         stroke: {
             width: 3
         },
-        dataLabels: {
-            enabled: false
-        },
+        // dataLabels: {
+        //     enabled: true
+        // },
         fill: {
             opacity: 1,
         },
@@ -2909,6 +2919,7 @@ function testApex(graphElementMap, start, end){
             size: 0
         },
         series: [{
+            name: 'Sessions',
             data: data
         }],
         xaxis: {
@@ -2949,6 +2960,7 @@ function testApex(graphElementMap, start, end){
         },
         colors: ['#008FFB'],
         series: [{
+            name: 'Sessions',
             data: data
         }],
         fill: {
@@ -3014,35 +3026,29 @@ function testApex(graphElementMap, start, end){
                 text: 'New Forum Posts',
             },
             labels: {
-                show: true,
-                formatter: function(val, index) {
-                    return val.toFixed(0);
-                }
+                show: true
             },
-            seriesName: 'Forum Posts'
+            seriesName: 'Forum Posts',
+            forceNiceScale: true
         }, {
-            title: {
-                text: 'Students visiting Forums',
-            },
-            labels: {
-                show: true,
-                formatter: function(val, index) {
-                    return val.toFixed(0);
-                }
-            },
-            seriesName: 'Number of Students in Forums'
-        }, {
+        //     title: {
+        //         text: 'Students visiting Forums',
+        //     },
+        //     labels: {
+        //         show: true
+        //     },
+        //     seriesName: 'Number of Students in Forums',
+        //     forceNiceScale: true
+        // }, {
             opposite: true,
             title: {
                 text: 'Seconds in Forums'
             },
             labels: {
-                show: true,
-                formatter: function(val, index) {
-                    return val.toFixed(0);
-                }
+                show: true
             },
-            seriesName: 'Average time spent in Forums'
+            seriesName: 'Average time spent in Forums',
+            forceNiceScale: true
         }]
     };
 

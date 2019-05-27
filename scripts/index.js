@@ -2370,7 +2370,7 @@ function processSessions(tablename, headers) {
                         data.push(array)
                     }
                     if (counter === total_count){
-                        downloadCsv(tablename + '_1510_' + course_id + '.csv', data);
+                        downloadCsv(tablename + course_id + '.csv', data);
                     }
                 });
                 console.log(counter)
@@ -3026,26 +3026,35 @@ function testApex(graphElementMap, start, end){
                 text: 'New Forum Posts',
             },
             labels: {
-                show: true
+                show: true,
+                formatter: function(val, index) {
+                    return val.toFixed(0);
+                }
             },
             seriesName: 'Forum Posts',
             forceNiceScale: true
         }, {
-        //     title: {
-        //         text: 'Students visiting Forums',
-        //     },
-        //     labels: {
-        //         show: true
-        //     },
-        //     seriesName: 'Number of Students in Forums',
-        //     forceNiceScale: true
-        // }, {
+            title: {
+                text: 'Students visiting Forums',
+            },
+            labels: {
+                show: true,
+                formatter: function(val, index) {
+                    return val.toFixed(0);
+                }
+            },
+            seriesName: 'Number of Students in Forums',
+            forceNiceScale: true
+        }, {
             opposite: true,
             title: {
                 text: 'Seconds in Forums'
             },
             labels: {
-                show: true
+                show: true,
+                formatter: function(val, index) {
+                    return val.toFixed(0);
+                }
             },
             seriesName: 'Average time spent in Forums',
             forceNiceScale: true

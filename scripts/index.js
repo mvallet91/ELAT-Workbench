@@ -2988,9 +2988,30 @@ function testApex(graphElementMap, start, end){
     );
     chartBrush.render();
 
+    let weekly = true;
+
+    let weeklyPosts = groupWeekly(graphElementMap, 'orderedForumPosts');
+    let weeklyForumSessions = groupWeekly(graphElementMap, 'orderedForumAvgDurations');
+    let weeklyForumStudents = groupWeekly(graphElementMap, 'orderedForumStudents');
+
     let dateLabels = [];
-    for (let date of graphElementMap["dateListChart"]){
-        dateLabels.push(date.toLocaleString())
+    let forumData = [];
+    let forumDurations = [];
+    let forumStudents = [];
+    if (weekly === true){
+        for (let date in weeklyPosts['weeklySum']){
+            dateLabels.push(date.toLocaleString())
+        }
+        forumData = Object.values(weeklyPosts['weeklySum']);
+        forumDurations = Object.values(weeklyForumSessions['weeklyAvg']);
+        forumStudents = Object.values(weeklyForumStudents['weeklySum']);
+    } else {
+        for (let date of graphElementMap["dateListChart"]){
+            dateLabels.push(date.toLocaleString())
+        }
+        forumData = Object.values(graphElementMap["orderedForumPosts"]);
+        forumDurations = Object.values(graphElementMap['orderedForumAvgDurations']);
+        forumStudents = Object.values(graphElementMap['orderedForumStudents']);
     }
 
     let optionsMixed = {
@@ -3001,21 +3022,21 @@ function testApex(graphElementMap, start, end){
         series: [{
             name: 'Forum Posts',
             type: 'column',
-            data: Object.values(graphElementMap["orderedForumPosts"])
+            data: forumData
         }, {
             name: 'Average time spent in Forums',
             type: 'line',
-            data: Object.values(graphElementMap['orderedForumAvgDurations'])
+            data: forumDurations
         }, {
             name: 'Number of Students in Forums',
             type: 'line',
-            data: Object.values(graphElementMap['orderedForumStudents'])
+            data: forumStudents
         }],
         stroke: {
             width: [0, 3, 3]
         },
         title: {
-            text: 'Forum Analysis'
+            text: 'Weekly Forum Analysis'
         },
         labels: dateLabels,
         xaxis: {
@@ -3304,3 +3325,25 @@ function getEdxDbQuery() {
         forum_interaction + forum_sessions + survey_descriptions + survey_responses + webdata )
     ;
 }
+
+function groupWeekly(graphElementMap, orderedElements) {
+
+    let grouped = _.groupBy(graphElementMap['dateListChart'], (result) => moment(result, 'DD/MM/YYYY').startOf('isoWeek'));
+
+    let weeklySum = {};
+    let weeklyAvg = {};
+
+    for (let week in grouped) {
+        let weekDays = grouped[week];
+        let weekTotal = 0;
+        for (let day of weekDays) {
+            weekTotal += graphElementMap[orderedElements][day];
+        }
+        weeklySum[week] = weekTotal;
+        weeklyAvg[week] = weekTotal / 7;
+    }
+
+    return {'weeklySum':weeklySum,
+            'weeklyAvg': weeklyAvg}
+}
+

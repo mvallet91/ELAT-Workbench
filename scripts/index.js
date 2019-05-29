@@ -2581,6 +2581,21 @@ function getGraphElementMap(callback, start, end) {
             callback(graphElementMap, start, end);
         } else {
 
+            let dailySessions = {};
+            let dailyDurations = {};
+
+            let quizSessions = {};
+            let quizDurations = {};
+
+            let videoSessions = {};
+            let videoDurations = {};
+
+            let forumSessions = {};
+            let forumDurations = {};
+
+            let forumPosts = {};
+            let forumPosters = {};
+
             let dateListChart = [];
 
             let orderedSessions = {};
@@ -2598,9 +2613,17 @@ function getGraphElementMap(callback, start, end) {
             let orderedForumStudents = {};
             let orderedForumDurations = {};
             let orderedForumAvgDurations = {};
+            let orderedForumRegulars = {};
+            let orderedForumSessionRegulars = {};
+            let orderedForumSessionOccasionals = {};
+            let orderedForumOccasionals = {};
 
             let orderedForumPosts = {};
             let orderedForumPosters = {};
+            let orderedForumPosterRegulars = {};
+            let orderedForumPostByRegulars = {};
+            let orderedForumPosterOccasionals = {};
+            let orderedForumPostByOccasionals = {};
 
             let start_date = '';
             let end_date = '';
@@ -2618,21 +2641,6 @@ function getGraphElementMap(callback, start, end) {
 
                     query = "SELECT * FROM sessions";
                     connection.runSql(query).then(function (sessions) {
-                        let dailySessions = {};
-                        let dailyDurations = {};
-
-                        let quizSessions = {};
-                        let quizDurations = {};
-
-                        let videoSessions = {};
-                        let videoDurations = {};
-
-                        let forumSessions = {};
-                        let forumDurations = {};
-
-                        let forumPosts = {};
-                        let forumPosters = {};
-
                         toastr.info('Processing indicators');
 
                         sessions.forEach(function (session) {
@@ -2751,6 +2759,51 @@ function getGraphElementMap(callback, start, end) {
                                             });
                                             toastr.info('Almost there!');
 
+                                            // FORUM SEGMENTATION
+                                            let weeklyPosters = groupWeekly(forumPosters);
+                                            let posters = {};
+                                            let regularPosters = [];
+                                            let occasionalPosters = [];
+                                            for (let week in weeklyPosters){
+                                                let weekPosters = new Set(weeklyPosters[week]);
+                                                for (let poster of weekPosters) {
+                                                    if (posters.hasOwnProperty(poster)) {
+                                                        posters[poster] = posters[poster] + 1
+                                                    } else {
+                                                        posters[poster] = 1
+                                                    }
+                                                }
+                                            }
+                                            for (let p in posters){
+                                                if (posters[p] > 2) {
+                                                    regularPosters.push(p)
+                                                } else {
+                                                    occasionalPosters.push(p)
+                                                }
+                                            }
+
+                                            let weeklyFViewers = groupWeekly(forumSessions);
+                                            let fViewers = {};
+                                            let regularFViewers = [];
+                                            let occasionalFViewers = [];
+                                            for (let week in weeklyFViewers){
+                                                let weekViewers = new Set(weeklyFViewers[week]);
+                                                for (let viewer of weekViewers) {
+                                                    if (fViewers.hasOwnProperty(viewer)) {
+                                                        fViewers[viewer] = fViewers[viewer] + 1
+                                                    } else {
+                                                        fViewers[viewer] = 1
+                                                    }
+                                                }
+                                            }
+                                            for (let p in fViewers){
+                                                if (fViewers[p] > 2) {
+                                                    regularFViewers.push(p)
+                                                } else {
+                                                    occasionalFViewers.push(p)
+                                                }
+                                            }
+
                                             let dateList = Object.keys(dailySessions);
                                             dateList.sort(function (a, b) {
                                                 return new Date(a) - new Date(b);
@@ -2775,20 +2828,45 @@ function getGraphElementMap(callback, start, end) {
                                                     orderedVideoSessions[date] = 0
                                                 }
 
+                                                let regulars = [];
+                                                let occasionals = [];
                                                 if (forumSessions.hasOwnProperty(date)) {
                                                     orderedForumSessions[date] = forumSessions[date].length;
+                                                    for (let student of forumSessions[date]){
+                                                        if (regularFViewers.includes(student)){
+                                                            regulars.push(student)
+                                                        } else {
+                                                            occasionals.push(student)
+                                                        }
+                                                    }
                                                 } else {
                                                     orderedForumSessions[date] = 0
                                                 }
+                                                orderedForumSessionRegulars[date] = regulars.length;
+                                                orderedForumRegulars[date] = new Set(regulars).size;
+                                                orderedForumSessionOccasionals[date] = occasionals.length;
+                                                orderedForumOccasionals[date] = new Set(occasionals).size;
 
+                                                orderedForumPosterOccasionals[date] = 0;
+                                                orderedForumPosterRegulars[date] = 0;
                                                 if (forumPosters.hasOwnProperty(date)) {
                                                     orderedForumPosters[date] = Math.round(forumPosters[date].length);
+                                                    for (let poster of forumPosters[date]) {
+                                                        if (regularPosters.includes(poster)) {
+                                                            orderedForumPosterRegulars[date] = orderedForumPosterRegulars[date] + 1
+                                                        } else {
+                                                            orderedForumPosterOccasionals[date] = orderedForumPosterOccasionals[date] + 1
+                                                        }
+                                                    }
                                                 } else {
                                                     orderedForumPosters[date] = 0;
                                                 }
 
                                                 if (forumPosts.hasOwnProperty(date)) {
                                                     orderedForumPosts[date] = Math.round(forumPosts[date].length);
+                                                    // for (let post of forumPosts[date]) {
+                                                    //     if ()
+                                                    // }
                                                 } else {
                                                     orderedForumPosts[date] = 0;
                                                 }
@@ -2831,20 +2909,34 @@ function getGraphElementMap(callback, start, end) {
                                                 'start_date': start_date,
                                                 'end_date': end_date,
                                                 'dateListChart': dateListChart,
+
                                                 'orderedSessions': orderedSessions,
                                                 'orderedStudents': orderedStudents,
                                                 'orderedDurations': orderedDurations,
                                                 'orderedAvgDurations': orderedAvgDurations,
+
                                                 'orderedQuizSessions': orderedQuizSessions,
                                                 'orderedQuizDurations': orderedQuizDurations,
+
                                                 'orderedVideoSessions': orderedVideoSessions,
                                                 'orderedVideoDurations': orderedVideoDurations,
+
                                                 'orderedForumSessions': orderedForumSessions,
+                                                'orderedForumSessionRegulars': orderedForumSessionRegulars,
+                                                'orderedForumSessionOccasionals': orderedForumSessionOccasionals,
                                                 'orderedForumDurations': orderedForumDurations,
                                                 'orderedForumAvgDurations': orderedForumAvgDurations,
+
                                                 'orderedForumPosts': orderedForumPosts,
                                                 'orderedForumPosters': orderedForumPosters,
+                                                'orderedForumPosterRegulars': orderedForumPosterRegulars,
+                                                'orderedForumPosterOccasionals': orderedForumPosterOccasionals,
+
                                                 'orderedForumStudents': orderedForumStudents,
+                                                'orderedForumRegulars': orderedForumRegulars,
+                                                'orderedForumOccasionals': orderedForumOccasionals,
+                                                'forumPosters': forumPosters,
+
                                                 'annotations': annotations
                                             };
                                             let graphElements = [{'name': 'graphElements', 'object': graphElementMap}];
@@ -2990,12 +3082,16 @@ function testApex(graphElementMap, start, end){
 
     let weekly = true;
 
-    let weeklyPosts = groupWeekly(graphElementMap, 'orderedForumPosts');
-    let weeklyForumSessions = groupWeekly(graphElementMap, 'orderedForumAvgDurations');
-    let weeklyForumStudents = groupWeekly(graphElementMap, 'orderedForumStudents');
+    let weeklyPosts = groupWeeklyMapped(graphElementMap, 'orderedForumPosts');
+    let weeklyRegPosts = groupWeeklyMapped(graphElementMap, 'orderedForumPosterRegulars');
+    let weeklyOccPosts = groupWeeklyMapped(graphElementMap, 'orderedForumPosterOccasionals');
+    let weeklyForumSessions = groupWeeklyMapped(graphElementMap, 'orderedForumAvgDurations');
+    let weeklyForumStudents = groupWeeklyMapped(graphElementMap, 'orderedForumStudents');
 
     let dateLabels = [];
     let forumData = [];
+    let forumRegData = [];
+    let forumOccData = [];
     let forumDurations = [];
     let forumStudents = [];
     if (weekly === true){
@@ -3003,6 +3099,8 @@ function testApex(graphElementMap, start, end){
             dateLabels.push(date.toLocaleString())
         }
         forumData = Object.values(weeklyPosts['weeklySum']);
+        forumRegData = Object.values(weeklyRegPosts['weeklySum']);
+        forumOccData = Object.values(weeklyOccPosts['weeklySum']);
         forumDurations = Object.values(weeklyForumSessions['weeklyAvg']);
         forumStudents = Object.values(weeklyForumStudents['weeklySum']);
     } else {
@@ -3010,6 +3108,8 @@ function testApex(graphElementMap, start, end){
             dateLabels.push(date.toLocaleString())
         }
         forumData = Object.values(graphElementMap["orderedForumPosts"]);
+        forumRegData = Object.values(graphElementMap["orderedForumPosterRegulars"]);
+        forumOccData = Object.values(graphElementMap["orderedForumPosterOccasionals"]);
         forumDurations = Object.values(graphElementMap['orderedForumAvgDurations']);
         forumStudents = Object.values(graphElementMap['orderedForumStudents']);
     }
@@ -3018,22 +3118,43 @@ function testApex(graphElementMap, start, end){
         chart: {
             height: 350,
             type: 'line',
+            stacked: true,
         },
+        responsive: [{
+            breakpoint: 480,
+            options: {
+                legend: {
+                    position: 'bottom',
+                    offsetX: -10,
+                    offsetY: 0
+                }
+            }
+        }],
+        // plotOptions: {
+        //     bar: {
+        //         horizontal: false,
+        //         stacked: true
+        //     },
+        // },
         series: [{
-            name: 'Forum Posts',
+            name: 'Posts by Regulars',
             type: 'column',
-            data: forumData
+            data: forumRegData
+        }, {
+            name: 'Posts by Occasionals',
+            type: 'column',
+            data: forumOccData
         }, {
             name: 'Average time spent in Forums',
             type: 'line',
             data: forumDurations
-        }, {
-            name: 'Number of Students in Forums',
-            type: 'line',
-            data: forumStudents
+        // }, {
+        //     name: 'Number of Students in Forums',
+        //     type: 'line',
+        //     data: forumStudents
         }],
         stroke: {
-            width: [0, 3, 3]
+            width: [0, 0, 3, 3]
         },
         title: {
             text: 'Weekly Forum Analysis'
@@ -3043,33 +3164,45 @@ function testApex(graphElementMap, start, end){
             type: 'datetime'
         },
         yaxis: [{
-            title: {
-                text: 'New Forum Posts',
-            },
-            labels: {
-                show: true,
-                formatter: function(val, index) {
-                    return val.toFixed(0);
-                }
-            },
-            seriesName: 'Forum Posts',
-            forceNiceScale: true
-        }, {
-            title: {
-                text: 'Students visiting Forums',
-            },
-            labels: {
-                show: true,
-                formatter: function(val, index) {
-                    return val.toFixed(0);
-                }
-            },
-            seriesName: 'Number of Students in Forums',
-            forceNiceScale: true
-        }, {
+        //     // title: {
+        //     //     text: 'New Forum Posts',
+        //     // },
+        //     labels: {
+        //         show: false,
+        //         formatter: function(val, index) {
+        //             return val.toFixed(0);
+        //         }
+        //     },
+        //     seriesName: 'Forum Posts by Reg',
+        //     // forceNiceScale: true
+        // }, {
+        //     title: {
+        //         text: 'New Forum Posts',
+        //     },
+        //     labels: {
+        //         show: true,
+        //         formatter: function(val, index) {
+        //             return val.toFixed(0);
+        //         }
+        //     },
+        //     seriesName: 'Forum Posts by Occ',
+        //     forceNiceScale: true
+        // }, {
+        //     title: {
+        //         text: 'Students visiting Forums',
+        //     },
+        //     labels: {
+        //         show: true,
+        //         formatter: function(val, index) {
+        //             return val.toFixed(0);
+        //         }
+        //     },
+        //     seriesName: 'Number of Students in Forums',
+        //     forceNiceScale: true
+        // }, {
             opposite: true,
             title: {
-                text: 'Seconds in Forums'
+                text: 'Seconds in Forums / New Posts'
             },
             labels: {
                 show: true,
@@ -3326,24 +3459,99 @@ function getEdxDbQuery() {
     ;
 }
 
-function groupWeekly(graphElementMap, orderedElements) {
-
-    let grouped = _.groupBy(graphElementMap['dateListChart'], (result) => moment(result, 'DD/MM/YYYY').startOf('isoWeek'));
-
+function groupWeekly(elementObject) {
+    let grouped = _.groupBy(Object.keys(elementObject), (result) => moment(new Date(result), 'DD/MM/YYYY').startOf('isoWeek'));
     let weeklySum = {};
-    let weeklyAvg = {};
-
     for (let week in grouped) {
         let weekDays = grouped[week];
         let weekTotal = 0;
+        let weekList = [];
+        let weekType = 'number';
         for (let day of weekDays) {
-            weekTotal += graphElementMap[orderedElements][day];
+            if (typeof elementObject[day] === "number") {
+                weekTotal += elementObject[day];
+            } else {
+                weekType = 'list';
+                let weekValues = [];
+                if (elementObject.hasOwnProperty(day)) {
+                    weekValues = elementObject[day];
+                }
+                for (let element of weekValues) {
+                    weekList.push(element);
+                }
+            }
         }
-        weeklySum[week] = weekTotal;
-        weeklyAvg[week] = weekTotal / 7;
+        if (weekType === "number") {
+            weeklySum[week] = weekTotal;
+        } else {
+            weeklySum[week] = weekList;
+        }
     }
-
-    return {'weeklySum':weeklySum,
-            'weeklyAvg': weeklyAvg}
+    return weeklySum
 }
 
+function groupWeeklyMapped(graphElementMap, orderedElements) {
+    let grouped = _.groupBy(graphElementMap['dateListChart'], (result) => moment(result, 'DD/MM/YYYY').startOf('isoWeek'));
+    let weeklySum = {};
+    let weeklyAvg = {};
+    for (let week in grouped) {
+        let weekDays = grouped[week];
+        let weekTotal = 0;
+        let weekList = [];
+        let weekType = 'number';
+        for (let day of weekDays) {
+            if (typeof graphElementMap[orderedElements][day] === "number") {
+                weekTotal += graphElementMap[orderedElements][day];
+            } else {
+                weekType = 'list';
+                let weekValues = [];
+                if (graphElementMap[orderedElements].hasOwnProperty(day)) {
+                    weekValues = graphElementMap[orderedElements][day];
+                }
+                for (let element of weekValues) {
+                    weekList.push(element);
+                }
+            }
+        }
+        if (weekType === "number") {
+            weeklySum[week] = weekTotal;
+            weeklyAvg[week] = weekTotal / 7;
+        } else {
+            weeklySum[week] = weekList;
+            weeklyAvg[week] = 'noAvg'
+        }
+    }
+    return {'weeklySum':weeklySum, 'weeklyAvg': weeklyAvg}
+}
+
+function videoTransitions() {
+    let learnerIds = [];
+    connection.runSql("SELECT * FROM course_learner").then(function (learners) {
+        learners.forEach(function (learner) {
+            learnerIds.push(learner.course_learner_id)
+        });
+
+        let videoChains = {};
+        for (let learner of learnerIds.slice(0,100)) {
+            let learnerSessions = [];
+            let query = "SELECT * FROM video_interaction WHERE course_learner_id = '" + learner + "'";
+            connection.runSql(query).then(function (sessions) {
+                learnerSessions = sessions;
+                learnerSessions.sort(function (a, b) {
+                    return new Date(a.start_time) - new Date(b.start_time)
+                });
+                let videoChain = [];
+                let currentVideo = '';
+                for (let session of learnerSessions) {
+                    if (session.video_id !== currentVideo) {
+                        currentVideo = session.video_id;
+                        videoChain.push(currentVideo);
+                    }
+                }
+                if (videoChain.length > 1){
+                    videoChains[learner] = videoChain;
+                }
+            });
+        }
+    });
+}

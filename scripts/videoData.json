@@ -1,0 +1,107 @@
+{
+  "nodes": [
+    {
+      "name": "Video 1",
+      "n": 5,
+      "grp": 1,
+      "id": "v1",
+      "info": "50% Video2<br/>45% Video3<br/>05% Video4"
+    },
+    {
+      "name": "Video 2",
+      "n": 5,
+      "grp": 1,
+      "id": "v2",
+      "info": "80% Video 3<br/>20% Video4"
+    },
+    {
+      "name": "Video 3",
+      "n": 5,
+      "grp": 1,
+      "id": "v3"
+    },
+    {
+      "name": "Video 4",
+      "n": 5,
+      "grp": 1,
+      "id": "v4"
+    },
+    {
+      "name": "Video 5",
+      "n": 5,
+      "grp": 1,
+      "id": "v5"
+    },
+    {
+      "name": "Video 6",
+      "n": 5,
+      "grp": 1,
+      "id": "v6"
+    },
+    {
+      "name": "Video 7",
+      "n": 5,
+      "grp": 1,
+      "id": "v7"
+    },
+    {
+      "name": "Video 8",
+      "n": 5,
+      "grp": 1,
+      "id": "v8"
+    }
+  ],
+  "links": [
+    {
+      "source": "v1",
+      "target": "v2",
+      "value": 0.5
+    },
+    {
+      "source": "v1",
+      "target": "v3",
+      "value": 0.45
+    },
+    {
+      "source": "v1",
+      "target": "v4",
+      "value": 0.05
+    },
+    {
+      "source": "v2",
+      "target": "v3",
+      "value": 0.8
+    },
+    {
+      "source": "v2",
+      "target": "v4",
+      "value": 0.2
+    },
+    {
+      "source": "v3",
+      "target": "v4",
+      "value": 1
+    },
+    {
+      "source": "v4",
+      "target": "v5",
+      "value": 1
+    },
+    {
+      "source": "v5",
+      "target": "v6",
+      "value": 1
+    },
+    {
+      "source": "v7",
+      "target": "v6",
+      "value": 1
+    },
+    {
+      "source": "v7",
+      "target": "v8",
+      "value": 1
+    }
+  ],
+  "attributes": {}
+}

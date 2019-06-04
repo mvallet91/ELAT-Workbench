@@ -3557,17 +3557,14 @@ function videoTransitions() {
 }
 
 
-function drawVideoArc(){
+function drawVideoArc(){ // https://www.d3-graph-gallery.com/graph/arc_template.html
 
     let nodeData = "scripts/videoData.json";
-
-    // let nodeData = JSON.parse('{"nodes":[{"name":"Video 1","n":5,"grp":1,"id":"v1"},{"name":"Video 2","n":5,"grp":2,"id":"v2"},{"name":"Video 3","n":5,"grp":3,"id":"v3"},{"name":"Video 4","n":5,"grp":4,"id":"v4"},{"name":"Video 5","n":5,"grp":4,"id":"v5"}],"links":[{"source":"v1","target":"v2","value":1},{"source":"v2","target":"v3","value":1},{"source":"v3","target":"v4","value":1},{"source":"v4","target":"v5","value":1}],"attributes":{}} ');
 
     let margin = {top: 0, right: 30, bottom: 50, left: 60},
         width = 1050 - margin.left - margin.right,
         height = 600 - margin.top - margin.bottom;
 
-// append the svg object to the body of the page
     let svg = d3.select("#videoArc")
         .append("svg")
         .attr("width", width + margin.left + margin.right)
@@ -3576,8 +3573,6 @@ function drawVideoArc(){
         .attr("transform",
             "translate(" + margin.left + "," + margin.top + ")");
 
-// Read dummy data
-//     d3.json("https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/data_researcherNetwork.json", function( data) {
     d3.json(nodeData, function( data) {
 
         // List of node names
@@ -3608,15 +3603,6 @@ function drawVideoArc(){
         data.nodes.forEach(function (n) {
             idToNode[n.id] = n;
         });
-
-        // let tooltip2 = svg
-        //     .selectAll('myLinksInfo')
-        //     .append("div")
-        //     .data(data.nodes)
-        //     .style("position", "absolute")
-        //     .style("z-index", "10")
-        //     .style("visibility", "hidden")
-        //     .text(function(d){ return (d.name)});
 
         // Add the links
         let links = svg

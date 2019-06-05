@@ -3833,9 +3833,7 @@ function populateSamples(courseId){
     let courseMap = {'FP101': "DelftX+FP101x+3T2015.json"};
     let courseFile = 'samples/' + courseMap[courseId];
     $.getJSON(courseFile, function(json) {
-        for (let record of json){
-            console.log(record.name)
-        }
+        sqlInsert('webdata', json)
     })
 }
 

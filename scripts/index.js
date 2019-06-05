@@ -3643,7 +3643,7 @@ function videoTransitions() {
                                                 course_metadata_map['element_name_map']["block-v1:DelftX+FP101x+3T2015+type@video+block@"+currentVideo] +
                                               "</span><br>";
                             for (let followingVideo in frequencies[currentVideo]) {
-                                if (frequencies[currentVideo][followingVideo] > 0.049) {
+                                if (frequencies[currentVideo][followingVideo] > 0) {
                                     links.push({
                                         'source': currentVideo,
                                         'target': followingVideo,
@@ -3667,7 +3667,7 @@ function videoTransitions() {
                         arcData['nodes'] = nodes;
                         arcData['links'] = links;
                         let arcElements = [{'name': 'arcElements', 'object': arcData}];
-                        sqlInsert('webdata', arcElements);
+                        // sqlInsert('webdata', arcElements);
                         console.log(JSON.stringify(arcData));
                     }
                 });
@@ -3733,7 +3733,7 @@ function drawVideoArc(){ // https://www.d3-graph-gallery.com/graph/arc_template.
                 end = x(idToNode[d.target].name);      // X position of end node
                 return ['M', start, height-30,    // the arc starts at the coordinate x=start, y=height-30 (where the starting node is)
                     'A',                            // This means we're gonna build an elliptical arc
-                    (start - end)/2, ',',    // Next 2 lines are the coordinates of the inflexion point. Height of this point is proportional with start - end distance
+                    (start - end)/4, ',',    // Next 2 lines are the coordinates of the inflexion point. Height of this point is proportional with start - end distance
                     (start - end)/2, 0, 0, ',',
                     start < end ? 1 : 0, end, ',', height-30] // We always want the arc on top. So if end is before start, putting 0 here turn the arc upside down.
                     .join(' ');
@@ -3787,7 +3787,7 @@ function drawVideoArc(){ // https://www.d3-graph-gallery.com/graph/arc_template.
                 // Highlight the connections
                 links
                     // .style('stroke', function (link_d) { return link_d.source === d.id || link_d.target === d.id ? color(d.grp) : '#b8b8b8';})
-                    .style('stroke', function (link_d) { return link_d.source === d.id ? color(d.grp) : '#b8b8b8';})
+                    .style('stroke', function (link_d) { return link_d.source === d.id ? '#b83b00' : '#b8b8b8';})
                     .style('stroke-opacity', function (link_d) { return link_d.source === d.id || link_d.target === d.id ? 1 : .2;})
                     .style('stroke-width', function (link_d) { return link_d.source === d.id || link_d.target === d.id ? 10*(d.value) : 5;});
                 // .style("stroke-width", function(d){ return 10*(d.value)})

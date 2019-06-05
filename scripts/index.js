@@ -7,9 +7,12 @@ let connection = new JsStore.Instance();
 
 window.onload = function () {
 
-    //// DATABASE INITIALIZATION  //////////////////////////////////////////////////////////////////////////////
+    //// PAGE INITIALIZATION  //////////////////////////////////////////////////////////////////////////////
     initiateEdxDb();
 
+    getGraphElementMap(drawCharts);
+
+    drawVideoArc();
     //// MULTI FILE SYSTEM  ///////////////////////////////////////////////////////////////////////////
     let  multiFileInput = document.getElementById('filesInput');
     multiFileInput.value = '';
@@ -622,6 +625,9 @@ function ExtractCourseInformation(files) {
             let quiz_question_map = {};
             let block_type_map = {};
 
+            let order_map = {};
+            let element_name_map = {};
+
             let jsonObject = JSON.parse(file['value']);
             for (let record in jsonObject) {
                 if (jsonObject[record]['category'] === 'course') {
@@ -643,15 +649,24 @@ function ExtractCourseInformation(files) {
                     course_metadata_map['start_time'] = new Date(course_metadata_map['start_date']);
                     course_metadata_map['end_time'] = new Date(course_metadata_map['end_date']);
 
+                    let i = 0; // Feature Testing
+
                     for (let child of jsonObject[record]['children']) {
+                        i++;
                         child_parent_map[child] = record;
+                        order_map[child] = i; // Feature Testing
                     }
                     element_time_map[record] = new Date(jsonObject[record]['metadata']['start']);
                     element_type_map[record] = jsonObject[record]['category'];
                 } else {
                     let element_id = record;
+                    element_name_map[element_id] = jsonObject[element_id]['metadata']['display_name'];
+                    let i = 0; // Feature Testing
+
                     for (let child of jsonObject[element_id]['children']) {
+                        i++;
                         child_parent_map[child] = element_id;
+                        order_map[child] = i; // Feature Testing
                     }
 
                     if ('start' in jsonObject[element_id]['metadata']) {
@@ -696,6 +711,8 @@ function ExtractCourseInformation(files) {
             course_metadata_map['quiz_question_map'] = quiz_question_map;
             course_metadata_map['child_parent_map'] = child_parent_map;
             course_metadata_map['block_type_map'] = block_type_map;
+            course_metadata_map['order_map'] = order_map;
+            course_metadata_map['element_name_map'] = element_name_map;
             console.log('Metadata map ready');
             return course_metadata_map;
         }
@@ -3525,105 +3542,302 @@ function groupWeeklyMapped(graphElementMap, orderedElements) {
     return {'weeklySum':weeklySum, 'weeklyAvg': weeklyAvg}
 }
 
-
 function videoTransitions() {
     let learnerIds = [];
     let videoIds = {};
     let unorderedVideos = [];
+    let arcData = {};
     connection.runSql("SELECT * FROM metadata WHERE name = 'metadata_map' ").then(function(result) {
         let course_metadata_map = result[0]['object'];
         connection.runSql("SELECT * FROM course_learner").then(function (learners) {
             learners.forEach(function (learner) {
                 learnerIds.push(learner.course_learner_id)
             });
-            connection.runSql("SELECT * FROM course_elements WHERE element_type = 'video'").then(function (videos) {
-                videos.forEach(function (video) {
-                    let videoId = video.element_id;
-                    let videoTime = course_metadata_map['element_time_map'][videoId];
-                    unorderedVideos.push({'videoId': videoId, 'videoTime':videoTime})
-                });
-                let orderedVideos = unorderedVideos.sort(function (a, b) {
-                    return a.videoTime - b.videoTime
-                });
-                for (let video of orderedVideos) {
-                    let videoId = video.videoId;
-                    videoId = videoId.slice(videoId.lastIndexOf('@') + 1, );
-                    videoIds[videoId] = [];
-                }
 
-                let videoChains = {};
-                learnerIds = learnerIds.slice(0, 5000);
-                let counter = 0;
-                for (let learner of learnerIds) {
-                    let learnerSessions = [];
-                    let query = "SELECT * FROM video_interaction WHERE course_learner_id = '" + learner + "'";
-                    connection.runSql(query).then(function (sessions) {
-                        learnerSessions = sessions;
-                        learnerSessions.sort(function (a, b) {
-                            return new Date(a.start_time) - new Date(b.start_time)
-                        });
-                        let videoChain = [];
-                        let currentVideo = '';
-                        for (let session of learnerSessions) {
-                            if (session.video_id !== currentVideo) {
-                                currentVideo = session.video_id;
-                                videoChain.push(currentVideo);
-                            }
-                        }
-                        if (videoChain.length > 1) {
-                            videoChains[learner] = videoChain;
-                        }
-                        counter++;
-                        if (counter === learnerIds.length) {
-                            for (let learner in videoChains) {
-                                for (let i = 0; i < videoChains[learner].length - 1; i++) {
-                                    let currentVideo = videoChains[learner][i];
-                                    let followingVideo = videoChains[learner][i + 1];
-                                    videoIds[currentVideo].push(followingVideo);
-                                }
-                            }
-                            let frequencies = {};
-                            for (let video in videoIds) {
-                                let frequency = _.countBy(videoIds[video]);
-                                for (let nextVideo in videoIds) {
-                                    if (frequency.hasOwnProperty(nextVideo)) {
-                                        frequency[nextVideo] = frequency[nextVideo] / videoIds[video].length;
-                                    } else {
-                                        frequency[nextVideo] = 0;
-                                    }
-                                }
-                                frequencies[video] = frequency;
-                            }
-                            let matrix = [];
-                            for (let videoId in frequencies) {
-                                let row = [];
-                                for (let orderedId in videoIds) {
-                                    row.push(frequencies[videoId][orderedId]);
-                                }
-                                matrix.push(row);
-                            }
-                            console.log(JSON.stringify(matrix));
-                            let tableString = '';
-                            // for (let id in videoIds){
-                            //     tableString += id + ',';
-                            // }
-                            // tableString = tableString.slice(0, -1);
-                            let i = 0;
-                            for (let row of matrix){
-                                // tableString += '\n' + Object.keys(videoIds)[i] + ',' + row;
-                                tableString += row + '\n';
-                                i++
-                            }
-                            console.log(tableString)
-                        }
-                    });
+            for (let elementId in course_metadata_map.child_parent_map){
+                if (elementId.includes('video')) {
+                    let parentId = course_metadata_map.child_parent_map[elementId];
+                    let parent2Id = course_metadata_map.child_parent_map[parentId];
+                    let parent3Id = course_metadata_map.child_parent_map[parent2Id];
+                    unorderedVideos.push({
+                        'elementId': elementId,
+                        'chapter': course_metadata_map.order_map[parent3Id],
+                        'section': course_metadata_map.order_map[parent2Id],
+                        'block': course_metadata_map.order_map[parentId]
+                    })
                 }
-            })
-        });
+            }
+
+            let orderedVideos = unorderedVideos.sort(function (a, b) {
+                return a.block - b.block
+            });
+            orderedVideos.sort(function (a, b) {
+                return a.section - b.section
+            });
+            orderedVideos.sort(function (a, b) {
+                return a.chapter - b.chapter
+            });
+
+            for (let video of orderedVideos) {
+                let videoId = video.elementId;
+                videoId = videoId.slice(videoId.lastIndexOf('@') + 1, );
+                videoIds[videoId] = [];
+            }
+
+            let videoChains = {};
+            learnerIds = learnerIds.slice(0, 5000);
+            let maxViewers = 0;
+            let counter = 0;
+            for (let learner of learnerIds) {
+                let learnerSessions = [];
+                let query = "SELECT * FROM video_interaction WHERE course_learner_id = '" + learner + "'";
+                connection.runSql(query).then(function (sessions) {
+                    learnerSessions = sessions;
+                    learnerSessions.sort(function (a, b) {
+                        return new Date(a.start_time) - new Date(b.start_time)
+                    });
+                    let videoChain = [];
+                    let currentVideo = '';
+                    for (let session of learnerSessions) {
+                        if (session.video_id !== currentVideo) {
+                            currentVideo = session.video_id;
+                            videoChain.push(currentVideo);
+                        }
+                    }
+                    if (videoChain.length > 1) {
+                        videoChains[learner] = videoChain;
+                    }
+                    counter++;
+                    if (counter === learnerIds.length) {
+                        for (let learner in videoChains) {
+                            for (let i = 0; i < videoChains[learner].length - 1; i++) {
+                                let currentVideo = videoChains[learner][i];
+                                let followingVideo = videoChains[learner][i + 1];
+                                videoIds[currentVideo].push(followingVideo);
+                            }
+                        }
+                        let frequencies = {};
+                        for (let video in videoIds) {
+                            let frequency = _.countBy(videoIds[video]);
+                            for (let nextVideo in videoIds) {
+                                if (frequency.hasOwnProperty(nextVideo)) {
+                                    frequency[nextVideo] = frequency[nextVideo] / videoIds[video].length;
+                                }
+                            }
+                            let freqSorted = Object.keys(frequency).sort(function(a,b){
+                                return frequency[b]-frequency[a]
+                            });
+                            let top3 = {};
+                            for (let video of freqSorted.slice(0,3)){
+                                top3[video] = frequency[video]
+                            }
+                            frequencies[video] = top3;
+                            maxViewers = Math.max(maxViewers, videoIds[video].length)
+                        }
+
+                        let i = 0;
+                        let nodes = [];
+                        let links = [];
+                        for (let currentVideo in frequencies) {
+                            let percentages = "<span style='font-size: 14px;'>" +
+                                                course_metadata_map['element_name_map']["block-v1:DelftX+FP101x+3T2015+type@video+block@"+currentVideo] +
+                                              "</span><br>";
+                            for (let followingVideo in frequencies[currentVideo]) {
+                                if (frequencies[currentVideo][followingVideo] > 0.049) {
+                                    links.push({
+                                        'source': currentVideo,
+                                        'target': followingVideo,
+                                        'value': frequencies[currentVideo][followingVideo]
+                                    });
+                                    percentages += "<span style='font-size: 12px;'>" +
+                                        course_metadata_map['element_name_map']["block-v1:DelftX+FP101x+3T2015+type@video+block@" + followingVideo] +
+                                        ": " + (frequencies[currentVideo][followingVideo] * 100).toFixed(0) +
+                                        "%</span><br>"
+                                }
+                            }
+                            i++;
+                            nodes.push({
+                                'name': 'Video ' + i,
+                                'info': percentages,
+                                'n': (videoIds[currentVideo].length / maxViewers) * 20,
+                                'grp': 1,
+                                'id': currentVideo
+                            });
+                        }
+                        arcData['nodes'] = nodes;
+                        arcData['links'] = links;
+                        let arcElements = [{'name': 'arcElements', 'object': arcData}];
+                        sqlInsert('webdata', arcElements);
+                        console.log(JSON.stringify(arcData));
+                    }
+                });
+            }
+        })
     });
 }
 
+function drawVideoArc(){ // https://www.d3-graph-gallery.com/graph/arc_template.html
+    let nodeData = "scripts/videoData.json";
 
+    let margin = {top: 0, right: 30, bottom: 50, left: 60},
+        width = 1050 - margin.left - margin.right,
+        height = 600 - margin.top - margin.bottom;
+
+    let svg = d3.select("#videoArc")
+        .append("svg")
+        .attr("width", width + margin.left + margin.right)
+        .attr("height", height + margin.top + margin.bottom)
+        .append("g")
+        .attr("transform",
+            "translate(" + margin.left + "," + margin.top + ")");
+
+    d3.json(nodeData, function( data) {
+
+        // List of node names
+        let allNodes = data.nodes.map(function(d){return d.name});
+
+        // List of groups
+        let allGroups = data.nodes.map(function(d){return d.grp});
+        allGroups = [...new Set(allGroups)];
+
+        // A color scale for groups:
+        let color = d3.scaleOrdinal()
+            .domain(allGroups)
+            .range(d3.schemeSet3);
+
+        // A linear scale for node size
+        let size = d3.scaleLinear()
+            .domain([1,10])
+            .range([2,10]);
+
+        // A linear scale to position the nodes on the X axis
+        let x = d3.scalePoint()
+            .range([0, width])
+            .domain(allNodes);
+
+        // In my input data, links are provided between nodes -id-, NOT between node names.
+        // So I have to do a link between this id and the name
+        let idToNode = {};
+        data.nodes.forEach(function (n) {
+            idToNode[n.id] = n;
+        });
+
+        // Add the links
+        let links = svg
+            .selectAll('mylinks')
+            .data(data.links)
+            .enter()
+            .append('path')
+            .attr('d', function (d) {
+                start = x(idToNode[d.source].name);    // X position of start node on the X axis
+                end = x(idToNode[d.target].name);      // X position of end node
+                return ['M', start, height-30,    // the arc starts at the coordinate x=start, y=height-30 (where the starting node is)
+                    'A',                            // This means we're gonna build an elliptical arc
+                    (start - end)/2, ',',    // Next 2 lines are the coordinates of the inflexion point. Height of this point is proportional with start - end distance
+                    (start - end)/2, 0, 0, ',',
+                    start < end ? 1 : 0, end, ',', height-30] // We always want the arc on top. So if end is before start, putting 0 here turn the arc upside down.
+                    .join(' ');
+            })
+            .style("fill", "none")
+            .attr("stroke", "grey")
+            .style("stroke-width", function(d){ return 10*(d.value)});
+
+        // Add the circle for the nodes
+        let nodes = svg
+            .selectAll("mynodes")
+            .data(data.nodes.sort(function(a,b) { return +b.n - +a.n }))
+            .enter()
+            .append("circle")
+            .attr("cx", function(d){ return(x(d.name))})
+            .attr("cy", height-30)
+            .attr("r", function(d){ return(size(d.n))})
+            .style("fill", function(d){ return color(d.grp)})
+            .attr("stroke", "white");
+
+        // And give them a label
+        let labels = svg
+            .selectAll("mylabels")
+            .data(data.nodes)
+            .enter()
+            .append("text")
+            .attr("x", 0)
+            .attr("y", 0)
+            .text(function(d){ return(d.name)} )
+            .style("text-anchor", "end")
+            .attr("transform", function(d){ return( "translate(" + (x(d.name)) + "," + (height-15) + ")rotate(-45)")})
+            .style("font-size", 10);
+
+
+        let tooltip = d3.select("body")
+            .append("div")
+            .data(data.nodes)
+            .text(function(d){ return d.info })
+            .style("position", "absolute")
+            .style("z-index", "10")
+            .style("visibility", "hidden");
+
+        // Add the highlighting functionality
+        nodes
+            .on('mouseover', function (d) {
+                // Highlight the nodes: every node is green except of him
+                nodes
+                    .style('opacity', .2);
+                d3.select(this)
+                    .style('opacity', 1);
+                // Highlight the connections
+                links
+                    // .style('stroke', function (link_d) { return link_d.source === d.id || link_d.target === d.id ? color(d.grp) : '#b8b8b8';})
+                    .style('stroke', function (link_d) { return link_d.source === d.id ? color(d.grp) : '#b8b8b8';})
+                    .style('stroke-opacity', function (link_d) { return link_d.source === d.id || link_d.target === d.id ? 1 : .2;})
+                    .style('stroke-width', function (link_d) { return link_d.source === d.id || link_d.target === d.id ? 10*(d.value) : 5;});
+                // .style("stroke-width", function(d){ return 10*(d.value)})
+                labels
+                    // .text(function(d){ return(d.full_name)} )
+                    .style("font-size", function(label_d){ return label_d.name === d.name ? 16 : 2 } )
+                    .attr("y", function(label_d){ return label_d.name === d.name ? 10 : 0 } );
+                tooltip
+                    .style("top", (event.pageY-390)+"px")
+                    .style("left",(event.pageX-50)+"px")
+                    // .html(d.info)
+                    .html( d.info )
+                // .attr("data-html", "true")
+                    .style("visibility", "visible");
+
+            })
+            .on('mouseout', function (d) {
+                nodes.style('opacity', 1);
+                links
+                    .style('stroke', 'grey')
+                    .style('stroke-opacity', .8)
+                    .style("stroke-width", function(d){ return 10*(d.value)});
+                labels
+                    .text(function(d){ return(d.name)} )
+                    .attr("y", 0)
+                    .style("font-size", 10 );
+                tooltip
+                    .style("visibility", "hidden");
+
+            })
+    })
+}
+
+function webdataJSON(){
+    connection.runSql("SELECT * FROM webdata").then(function(webElements) {
+        webElements.forEach(function (element) {
+            console.log(element.name)
+        })
+    })
+}
+
+function populateSamples(courseId){
+    let courseMap = {'FP101': "DelftX+FP101x+3T2015.json"};
+    let courseFile = 'samples/' + courseMap[courseId];
+    $.getJSON(courseFile, function(json) {
+        for (let record of json){
+            console.log(record.name)
+        }
+    })
+}
 
 // R SCRIPT FOR MARKOV CHAIN VIZ
 

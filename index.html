@@ -24,6 +24,9 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.8.0/Chart.bundle.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-annotation/0.5.7/chartjs-plugin-annotation.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.11/lodash.min.js"></script>
+    <script src="https://d3js.org/d3.v4.js"></script>
+    <script src="https://d3js.org/d3-scale-chromatic.v1.min.js"></script>
+
     <link href="https://fonts.googleapis.com/css?family=Roboto:300,400" rel="stylesheet">
 
 </head>
@@ -90,6 +93,9 @@
             <button type="button" class="btn btn-secondary float-right" onclick="deleteEverything()">
                 Clear Database
             </button>
+            <button type="button" class="btn btn-primary " data-toggle="collapse" data-target="#sampleData" aria-expanded="false"  aria-controls="sampleData">
+                Sample Data
+            </button>
         </div>
         <div class="col-xs-12 col-sm-10  ">
             <div id="uploadBoxes" class="collapse">
@@ -108,6 +114,19 @@
                 </table>
                 <table id="progress_bar">
                 </table>
+            </div>
+        </div>
+        <div class="col-xs-12 col-sm-10  ">
+            <div id="sampleData" class="collapse">
+                <br>
+                <div class="col ">
+                    <button type="button" class="btn btn-secondary btn-sm" id="populate-fp101"  onclick="populateSamples('FP101')">Introduction to Functional Programming</button>
+                </div>
+                <br>
+                <div class="col ">
+                    <button type="button" class="btn btn-secondary btn-sm" id="populate-"  onclick="populateSamples(' ')">Other Course (WIP)</button>
+                </div>
+
             </div>
         </div>
     </div>
@@ -239,6 +258,11 @@
         </div>
     </div>
 
+    <div class="row justify-content-md-center " style="margin-top:10px; ">
+        <div class="col-xs-12 col-sm-11  ">
+            <div id="videoArc"></div>
+        </div>
+    </div>
 
 
     <script src = "https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
@@ -254,7 +278,7 @@
     <script src="scripts/index.js"></script>
 
     <script>
-        getGraphElementMap(drawCharts);
+        // getGraphElementMap(drawCharts);
 
         let chart = null;
         let lineChart = null;
@@ -268,14 +292,8 @@
                 getGraphElementMap(drawCharts, start.format('YYYY-MM-DD'), end.format('YYYY-MM-DD'));
             });
         });
-        // setTimeout(function(){
-        //     getGraphElementMap(testApex);
-        // }, 1000);
 
     </script>
-
     <link href="style/main.css " rel="stylesheet " type="text/css " />
-
 </body>
-
 </html>

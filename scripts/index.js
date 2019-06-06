@@ -2396,7 +2396,7 @@ function processSessions(tablename, headers) {
 
 
 function drawCharts(graphElementMap, start, end) {
-    testApex(graphElementMap, start, end)
+    testApex(graphElementMap, start, end);
     let canvas = document.getElementById('barChart');
     let ctx = canvas.getContext('2d');
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -2950,8 +2950,6 @@ function getGraphElementMap(callback, start, end) {
                                                 'orderedForumStudents': orderedForumStudents,
                                                 'orderedForumRegulars': orderedForumRegulars,
                                                 'orderedForumOccasionals': orderedForumOccasionals,
-                                                'forumPosters': forumPosters,
-
                                                 'annotations': annotations
                                             };
                                             let graphElements = [{'name': 'graphElements', 'object': graphElementMap}];
@@ -3858,14 +3856,18 @@ function drawVideoArc(){ // https://www.d3-graph-gallery.com/graph/arc_template.
 
 function webdataJSON(){
     connection.runSql("SELECT * FROM webdata").then(function(webElements) {
+        let jsonString = '';
         webElements.forEach(function (element) {
-            console.log(element.name)
-        })
+            // console.log(JSON.stringify(element))
+            jsonString += JSON.stringify(element) + ',\n'
+        });
+        console.log(jsonString)
     })
 }
 
 function populateSamples(courseId){
-    let courseMap = {'FP101': "DelftX+FP101x+3T2015.json"};
+    let courseMap = {'FP101x': "DelftX+FP101x+3T2015.json",
+                     'TW3421x': "DelftX+TW3421x+3T2016.json"};
     let courseFile = 'samples/' + courseMap[courseId];
     $.getJSON(courseFile, function(json) {
         sqlInsert('webdata', json)

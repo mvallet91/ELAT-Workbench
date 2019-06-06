@@ -3686,8 +3686,14 @@ function drawVideoArc(){ // https://www.d3-graph-gallery.com/graph/arc_template.
             videoTransitions()
         } else {
             let nodeData = result[0]['object'];
-            let margin = {top: 0, right: 30, bottom: 250, left: 60},
-                width = 1050 - margin.left - margin.right,
+            let margin = {top: 0, right: 150, bottom: 250, left: 150},
+                width = Math.max(
+                    document.body.scrollWidth,
+                    document.documentElement.scrollWidth,
+                    document.body.offsetWidth,
+                    document.documentElement.offsetWidth,
+                    document.documentElement.clientWidth
+                ) - margin.left - margin.right,
                 height = 600 - margin.top - margin.bottom;
 
             let svg = d3.select("#videoArc")
@@ -3697,6 +3703,14 @@ function drawVideoArc(){ // https://www.d3-graph-gallery.com/graph/arc_template.
                 .append("g")
                 .attr("transform",
                     "translate(" + margin.left + "," + margin.top + ")");
+
+                svg.append("text")
+                .attr("x", (width / 30))
+                .attr("y", 20 - (margin.top / 2))
+                .attr("text-anchor", "middle")
+                .style("font-size", "16px")
+                .style("text-decoration", "underline")
+                .text("Video Transitions");
 
             let allNodes = nodeData.nodes.map(function (d) {
                 return d.name
@@ -3735,7 +3749,7 @@ function drawVideoArc(){ // https://www.d3-graph-gallery.com/graph/arc_template.
                     end = x(idToNode[d.target].name);
                     return ['M', start, height - 30,
                         'A',
-                        (start - end) / 3.5, ',',
+                        (start - end) / 2.3, ',',
                         (start - end) / 2, 0, 0, ',',
                         start < end ? 1 : 1, end, ',', height - 30] // We always want the arc on top. So if end is before start, putting 0 here turn the arc upside down.
                         .join(' ');
@@ -3794,9 +3808,9 @@ function drawVideoArc(){ // https://www.d3-graph-gallery.com/graph/arc_template.
             nodes
                 .on('mouseover', function (d) {
                     nodes
-                        .style('opacity', .2);
+                        .style('opacity', 0.15);
                     d3.select(this)
-                        .style('opacity', 1);
+                        .style('opacity', 0.7);
                     links
                         .style('stroke', function (link_d) {
                             return link_d.source === d.id ? '#b83b00' : '#b8b8b8';
@@ -3815,7 +3829,7 @@ function drawVideoArc(){ // https://www.d3-graph-gallery.com/graph/arc_template.
                             return label_d.name === d.name ? 10 : 0
                         });
                     tooltip
-                        .style("top", (event.pageY - 390) + "px")
+                        .style("top", (event.pageY - 250) + "px")
                         .style("left", (event.pageX - 50) + "px")
                         .html(d.info)
                         .style("visibility", "visible");

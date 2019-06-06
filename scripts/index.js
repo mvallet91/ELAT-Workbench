@@ -3541,7 +3541,9 @@ function groupWeeklyMapped(graphElementMap, orderedElements) {
 
 function videoTransitions() {
     let learnerIds = [];
+    let learnerStatus = {};
     let videoIds = {};
+    let videoIdsP = {};
     let unorderedVideos = [];
     let arcData = {};
     connection.runSql("SELECT * FROM metadata WHERE name = 'metadata_map' ").then(function(result) {
@@ -3553,7 +3555,8 @@ function videoTransitions() {
             courseId = courseId.slice(courseId.indexOf(':') + 1,);
             connection.runSql("SELECT * FROM course_learner").then(function (learners) {
                 learners.forEach(function (learner) {
-                    learnerIds.push(learner.course_learner_id)
+                    learnerIds.push(learner.course_learner_id);
+                    learnerStatus[learner.course_learner_id] = learner.certificate_status;
                 });
 
                 for (let elementId in course_metadata_map.child_parent_map) {
@@ -3584,10 +3587,12 @@ function videoTransitions() {
                     let videoId = video.elementId;
                     videoId = videoId.slice(videoId.lastIndexOf('@') + 1,);
                     videoIds[videoId] = [];
+                    videoIdsP[videoId] = [];
                 }
 
                 let videoChains = {};
-                learnerIds = learnerIds.slice(0, 5000);
+                let passingChains = {};
+                // learnerIds = learnerIds.slice(0, 5000);
                 let maxViewers = 0;
                 let counter = 0;
                 for (let learner of learnerIds) {
@@ -3608,6 +3613,9 @@ function videoTransitions() {
                         }
                         if (videoChain.length > 1) {
                             videoChains[learner] = videoChain;
+                            if (learnerStatus[learner] === 'downloadable'){
+                                passingChains[learner] = videoChain;
+                            }
                         }
                         counter++;
                         if (counter === learnerIds.length) {
@@ -3637,6 +3645,33 @@ function videoTransitions() {
                                 maxViewers = Math.max(maxViewers, videoIds[video].length)
                             }
 
+                            // PASSING STUDENTS //////////////////////////////////////////////////////////
+                            for (let learner in passingChains) {
+                                for (let i = 0; i < passingChains[learner].length - 1; i++) {
+                                    let currentVideo = passingChains[learner][i];
+                                    let followingVideo = passingChains[learner][i + 1];
+                                    videoIdsP[currentVideo].push(followingVideo);
+                                }
+                            }
+                            let frequenciesP = {};
+                            for (let video in videoIdsP) {
+                                let frequency = _.countBy(videoIdsP[video]);
+                                for (let nextVideo in videoIdsP) {
+                                    if (frequency.hasOwnProperty(nextVideo)) {
+                                        frequency[nextVideo] = frequency[nextVideo] / videoIds[video].length;
+                                    }
+                                }
+                                let freqSorted = Object.keys(frequency).sort(function (a, b) {
+                                    return frequency[b] - frequency[a]
+                                });
+                                let top3 = {};
+                                for (let video of freqSorted.slice(0, 3)) {
+                                    top3[video] = frequency[video]
+                                }
+                                frequenciesP[video] = top3;
+                            }
+                            // PASSING STUDENTS //////////////////////////////////////////////////////////
+
                             let i = 0;
                             let nodes = [];
                             let links = [];
@@ -3646,15 +3681,28 @@ function videoTransitions() {
                                     "</span><br>";
                                 for (let followingVideo in frequencies[currentVideo]) {
                                     if (frequencies[currentVideo][followingVideo] > 0) {
-                                        links.push({
+                                        let link = {
                                             'source': currentVideo,
                                             'target': followingVideo,
-                                            'value': frequencies[currentVideo][followingVideo]
-                                        });
+                                            'value': frequencies[currentVideo][followingVideo],
+                                            'status': 'general'
+                                        };
+                                        links.push(link);
                                         percentages += "<span style='font-size: 12px;'>" +
                                             course_metadata_map['element_name_map']["block-v1:" + courseId + "+type@video+block@" + followingVideo] +
                                             ": " + (frequencies[currentVideo][followingVideo] * 100).toFixed(0) +
                                             "%</span><br>"
+                                    }
+                                }
+                                for (let followingVideo in frequenciesP[currentVideo]) {
+                                    if (frequenciesP[currentVideo][followingVideo] > 0) {
+                                        let link = {
+                                            'source': currentVideo,
+                                            'target': followingVideo,
+                                            'value': frequenciesP[currentVideo][followingVideo],
+                                            'status': 'passing'
+                                        };
+                                        links.push(link);
                                     }
                                 }
                                 i++;
@@ -3666,6 +3714,8 @@ function videoTransitions() {
                                     'id': currentVideo
                                 });
                             }
+                            console.log(frequencies);
+                            console.log(frequenciesP);
                             arcData['nodes'] = nodes;
                             arcData['links'] = links;
                             let arcElements = [{'name': 'arcElements', 'object': arcData}];
@@ -3746,14 +3796,26 @@ function drawVideoArc(){ // https://www.d3-graph-gallery.com/graph/arc_template.
                 .enter()
                 .append('path')
                 .attr('d', function (d) {
-                    start = x(idToNode[d.source].name);
-                    end = x(idToNode[d.target].name);
-                    return ['M', start, height - 30,
-                        'A',
-                        (start - end) / 2.3, ',',
-                        (start - end) / 2, 0, 0, ',',
-                        start < end ? 1 : 1, end, ',', height - 30] // We always want the arc on top. So if end is before start, putting 0 here turn the arc upside down.
-                        .join(' ');
+                    if (d.status === 'passing') {
+                        start = x(idToNode[d.source].name);
+                        end = x(idToNode[d.target].name);
+                        return ['M', start, height - 30,
+                            'A',
+                            (start - end) / 2.3, ',',
+                            (start - end) / 2, 0, 0, ',',
+                            start < end ? 1 : 1, end, ',', height - 30] // We always want the arc on top. So if end is before start, putting 0 here turn the arc upside down.
+                            .join(' ');
+                    // } else if (d.status === 'general') {
+                    } else {
+                        start = x(idToNode[d.source].name);
+                        end = x(idToNode[d.target].name);
+                        return ['M', start, height - 30,
+                            'A',
+                            (start - end) / 2.3, ',',
+                            (start - end) / 2, 0, 0, ',',
+                            start < end ? 1 : 1, end, ',', height - 30] // We always want the arc on top. So if end is before start, putting 0 here turn the arc upside down.
+                            .join(' ');
+                    }
                 })
                 .style("fill", "none")
                 .attr("stroke", "grey")
@@ -3813,8 +3875,15 @@ function drawVideoArc(){ // https://www.d3-graph-gallery.com/graph/arc_template.
                     d3.select(this)
                         .style('opacity', 0.7);
                     links
+                        // .style('stroke', function (link_d) {
+                        //     return link_d.source === d.id ? '#b83b00' : '#b8b8b8';
+                        // })
                         .style('stroke', function (link_d) {
-                            return link_d.source === d.id ? '#b83b00' : '#b8b8b8';
+                            if (link_d.status === 'general') {
+                                return link_d.source === d.id ? '#b83b00' : '#b8b8b8';
+                            } else {
+                                return link_d.source === d.id ? '#138d00' : '#b8b8b8';
+                            }
                         })
                         .style('stroke-opacity', function (link_d) {
                             return link_d.source === d.id || link_d.target === d.id ? 1 : .2;
@@ -3872,8 +3941,8 @@ function populateSamples(courseId){
     let courseMap = {'FP101x': "DelftX+FP101x+3T2015.json",
                      'TW3421x': "DelftX+TW3421x+3T2016.json"};
     let courseFile = 'samples/' + courseMap[courseId];
-    connection.runSql("SELECT * FROM metadata").then(function(metadata) {
-        if (metadata.length === 1){
+    connection.runSql("SELECT * FROM webdata").then(function(metadata) {
+        if (metadata.length > 1){
             toastr.error('The database has to be clear first!');
         } else {
             toastr.info('Reading sample');

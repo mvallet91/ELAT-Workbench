@@ -3545,136 +3545,139 @@ function videoTransitions() {
     let unorderedVideos = [];
     let arcData = {};
     connection.runSql("SELECT * FROM metadata WHERE name = 'metadata_map' ").then(function(result) {
-        let course_metadata_map = result[0]['object'];
-        let courseId = course_metadata_map.course_id;
-        courseId = courseId.slice(courseId.indexOf(':') + 1, );
-        connection.runSql("SELECT * FROM course_learner").then(function (learners) {
-            learners.forEach(function (learner) {
-                learnerIds.push(learner.course_learner_id)
-            });
-
-            for (let elementId in course_metadata_map.child_parent_map){
-                if (elementId.includes('video')) {
-                    let parentId = course_metadata_map.child_parent_map[elementId];
-                    let parent2Id = course_metadata_map.child_parent_map[parentId];
-                    let parent3Id = course_metadata_map.child_parent_map[parent2Id];
-                    unorderedVideos.push({
-                        'elementId': elementId,
-                        'chapter': course_metadata_map.order_map[parent3Id],
-                        'section': course_metadata_map.order_map[parent2Id],
-                        'block': course_metadata_map.order_map[parentId]
-                    })
-                }
-            }
-
-            let orderedVideos = unorderedVideos.sort(function (a, b) {
-                return a.block - b.block
-            });
-            orderedVideos.sort(function (a, b) {
-                return a.section - b.section
-            });
-            orderedVideos.sort(function (a, b) {
-                return a.chapter - b.chapter
-            });
-
-            for (let video of orderedVideos) {
-                let videoId = video.elementId;
-                videoId = videoId.slice(videoId.lastIndexOf('@') + 1, );
-                videoIds[videoId] = [];
-            }
-
-            let videoChains = {};
-            learnerIds = learnerIds.slice(0, 5000);
-            let maxViewers = 0;
-            let counter = 0;
-            for (let learner of learnerIds) {
-                let learnerSessions = [];
-                let query = "SELECT * FROM video_interaction WHERE course_learner_id = '" + learner + "'";
-                connection.runSql(query).then(function (sessions) {
-                    learnerSessions = sessions;
-                    learnerSessions.sort(function (a, b) {
-                        return new Date(a.start_time) - new Date(b.start_time)
-                    });
-                    let videoChain = [];
-                    let currentVideo = '';
-                    for (let session of learnerSessions) {
-                        if (session.video_id !== currentVideo) {
-                            currentVideo = session.video_id;
-                            videoChain.push(currentVideo);
-                        }
-                    }
-                    if (videoChain.length > 1) {
-                        videoChains[learner] = videoChain;
-                    }
-                    counter++;
-                    if (counter === learnerIds.length) {
-                        for (let learner in videoChains) {
-                            for (let i = 0; i < videoChains[learner].length - 1; i++) {
-                                let currentVideo = videoChains[learner][i];
-                                let followingVideo = videoChains[learner][i + 1];
-                                videoIds[currentVideo].push(followingVideo);
-                            }
-                        }
-                        let frequencies = {};
-                        for (let video in videoIds) {
-                            let frequency = _.countBy(videoIds[video]);
-                            for (let nextVideo in videoIds) {
-                                if (frequency.hasOwnProperty(nextVideo)) {
-                                    frequency[nextVideo] = frequency[nextVideo] / videoIds[video].length;
-                                }
-                            }
-                            let freqSorted = Object.keys(frequency).sort(function(a,b){
-                                return frequency[b]-frequency[a]
-                            });
-                            let top3 = {};
-                            for (let video of freqSorted.slice(0,3)){
-                                top3[video] = frequency[video]
-                            }
-                            frequencies[video] = top3;
-                            maxViewers = Math.max(maxViewers, videoIds[video].length)
-                        }
-
-                        let i = 0;
-                        let nodes = [];
-                        let links = [];
-                        for (let currentVideo in frequencies) {
-                            let percentages = "<span style='font-size: 14px;'>" +
-                                                course_metadata_map['element_name_map']["block-v1:" + courseId + "+type@video+block@" + currentVideo] +
-                                              "</span><br>";
-                            for (let followingVideo in frequencies[currentVideo]) {
-                                if (frequencies[currentVideo][followingVideo] > 0) {
-                                    links.push({
-                                        'source': currentVideo,
-                                        'target': followingVideo,
-                                        'value': frequencies[currentVideo][followingVideo]
-                                    });
-                                    percentages += "<span style='font-size: 12px;'>" +
-                                        course_metadata_map['element_name_map']["block-v1:" + courseId + "+type@video+block@" + followingVideo] +
-                                        ": " + (frequencies[currentVideo][followingVideo] * 100).toFixed(0) +
-                                        "%</span><br>"
-                                }
-                            }
-                            i++;
-                            nodes.push({
-                                'name': 'Video ' + i,
-                                'info': percentages,
-                                'n': (videoIds[currentVideo].length / maxViewers) * 20,
-                                'grp': 1,
-                                'id': currentVideo
-                            });
-                        }
-                        arcData['nodes'] = nodes;
-                        arcData['links'] = links;
-                        let arcElements = [{'name': 'arcElements', 'object': arcData}];
-                        connection.runSql("DELETE FROM webdata WHERE name = 'arcElements'").then(function(success) {
-                            sqlInsert('webdata', arcElements);
-                            drawVideoArc();
-                        });
-                        // console.log(JSON.stringify(arcData));
-                    }
+        if (result.length !== 1) {
+            console.log('Metadata empty')
+        } else {
+            let course_metadata_map = result[0]['object'];
+            let courseId = course_metadata_map.course_id;
+            courseId = courseId.slice(courseId.indexOf(':') + 1,);
+            connection.runSql("SELECT * FROM course_learner").then(function (learners) {
+                learners.forEach(function (learner) {
+                    learnerIds.push(learner.course_learner_id)
                 });
-            }
-        })
+
+                for (let elementId in course_metadata_map.child_parent_map) {
+                    if (elementId.includes('video')) {
+                        let parentId = course_metadata_map.child_parent_map[elementId];
+                        let parent2Id = course_metadata_map.child_parent_map[parentId];
+                        let parent3Id = course_metadata_map.child_parent_map[parent2Id];
+                        unorderedVideos.push({
+                            'elementId': elementId,
+                            'chapter': course_metadata_map.order_map[parent3Id],
+                            'section': course_metadata_map.order_map[parent2Id],
+                            'block': course_metadata_map.order_map[parentId]
+                        })
+                    }
+                }
+
+                let orderedVideos = unorderedVideos.sort(function (a, b) {
+                    return a.block - b.block
+                });
+                orderedVideos.sort(function (a, b) {
+                    return a.section - b.section
+                });
+                orderedVideos.sort(function (a, b) {
+                    return a.chapter - b.chapter
+                });
+
+                for (let video of orderedVideos) {
+                    let videoId = video.elementId;
+                    videoId = videoId.slice(videoId.lastIndexOf('@') + 1,);
+                    videoIds[videoId] = [];
+                }
+
+                let videoChains = {};
+                learnerIds = learnerIds.slice(0, 5000);
+                let maxViewers = 0;
+                let counter = 0;
+                for (let learner of learnerIds) {
+                    let learnerSessions = [];
+                    let query = "SELECT * FROM video_interaction WHERE course_learner_id = '" + learner + "'";
+                    connection.runSql(query).then(function (sessions) {
+                        learnerSessions = sessions;
+                        learnerSessions.sort(function (a, b) {
+                            return new Date(a.start_time) - new Date(b.start_time)
+                        });
+                        let videoChain = [];
+                        let currentVideo = '';
+                        for (let session of learnerSessions) {
+                            if (session.video_id !== currentVideo) {
+                                currentVideo = session.video_id;
+                                videoChain.push(currentVideo);
+                            }
+                        }
+                        if (videoChain.length > 1) {
+                            videoChains[learner] = videoChain;
+                        }
+                        counter++;
+                        if (counter === learnerIds.length) {
+                            for (let learner in videoChains) {
+                                for (let i = 0; i < videoChains[learner].length - 1; i++) {
+                                    let currentVideo = videoChains[learner][i];
+                                    let followingVideo = videoChains[learner][i + 1];
+                                    videoIds[currentVideo].push(followingVideo);
+                                }
+                            }
+                            let frequencies = {};
+                            for (let video in videoIds) {
+                                let frequency = _.countBy(videoIds[video]);
+                                for (let nextVideo in videoIds) {
+                                    if (frequency.hasOwnProperty(nextVideo)) {
+                                        frequency[nextVideo] = frequency[nextVideo] / videoIds[video].length;
+                                    }
+                                }
+                                let freqSorted = Object.keys(frequency).sort(function (a, b) {
+                                    return frequency[b] - frequency[a]
+                                });
+                                let top3 = {};
+                                for (let video of freqSorted.slice(0, 3)) {
+                                    top3[video] = frequency[video]
+                                }
+                                frequencies[video] = top3;
+                                maxViewers = Math.max(maxViewers, videoIds[video].length)
+                            }
+
+                            let i = 0;
+                            let nodes = [];
+                            let links = [];
+                            for (let currentVideo in frequencies) {
+                                let percentages = "<span style='font-size: 14px;'>" +
+                                    course_metadata_map['element_name_map']["block-v1:" + courseId + "+type@video+block@" + currentVideo] +
+                                    "</span><br>";
+                                for (let followingVideo in frequencies[currentVideo]) {
+                                    if (frequencies[currentVideo][followingVideo] > 0) {
+                                        links.push({
+                                            'source': currentVideo,
+                                            'target': followingVideo,
+                                            'value': frequencies[currentVideo][followingVideo]
+                                        });
+                                        percentages += "<span style='font-size: 12px;'>" +
+                                            course_metadata_map['element_name_map']["block-v1:" + courseId + "+type@video+block@" + followingVideo] +
+                                            ": " + (frequencies[currentVideo][followingVideo] * 100).toFixed(0) +
+                                            "%</span><br>"
+                                    }
+                                }
+                                i++;
+                                nodes.push({
+                                    'name': 'Video ' + i,
+                                    'info': percentages,
+                                    'n': (videoIds[currentVideo].length / maxViewers) * 20,
+                                    'grp': 1,
+                                    'id': currentVideo
+                                });
+                            }
+                            arcData['nodes'] = nodes;
+                            arcData['links'] = links;
+                            let arcElements = [{'name': 'arcElements', 'object': arcData}];
+                            connection.runSql("DELETE FROM webdata WHERE name = 'arcElements'").then(function (success) {
+                                sqlInsert('webdata', arcElements);
+                                drawVideoArc();
+                            });
+                        }
+                    });
+                }
+            })
+        }
     });
 }
 

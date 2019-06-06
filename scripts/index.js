@@ -3872,8 +3872,16 @@ function populateSamples(courseId){
     let courseMap = {'FP101x': "DelftX+FP101x+3T2015.json",
                      'TW3421x': "DelftX+TW3421x+3T2016.json"};
     let courseFile = 'samples/' + courseMap[courseId];
-    $.getJSON(courseFile, function(json) {
-        sqlInsert('webdata', json)
+    connection.runSql("SELECT * FROM metadata").then(function(metadata) {
+        if (metadata.length !== 1){
+            toastr.error('The database has to be clear first!');
+        } else {
+            toastr.info('Reading sample');
+            $.getJSON(courseFile, function(json) {
+                sqlInsert('webdata', json);
+                toastr.success('Please reload the page now', 'Sample data ready', {timeOut: 0})
+            })
+        }
     })
 }
 

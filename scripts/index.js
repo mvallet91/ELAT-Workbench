@@ -3938,7 +3938,9 @@ function webdataJSON(){
 
 function populateSamples(courseId){
     let courseMap = {'FP101x': "DelftX+FP101x+3T2015.json",
-                     'TW3421x': "DelftX+TW3421x+3T2016.json"};
+                     'TW3421x': "DelftX+TW3421x+3T2016.json",
+                     'AE1110x':"DelftX+AE1110x+2T2017.json"
+    };
     let courseFile = 'samples/' + courseMap[courseId];
     connection.runSql("SELECT * FROM webdata").then(function(metadata) {
         if (metadata.length > 1){

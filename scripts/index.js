@@ -3928,12 +3928,11 @@ function drawVideoArc(){ // https://www.d3-graph-gallery.com/graph/arc_template.
 
 function webdataJSON(){
     connection.runSql("SELECT * FROM webdata").then(function(webElements) {
-        let jsonString = '';
+        let jsonString = '[';
         webElements.forEach(function (element) {
-            // console.log(JSON.stringify(element))
             jsonString += JSON.stringify(element) + ',\n'
         });
-        console.log(jsonString)
+        console.log(jsonString.slice(0,jsonString.length-1) + ']')
     })
 }
 

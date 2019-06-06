@@ -3873,7 +3873,7 @@ function populateSamples(courseId){
                      'TW3421x': "DelftX+TW3421x+3T2016.json"};
     let courseFile = 'samples/' + courseMap[courseId];
     connection.runSql("SELECT * FROM metadata").then(function(metadata) {
-        if (metadata.length !== 1){
+        if (metadata.length === 1){
             toastr.error('The database has to be clear first!');
         } else {
             toastr.info('Reading sample');

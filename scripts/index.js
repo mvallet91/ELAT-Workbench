@@ -3932,7 +3932,7 @@ function webdataJSON(){
         webElements.forEach(function (element) {
             jsonString += JSON.stringify(element) + ',\n'
         });
-        console.log(jsonString.slice(0,jsonString.length-1) + ']')
+        console.log(jsonString.slice(0, jsonString.lastIndexOf(',')) + ']')
     })
 }
 

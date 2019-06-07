@@ -223,6 +223,41 @@
                     </label>
                 </div>
                 <br>
+                <h6>Customize Order & Hide Charts</h6>
+                <ul>
+                    <li>
+                        <label class="form-check-label">
+                            <input type="checkbox" id="showLineChart" class="form-check-input" value="show" checked onclick="hideChart('barChartBox')">
+                            Session Line Chart
+                        </label>
+                    </li>
+                    <li>
+                        <label class="form-check-label">
+                            <input type="checkbox" id="showAreaChart" class="form-check-input" value="show" checked onclick="hideChart('lineChartBox')">
+                            Video/Forum/Quiz Area Chart
+                        </label>
+                    </li>
+                    <li>
+                        <label class="form-check-label">
+                            <input type="checkbox" id="showBrushChart" class="form-check-input" value="show" checked onclick="hideChart('brushChartBox')">
+                            Brush Chart
+                        </label>
+                    </li>
+                    <li>
+                        <label class="form-check-label">
+                            <input type="checkbox" id="showMixedChart" class="form-check-input" value="show" checked onclick="hideChart('mixedChartBox')">
+                            Mixed Chart
+                        </label>
+                    </li>
+                    <li>
+                        <label class="form-check-label">
+                            <input type="checkbox" id="showArcChart" class="form-check-input" value="show" checked onclick="hideChart('arcChartBox')">
+                            Arc Chart
+                        </label>
+                    </li>
+                </ul>
+
+                <br>
                 <h6>Export Charts</h6>
                 <div class="col ">
                     <button type="button" class="btn btn-secondary btn-sm" id="save-btn-totals" onclick="exportChart('barChart')">Export First Chart (.png)</button>
@@ -239,6 +274,41 @@
             </div>
         </div>
     </div>
+
+    <!--<div class="col-xs-12 col-sm-10  ">-->
+    <!--<div class="row justify-content-md-center " style="margin-top:10px; ">-->
+        <table id="tblCharts" class="table " style="width:95%" align="center">
+            <tbody>
+                <tr id="barChartBox" align="center">
+                    <td align="center">
+                        <canvas id="barChart" ></canvas>
+                    </td>
+                </tr>
+                <tr id="lineChartBox">
+                    <td>
+                        <canvas id="lineChart" ></canvas>
+                    </td>
+                </tr>
+                <tr id="brushChartBox">
+                    <td>
+                        <div id="chartBrush"></div>
+                        <div id="chartDetail"></div>
+                    </td>
+                </tr>
+                <tr id="mixedChartBox">
+                    <td>
+                        <div id="chartMixed"></div>
+                    </td>
+                </tr>
+                <tr id="arcChartBox">
+                    <td>
+                        <div id="videoArc" ></div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    <!--</div>-->
+
 
     <!--<div class="row justify-content-md-center " style="margin-top:10px; ">-->
         <!--<div class="col-xs-12 col-sm-11  ">-->
@@ -266,51 +336,66 @@
     <!--</div>-->
 
     <!--<div class="row justify-content-md-center " style="margin-top:10px; ">-->
-            <!--<div id="videoArc" ></div>-->
+        <!--<div id="videoArc" ></div>-->
     <!--</div>-->
 
-    <div class="row justify-content-md-center " >
-        <ul class="container" id="blockBox">
-            <li class="drag-item" id="position1">
-                <button class="btn btn-sm btn-primary float-right" onclick="hideChart('barChart')">Hide/Show</button>
-                <br>
-                <div class="col-xs-12 col-sm-11">
-                    <canvas id="barChart" width="350" height="120"></canvas>
-                </div>
-            </li>
-            <li class="drag-item" id="position2">
-                <button class="btn btn-sm btn-primary float-right" onclick="hideChart('lineChart')">Hide/Show</button>
-                <br>
-                <div class="col-xs-12 col-sm-11">
-                    <canvas id="lineChart" width="350" height="120"></canvas>
-                </div>
-            </li>
-            <li class="drag-item" id="position3">
-                <button class="btn btn-sm btn-primary float-right" onclick="hideChart('chartBrush');hideChart('chartDetail')">Hide/Show</button>
-                <br>
-                <div class="col-xs-12 col-sm-11">
-                    <div id="chartBrush"></div>
-                    <div id="chartDetail"></div>
-                </div>
-            </li>
-            <li class="drag-item" id="position4">
-                <button class="btn btn-sm btn-primary float-right" onclick="hideChart('chartMixed')">Hide/Show</button>
-                <br>
-                <div class="row justify-content-md-center " style="margin-top:10px; ">
-                    <div class="col-xs-12 col-sm-11  ">
-                        <div id="chartMixed"></div>
-                    </div>
-                </div>
-            </li>
-            <li class="drag-item" id="position5">
-                <button class="btn btn-sm btn-primary float-right" onclick="hideChart('videoArc')">Hide/Show</button>
-                <br>
-                <div class="row justify-content-md-center " style="margin-top:10px; ">
-                    <div id="videoArc" ></div>
-                </div>
-            </li>
-        </ul>
-    </div>
+    <!--<div class="row justify-content-md-center " >-->
+        <!--<ul class="container" id="blockBox">-->
+            <!--<li class="drag-item" id="position1">-->
+                <!--&lt;!&ndash;<div class="col-xs-12 col-sm-11">&ndash;&gt;-->
+                <!--<div class="col">-->
+                    <!--<button class="btn btn-sm btn-primary float-right" onclick="hideChart('barChartBox')">Hide/Show</button>-->
+                <!--</div>-->
+                <!--<br>-->
+                <!--<div class="col" id="barChartBox">-->
+                    <!--<canvas id="barChart" width="350" height="120"></canvas>-->
+                <!--</div>-->
+                <!--<br>-->
+            <!--</li>-->
+            <!--<li class="drag-item" id="position2">-->
+                <!--<div class="col">-->
+                    <!--<button class="btn btn-sm btn-primary float-right" onclick="hideChart('lineChartBox')">Hide/Show</button>-->
+                <!--</div>-->
+                <!--<br/>-->
+                <!--<div class="col" id="lineChartBox">-->
+                    <!--<canvas id="lineChart" width="350" height="120"></canvas>-->
+                <!--</div>-->
+                <!--<br>-->
+            <!--</li>-->
+            <!--<li class="drag-item" id="position3">-->
+                <!--<div class="col">-->
+                    <!--<button class="btn btn-sm btn-primary float-right" onclick="hideChart('chartBrushBox')">Hide/Show</button>-->
+                <!--</div>-->
+                <!--<br>-->
+                <!--<div class="col" id="chartBrushBox">-->
+                    <!--<div id="chartBrush"></div>-->
+                    <!--<div id="chartDetail"></div>-->
+                <!--</div>-->
+                <!--<br>-->
+            <!--</li>-->
+            <!--<li class="drag-item" id="position4">-->
+                <!--<div class="col">-->
+                    <!--<button class="btn btn-sm btn-primary float-right" onclick="hideChart('chartMixedBox')">Hide/Show</button>-->
+                <!--</div>-->
+                <!--<br>-->
+                <!--<div class="row justify-content-md-center " style="margin-top:10px; " id="chartMixedBox">-->
+                    <!--<div class="col-xs-12 col-sm-11  ">-->
+                        <!--<div id="chartMixed"></div>-->
+                    <!--</div>-->
+                <!--</div>-->
+                <!--<br>-->
+            <!--</li>-->
+            <!--<li class="drag-item" id="position5">-->
+                <!--<div class="col">-->
+                    <!--<button class="btn btn-sm btn-primary float-right" onclick="hideChart('videoArc')">Hide/Show</button>-->
+                <!--</div>-->
+                <!--<br>-->
+                <!--<div class="row justify-content-md-center " style="margin-top:10px; ">-->
+                    <!--<div id="videoArc" ></div>-->
+                <!--</div>-->
+            <!--</li>-->
+        <!--</ul>-->
+    <!--</div>-->
 
     <!--<div class="row justify-content-md-center " >-->
         <!--<ul class="container" id="blockBox">-->

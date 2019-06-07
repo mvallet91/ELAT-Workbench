@@ -3979,18 +3979,20 @@ const containers = document.querySelectorAll('.block');
 // droppable.on('droppable:out', () => console.log('droppable:out'));
 // droppable.on('droppable:over', (evt) => console.log('droppable:over', evt.data.droppable.id));
 
-new Draggable.Sortable(document.querySelectorAll('ul'), { draggable: 'li' }) //https://github.com/Shopify/draggable/issues/6#issuecomment-341180135
+new Draggable.Sortable(document.querySelectorAll('ul'), { draggable: 'li' }); //https://github.com/Shopify/draggable/issues/6#issuecomment-341180135
     // .on('drag:start', () => console.log('drag:start'))
     // .on('drag:move',  () => console.log('drag:move'))
-    .on('drag:stop', function()  {
-        // let positions = document.getElementById('blockBox');
-        // let order = '';
-        // for (let position of positions.children){
-        //     order += position.id + ', ';
-        //     console.log(position.id)
-        // }
-        // console.log(order);
-    });
+    // .on('drag:stop', () => console.log('drag:stop'));
+
+function saveDashboard(){
+    let positions = document.getElementById('blockBox');
+    let order = '';
+    for (let position of positions.children){
+        order += position.id + ', ';
+        console.log(position.id)
+    }
+    console.log(order);
+}
 
 // R SCRIPT FOR MARKOV CHAIN VIZ
 // video.str <-

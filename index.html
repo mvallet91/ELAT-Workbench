@@ -240,31 +240,113 @@
         </div>
     </div>
 
-    <div class="row justify-content-md-center " style="margin-top:10px; ">
-        <div class="col-xs-12 col-sm-11  ">
-            <canvas id="barChart" width="350" height="120"></canvas>
-            <canvas id="lineChart" width="350" height="120"></canvas>
-        </div>
-    </div>
-
-    <div class="row justify-content-md-center " style="margin-top:10px; ">
-        <div class="col-xs-12 col-sm-11  ">
-            <div id="chartBrush"></div>
-            <div id="chartDetail"></div>
-        </div>
-    </div>
-
-    <div class="row justify-content-md-center " style="margin-top:10px; ">
-        <div class="col-xs-12 col-sm-11  ">
-            <div id="chartMixed"></div>
-        </div>
-    </div>
-
-    <div class="row justify-content-md-center " style="margin-top:10px; ">
+    <!--<div class="row justify-content-md-center " style="margin-top:10px; ">-->
         <!--<div class="col-xs-12 col-sm-11  ">-->
-            <div id="videoArc" ></div>
+            <!--<button class="btn btn-sm btn-primary float-right" onclick="hideChart('barChart')">Hide/Show</button>-->
+            <!--<canvas id="barChart" width="350" height="120"></canvas>-->
         <!--</div>-->
+        <!--<br>-->
+        <!--<div class="col-xs-12 col-sm-11  ">-->
+            <!--<button class="btn btn-sm btn-primary float-right" onclick="hideChart('lineChart')">Hide/Show</button>-->
+            <!--<canvas id="lineChart" width="350" height="120"></canvas>-->
+        <!--</div>-->
+    <!--</div>-->
+
+    <!--<div class="row justify-content-md-center " style="margin-top:10px; ">-->
+        <!--<div class="col-xs-12 col-sm-11  ">-->
+            <!--<div id="chartBrush"></div>-->
+            <!--<div id="chartDetail"></div>-->
+        <!--</div>-->
+    <!--</div>-->
+
+    <!--<div class="row justify-content-md-center " style="margin-top:10px; ">-->
+        <!--<div class="col-xs-12 col-sm-11  ">-->
+            <!--<div id="chartMixed"></div>-->
+        <!--</div>-->
+    <!--</div>-->
+
+    <!--<div class="row justify-content-md-center " style="margin-top:10px; ">-->
+            <!--<div id="videoArc" ></div>-->
+    <!--</div>-->
+
+    <div class="row justify-content-md-center " >
+        <ul class="container" id="blockBox">
+            <li class="drag-item" id="position1">
+                <button class="btn btn-sm btn-primary float-right" onclick="hideChart('barChart')">Hide/Show</button>
+                <br>
+                <div class="col-xs-12 col-sm-11">
+                    <canvas id="barChart" width="350" height="120"></canvas>
+                </div>
+            </li>
+            <li class="drag-item" id="position2">
+                <button class="btn btn-sm btn-primary float-right" onclick="hideChart('lineChart')">Hide/Show</button>
+                <br>
+                <div class="col-xs-12 col-sm-11">
+                    <canvas id="lineChart" width="350" height="120"></canvas>
+                </div>
+            </li>
+            <li class="drag-item" id="position3">
+                <button class="btn btn-sm btn-primary float-right" onclick="hideChart('chartBrush');hideChart('chartDetail')">Hide/Show</button>
+                <br>
+                <div class="col-xs-12 col-sm-11">
+                    <div id="chartBrush"></div>
+                    <div id="chartDetail"></div>
+                </div>
+            </li>
+            <li class="drag-item" id="position4">
+                <button class="btn btn-sm btn-primary float-right" onclick="hideChart('chartMixed')">Hide/Show</button>
+                <br>
+                <div class="row justify-content-md-center " style="margin-top:10px; ">
+                    <div class="col-xs-12 col-sm-11  ">
+                        <div id="chartMixed"></div>
+                    </div>
+                </div>
+            </li>
+            <li class="drag-item" id="position5">
+                <button class="btn btn-sm btn-primary float-right" onclick="hideChart('videoArc')">Hide/Show</button>
+                <br>
+                <div class="row justify-content-md-center " style="margin-top:10px; ">
+                    <div id="videoArc" ></div>
+                </div>
+            </li>
+        </ul>
     </div>
+
+    <!--<div class="row justify-content-md-center " >-->
+        <!--<ul class="container" id="blockBox">-->
+            <!--<li class="drag-item" id="position1">-->
+                <!--<div id="redBlock" style="width: 100px; height: 100px; background-color: red" class="draggable"></div>-->
+            <!--</li>-->
+            <!--<li class="drag-item" id="position2">-->
+                <!--<div id="blueBlock" style="width: 100px; height: 100px; background-color: blue" class="draggable"></div>-->
+            <!--</li>-->
+            <!--<li class="drag-item" id="position3">-->
+                <!--<div id="violetBlock" style="width: 100px; height: 100px; background-color: violet" class="draggable"></div>-->
+            <!--</li>-->
+        <!--</ul>-->
+    <!--</div>-->
+
+    <!--<div class="row justify-content-md-center " >-->
+        <!--<div class="block">-->
+            <!--<div id="redHome" style="width: 100px; height: 100px; background-color: black" class="droppable draggable-dropzone&#45;&#45;occupied">-->
+                <!--<div style="width: 100px; height: 100px; background-color: red" class="draggable"></div>-->
+            <!--</div>-->
+        <!--</div>-->
+        <!--<br>-->
+        <!--<div class="block">-->
+            <!--<div id="pinkHome"  style="width: 100px; height: 100px; background-color: black" class="droppable draggable-dropzone&#45;&#45;occupied">-->
+                <!--<div style="width: 100px; height: 100px; background-color: pink" class="draggable"></div>-->
+            <!--</div>-->
+        <!--</div>-->
+
+        <!--<div class="block">-->
+            <!--<div style="width: 200px; height: 200px; background-color: #eee" class="droppable" id="gray" ></div>-->
+        <!--</div>-->
+
+        <!--<div class="block">-->
+            <!--<div style="width: 200px; height: 200px; background-color: #eeee55" class="droppable" id="yellow"></div>-->
+        <!--</div>-->
+    <!--</div>-->
 
 
     <script src = "https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
@@ -275,6 +357,10 @@
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/blockui@1.0.0/jquery.blockUI.min.js"></script>
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/apexcharts@3.6.12/dist/apexcharts.min.js"></script>
+
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@shopify/draggable@1.0.0-beta.5/lib/draggable.bundle.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@shopify/draggable@1.0.0-beta.5/lib/swappable.js"></script>
+
     <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
 
     <script src="scripts/index.js"></script>

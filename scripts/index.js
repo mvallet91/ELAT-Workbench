@@ -8,9 +8,11 @@ let connection = new JsStore.Instance();
 window.onload = function () {
 
     //// PAGE INITIALIZATION  //////////////////////////////////////////////////////////////////////////////
+
     initiateEdxDb();
     getGraphElementMap(drawCharts);
     drawVideoArc();
+
     //// MULTI FILE SYSTEM  ///////////////////////////////////////////////////////////////////////////
     let  multiFileInput = document.getElementById('filesInput');
     multiFileInput.value = '';
@@ -3954,6 +3956,41 @@ function populateSamples(courseId){
         }
     })
 }
+
+
+function hideChart(divId) {
+    let x = document.getElementById(divId);
+    if (x.style.display === "none") {
+        x.style.display = "block";
+    } else {
+        x.style.display = "none";
+    }
+}
+
+let Draggable = window.Draggable;  //https://stackoverflow.com/a/49690740/8331561
+const containers = document.querySelectorAll('.block');
+
+// const droppable = new Draggable.Droppable(containers, {
+//     draggable: '.draggable',
+//     droppable: '.droppable'
+// });
+//
+// droppable.on('drag:start', () => console.log('drag:start'));
+// droppable.on('droppable:out', () => console.log('droppable:out'));
+// droppable.on('droppable:over', (evt) => console.log('droppable:over', evt.data.droppable.id));
+
+new Draggable.Sortable(document.querySelectorAll('ul'), { draggable: 'li' }) //https://github.com/Shopify/draggable/issues/6#issuecomment-341180135
+    // .on('drag:start', () => console.log('drag:start'))
+    // .on('drag:move',  () => console.log('drag:move'))
+    .on('drag:stop', function()  {
+        // let positions = document.getElementById('blockBox');
+        // let order = '';
+        // for (let position of positions.children){
+        //     order += position.id + ', ';
+        //     console.log(position.id)
+        // }
+        // console.log(order);
+    });
 
 // R SCRIPT FOR MARKOV CHAIN VIZ
 // video.str <-

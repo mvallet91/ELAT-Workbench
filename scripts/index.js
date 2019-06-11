@@ -3199,7 +3199,7 @@ function drawApex(graphElementMap, start, end){
                 formatter: v => v.toFixed(0)
             },
             title: {
-                text: "Students in Forums",
+                text: "New Posts",
                 style: {
                     color: '#008FFB',
                 }
@@ -3210,7 +3210,6 @@ function drawApex(graphElementMap, start, end){
         },
         {
             seriesName: 'Posts by Regulars',
-            opposite: true,
             axisTicks: {
                 show: true,
             },
@@ -3251,6 +3250,29 @@ function drawApex(graphElementMap, start, end){
                 text: "Average Seconds Spent in Forums p/Session",
                 style: {
                     color: '#FEB019',
+                }
+            }
+        },
+        {
+            seriesName: 'Number of Students in Forums',
+            opposite: true,
+            axisTicks: {
+                show: true,
+            },
+            axisBorder: {
+                show: true,
+                color: '#fe1100'
+            },
+            labels: {
+                style: {
+                    color: '#fe1100',
+                },
+                formatter: v => v.toFixed(0)
+            },
+            title: {
+                text: "Students in Forums",
+                style: {
+                    color: '#fe1100',
                 }
             }
         //     // title: {

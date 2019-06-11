@@ -2,8 +2,12 @@
     margin-top: 20px;
 }
 
+table {
+    table-layout:fixed
+}
+
 tr th,
-table tr td {
+tr td {
     border: 1px solid black;
     padding: 5px 0px 5px 0px;
     text-align: center;

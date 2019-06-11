@@ -12,6 +12,7 @@ window.onload = function () {
     initiateEdxDb();
     getGraphElementMap(drawCharts);
     drawVideoArc();
+    loadDashboard();
 
     //// MULTI FILE SYSTEM  ///////////////////////////////////////////////////////////////////////////
     let  multiFileInput = document.getElementById('filesInput');
@@ -2398,8 +2399,8 @@ function processSessions(tablename, headers) {
 
 
 function drawCharts(graphElementMap, start, end) {
-    testApex(graphElementMap, start, end);
-    let canvas = document.getElementById('barChart');
+    drawApex(graphElementMap, start, end);
+    let canvas = document.getElementById('lineChart');
     let ctx = canvas.getContext('2d');
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -2492,7 +2493,7 @@ function drawCharts(graphElementMap, start, end) {
 
     chart = new Chart(ctx, options);
 
-    let lineCtx = document.getElementById('lineChart').getContext('2d');
+    let lineCtx = document.getElementById('areaChart').getContext('2d');
 
     let lineData = {
         labels: graphElementMap['dateListChart'],
@@ -2994,7 +2995,7 @@ function updateChart() {
 
 
 
-function testApex(graphElementMap, start, end){
+function drawApex(graphElementMap, start, end){
     let data = [];
 
     for (let date in graphElementMap["orderedSessions"]){
@@ -3089,13 +3090,18 @@ function testApex(graphElementMap, start, end){
         }
     };
 
-    let chartBrush= new ApexCharts(
+    let chartBrush = new ApexCharts(
         document.querySelector("#chartBrush"),
         optionsBrush
     );
     chartBrush.render();
 
     let weekly = true;
+    let radioValue = $("input[name='radioDayvWeek']:checked").val();
+    if (radioValue === 'daily'){
+        weekly = false;
+        console.log('daily')
+    }
 
     let weeklyPosts = groupWeeklyMapped(graphElementMap, 'orderedForumPosts');
     let weeklyRegPosts = groupWeeklyMapped(graphElementMap, 'orderedForumPosterRegulars');
@@ -3131,7 +3137,7 @@ function testApex(graphElementMap, start, end){
 
     let optionsMixed = {
         chart: {
-            height: 350,
+            height: '420px',
             type: 'line',
             stacked: true,
         },
@@ -3145,12 +3151,12 @@ function testApex(graphElementMap, start, end){
                 }
             }
         }],
-        // plotOptions: {
-        //     bar: {
-        //         horizontal: false,
-        //         stacked: true
-        //     },
-        // },
+        plotOptions: {
+            bar: {
+                horizontal: false,
+                stacked: true
+            },
+        },
         series: [{
             name: 'Posts by Regulars',
             type: 'column',
@@ -3163,13 +3169,13 @@ function testApex(graphElementMap, start, end){
             name: 'Average time spent in Forums',
             type: 'line',
             data: forumDurations
-        // }, {
-        //     name: 'Number of Students in Forums',
-        //     type: 'line',
-        //     data: forumStudents
+        }, {
+            name: 'Number of Students in Forums',
+            type: 'line',
+            data: forumStudents
         }],
         stroke: {
-            width: [0, 0, 3, 3]
+            width: [1, 1, 3, 3]
         },
         title: {
             text: 'Weekly Forum Analysis'
@@ -3179,6 +3185,74 @@ function testApex(graphElementMap, start, end){
             type: 'datetime'
         },
         yaxis: [{
+            axisTicks: {
+                show: true,
+            },
+            axisBorder: {
+                show: true,
+                color: '#008FFB'
+            },
+            labels: {
+                style: {
+                    color: '#008FFB',
+                },
+                formatter: v => v.toFixed(0)
+            },
+            title: {
+                text: "Students in Forums",
+                style: {
+                    color: '#008FFB',
+                }
+            },
+            tooltip: {
+                enabled: true
+            }
+        },
+        {
+            seriesName: 'Posts by Regulars',
+            opposite: true,
+            axisTicks: {
+                show: true,
+            },
+            axisBorder: {
+                show: true,
+                color: '#00E396'
+            },
+            labels: {
+                style: {
+                    color: '#00E396',
+                },
+                formatter: v => v.toFixed(0)
+            },
+            title: {
+                text: "New Posts Added",
+                style: {
+                    color: '#00E396',
+                }
+            },
+        },
+        {
+            seriesName: 'Average time spent in Forums',
+            opposite: true,
+            axisTicks: {
+                show: true,
+            },
+            axisBorder: {
+                show: true,
+                color: '#FEB019'
+            },
+            labels: {
+                style: {
+                    color: '#FEB019',
+                },
+                formatter: v => v.toFixed(0)
+            },
+            title: {
+                text: "Average Seconds Spent in Forums p/Session",
+                style: {
+                    color: '#FEB019',
+                }
+            }
         //     // title: {
         //     //     text: 'New Forum Posts',
         //     // },
@@ -3215,18 +3289,18 @@ function testApex(graphElementMap, start, end){
         //     seriesName: 'Number of Students in Forums',
         //     forceNiceScale: true
         // }, {
-            opposite: true,
-            title: {
-                text: 'Seconds in Forums / New Posts'
-            },
-            labels: {
-                show: true,
-                formatter: function(val, index) {
-                    return val.toFixed(0);
-                }
-            },
-            seriesName: 'Average time spent in Forums',
-            forceNiceScale: true
+        //     opposite: true,
+        //     title: {
+        //         text: 'Seconds in Forums / New Posts'
+        //     },
+        //     labels: {
+        //         show: true,
+        //         formatter: function(val, index) {
+        //             return val.toFixed(0);
+        //         }
+        //     },
+        //     seriesName: 'Average time spent in Forums',
+        //     forceNiceScale: true
         }]
     };
 
@@ -3292,20 +3366,15 @@ function deleteEverything() {
     }
 }
 
-// Returns the ISO week of the date.
 Date.prototype.getWeek = function() {
     let date = new Date(this.getTime());
     date.setHours(0, 0, 0, 0);
-    // Thursday in current week decides the year.
     date.setDate(date.getDate() + 3 - (date.getDay() + 6) % 7);
-    // January 4 is always in week 1.
     let week1 = new Date(date.getFullYear(), 0, 4);
-    // Adjust to Thursday in week 1 and count number of weeks from date to week1.
     return 1 + Math.round(((date.getTime() - week1.getTime()) / 86400000
         - 3 + (week1.getDay() + 6) % 7) / 7);
 };
 
-// Returns the four-digit year corresponding to the ISO week of the date.
 Date.prototype.getWeekYear = function() {
     let date = new Date(this.getTime());
     date.setDate(date.getDate() + 3 - (date.getDay() + 6) % 7);
@@ -3739,15 +3808,9 @@ function drawVideoArc(){ // https://www.d3-graph-gallery.com/graph/arc_template.
             videoTransitions()
         } else {
             let nodeData = result[0]['object'];
-            let margin = {top: 0, right: 150, bottom: 250, left: 150},
-                width = Math.max(
-                    document.body.scrollWidth,
-                    document.documentElement.scrollWidth,
-                    document.body.offsetWidth,
-                    document.documentElement.offsetWidth,
-                    document.documentElement.clientWidth
-                ) - margin.left - margin.right,
-                height = 600 - margin.top - margin.bottom;
+            let margin = {top: 0, right: 50, bottom: 250, left: 50},
+                width = 1500 - margin.left - margin.right,
+                height = 500 - margin.top - margin.bottom;
 
             let svg = d3.select("#videoArc")
                 .append("svg")
@@ -3957,6 +4020,18 @@ function populateSamples(courseId){
     })
 }
 
+// let Draggable = window.Draggable;  //https://stackoverflow.com/a/49690740/8331561
+new window.Draggable.Sortable(document.querySelectorAll('ul'), { draggable: 'li' });//https://github.com/Shopify/draggable/issues/6#issuecomment-341180135
+// .on('drag:start', () => console.log('drag:start'))
+// .on('drag:move',  () => console.log('drag:move'))
+// .on('drag:stop', () => console.log('drag:stop'));
+//     .on('drag:stop', function (e) {
+    // updateDashboard();
+//     let elements = document.getElementById('chartList');
+//     for (let n of elements.children){
+//         console.log(n.id)
+//     }
+// });
 
 function hideChart(divId) {
     let x = document.getElementById(divId);
@@ -3967,31 +4042,106 @@ function hideChart(divId) {
     }
 }
 
-let Draggable = window.Draggable;  //https://stackoverflow.com/a/49690740/8331561
-const containers = document.querySelectorAll('.block');
 
-// const droppable = new Draggable.Droppable(containers, {
-//     draggable: '.draggable',
-//     droppable: '.droppable'
-// });
-//
-// droppable.on('drag:start', () => console.log('drag:start'));
-// droppable.on('droppable:out', () => console.log('droppable:out'));
-// droppable.on('droppable:over', (evt) => console.log('droppable:over', evt.data.droppable.id));
+function updateDashboard(){
+    let chartElements = document.getElementById('chartList');
+    let chartContainer = document.getElementById('chartContainer');
+    let chartMap = {
+        'line': 'lineChartBox',
+        'area': 'areaChartBox',
+        'brush': 'brushChartBox',
+        'mixed': 'mixedChartBox',
+        'arc': 'arcChartBox'
+    };
+    let containerContents = {};
+    // while (chartContainer.hasChildNodes()) {
+    //     containerContents[chartContainer.firstChild.id] = chartContainer.firstChild.innerHTML;
+    //     chartContainer.removeChild(chartContainer.firstChild);
+    // }
+    for (let e of chartElements.children){
+        let divId = chartMap[e.id];
+        // if (e.firstElementChild.firstElementChild.checked) {
+        //     let containerHTML = document.createElement('div');
+        //     containerHTML.id = divId;
+        //     containerHTML.innerHTML = containerContents[divId];
+        //     chartContainer.appendChild(containerHTML);
+        // }
+        let container = document.getElementById(divId);
+        if (e.firstElementChild.firstElementChild.checked) {
+            container.style.display = "block";
+        } else {
+            container.style.display = "none";
+        }
+    }
+}
 
-new Draggable.Sortable(document.querySelectorAll('ul'), { draggable: 'li' }); //https://github.com/Shopify/draggable/issues/6#issuecomment-341180135
-    // .on('drag:start', () => console.log('drag:start'))
-    // .on('drag:move',  () => console.log('drag:move'))
-    // .on('drag:stop', () => console.log('drag:stop'));
 
 function saveDashboard(){
-    let positions = document.getElementById('blockBox');
-    let order = '';
-    for (let position of positions.children){
-        order += position.id + ', ';
-        console.log(position.id)
-    }
-    console.log(order);
+    connection.runSql("DELETE FROM webdata WHERE name = 'chartList'").then(function () {
+        let chartElements = document.getElementById('chartList');
+        let ordered = {};
+        let i = 0;
+        for (let e of chartElements.children){
+            ordered[i.toString()] = {
+                'id': e.id,
+                'html': e.innerHTML,
+                'checked': e.firstElementChild.firstElementChild.checked
+            };
+            i++;
+        }
+        sqlInsert('webdata', [{'name':'chartList', 'object': ordered}]).then(function () {
+            toastr.success('Please reload the page now', 'Dashboard options saved!', {timeOut: 5000})
+        })
+    });
+}
+
+
+function deleteDashboard(){
+    connection.runSql("DELETE FROM webdata WHERE name = 'chartList'").then(function () {
+        updateDashboard();
+    });
+}
+
+
+function loadDashboard(){
+    let orderedDB = {};
+    connection.runSql("SELECT * FROM webdata WHERE name = 'chartList'").then(function (metadata) {
+        if (metadata.length === 1) {
+            orderedDB = metadata[0]['object'];
+            let chartElements = document.getElementById('chartList');
+            while (chartElements.hasChildNodes()) {
+                chartElements.removeChild(chartElements.firstChild);
+            }
+            for (let e in orderedDB) {
+                let eHTML = document.createElement('li');
+                eHTML.id = orderedDB[e].id;
+                eHTML.innerHTML = orderedDB[e].html;
+                let checkboxId = eHTML.firstElementChild.firstElementChild.id;
+                chartElements.appendChild(eHTML);
+                $("#" + checkboxId).prop("checked", orderedDB[e].checked);
+            }
+            updateDashboard()
+        } else {
+            connection.runSql("SELECT * FROM webdata WHERE name = 'defaultChartList'").then(function (metadata) {
+                if (metadata.length === 1) {
+                    orderedDB = metadata[0]['object'];
+                    let chartElements = document.getElementById('chartList');
+                    while (chartElements.hasChildNodes()) {
+                        chartElements.removeChild(chartElements.firstChild);
+                    }
+                    for (let e in orderedDB) {
+                        let eHTML = document.createElement('li');
+                        eHTML.id = orderedDB[e].id;
+                        eHTML.innerHTML = orderedDB[e].html;
+                        let checkboxId = eHTML.firstElementChild.firstElementChild.id;
+                        chartElements.appendChild(eHTML);
+                        $("#" + checkboxId).prop("checked", orderedDB[e].checked);
+                    }
+                    updateDashboard()
+                }
+            })
+        }
+    });
 }
 
 // R SCRIPT FOR MARKOV CHAIN VIZ

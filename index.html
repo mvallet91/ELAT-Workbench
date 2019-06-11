@@ -223,39 +223,43 @@
                     </label>
                 </div>
                 <br>
-                <h6>Customize Order & Hide Charts</h6>
-                <ul>
-                    <li>
+                <h6>Show & Hide Charts</h6>
+                <ul id="chartList">
+                    <li id="line">
                         <label class="form-check-label">
-                            <input type="checkbox" id="showLineChart" class="form-check-input" value="show" checked onclick="hideChart('barChartBox')">
+                            <input type="checkbox" id="showLineChart" class="form-check-input" value="show" onclick="updateDashboard()">
                             Session Line Chart
                         </label>
                     </li>
-                    <li>
+                    <li id="area">
                         <label class="form-check-label">
-                            <input type="checkbox" id="showAreaChart" class="form-check-input" value="show" checked onclick="hideChart('lineChartBox')">
+                            <input type="checkbox" id="showAreaChart" class="form-check-input" value="show" onclick="updateDashboard()">
                             Video/Forum/Quiz Area Chart
                         </label>
                     </li>
-                    <li>
+                    <li id="brush">
                         <label class="form-check-label">
-                            <input type="checkbox" id="showBrushChart" class="form-check-input" value="show" checked onclick="hideChart('brushChartBox')">
+                            <input type="checkbox" id="showBrushChart" class="form-check-input" value="show" onclick="updateDashboard()">
                             Brush Chart
                         </label>
                     </li>
-                    <li>
+                    <li id="mixed">
                         <label class="form-check-label">
-                            <input type="checkbox" id="showMixedChart" class="form-check-input" value="show" checked onclick="hideChart('mixedChartBox')">
+                            <input type="checkbox" id="showMixedChart" class="form-check-input" value="show" onclick="updateDashboard()">
                             Mixed Chart
                         </label>
                     </li>
-                    <li>
+                    <li id="arc">
                         <label class="form-check-label">
-                            <input type="checkbox" id="showArcChart" class="form-check-input" value="show" checked onclick="hideChart('arcChartBox')">
+                            <input type="checkbox" id="showArcChart" class="form-check-input" value="show" onclick="updateDashboard()">
                             Arc Chart
                         </label>
                     </li>
                 </ul>
+                <div class="col ">
+                    <button type="button" class="btn btn-secondary btn-sm" id="saveChartOrder" onclick="saveDashboard()">Save</button>
+                    <button type="button" class="btn btn-secondary btn-sm" id="defaultChartOrder" onclick="deleteDashboard()">Default</button>
+                </div>
 
                 <br>
                 <h6>Export Charts</h6>
@@ -275,164 +279,40 @@
         </div>
     </div>
 
-    <!--<div class="col-xs-12 col-sm-10  ">-->
-    <!--<div class="row justify-content-md-center " style="margin-top:10px; ">-->
-        <table id="tblCharts" class="table " style="width:95%" align="center">
-            <tbody>
-                <tr id="barChartBox" align="center">
-                    <td align="center">
-                        <canvas id="barChart" ></canvas>
-                    </td>
-                </tr>
-                <tr id="lineChartBox">
-                    <td>
-                        <canvas id="lineChart" ></canvas>
-                    </td>
-                </tr>
-                <tr id="brushChartBox">
-                    <td>
-                        <div id="chartBrush"></div>
-                        <div id="chartDetail"></div>
-                    </td>
-                </tr>
-                <tr id="mixedChartBox">
-                    <td>
-                        <div id="chartMixed"></div>
-                    </td>
-                </tr>
-                <tr id="arcChartBox">
-                    <td>
-                        <div id="videoArc" ></div>
-                    </td>
-                </tr>
-            </tbody>
-        </table>
-    <!--</div>-->
+    <div id="chartContainer" class="row justify-content-md-center " style="margin-top:10px; ">
+        <div class="chart-container col-xs-12 col-sm-11  " id="lineChartBox" >
+            <canvas id="lineChart" width="350" height="100"></canvas>
+        </div>
 
+        <div class="chart-container col-xs-12 col-sm-11  " id="areaChartBox">
+            <canvas id="areaChart" width="350" height="100"></canvas>
+        </div>
 
-    <!--<div class="row justify-content-md-center " style="margin-top:10px; ">-->
-        <!--<div class="col-xs-12 col-sm-11  ">-->
-            <!--<button class="btn btn-sm btn-primary float-right" onclick="hideChart('barChart')">Hide/Show</button>-->
-            <!--<canvas id="barChart" width="350" height="120"></canvas>-->
-        <!--</div>-->
-        <!--<br>-->
-        <!--<div class="col-xs-12 col-sm-11  ">-->
-            <!--<button class="btn btn-sm btn-primary float-right" onclick="hideChart('lineChart')">Hide/Show</button>-->
-            <!--<canvas id="lineChart" width="350" height="120"></canvas>-->
-        <!--</div>-->
-    <!--</div>-->
+        <div class="chart-container col-xs-12 col-sm-11  " id="brushChartBox">
+            <div id="chartBrush"></div>
+            <div id="chartDetail"></div>
+        </div>
 
-    <!--<div class="row justify-content-md-center " style="margin-top:10px; ">-->
-        <!--<div class="col-xs-12 col-sm-11  ">-->
-            <!--<div id="chartBrush"></div>-->
-            <!--<div id="chartDetail"></div>-->
-        <!--</div>-->
-    <!--</div>-->
-
-    <!--<div class="row justify-content-md-center " style="margin-top:10px; ">-->
-        <!--<div class="col-xs-12 col-sm-11  ">-->
-            <!--<div id="chartMixed"></div>-->
-        <!--</div>-->
-    <!--</div>-->
-
-    <!--<div class="row justify-content-md-center " style="margin-top:10px; ">-->
-        <!--<div id="videoArc" ></div>-->
-    <!--</div>-->
-
-    <!--<div class="row justify-content-md-center " >-->
-        <!--<ul class="container" id="blockBox">-->
-            <!--<li class="drag-item" id="position1">-->
-                <!--&lt;!&ndash;<div class="col-xs-12 col-sm-11">&ndash;&gt;-->
-                <!--<div class="col">-->
-                    <!--<button class="btn btn-sm btn-primary float-right" onclick="hideChart('barChartBox')">Hide/Show</button>-->
-                <!--</div>-->
+        <div class="chart-container col-xs-12 col-sm-11  " id="mixedChartBox">
+            <div id="chartMixed"></div>
+            <!--<div class="form-check">-->
+                <!--<label class="form-check-label">-->
+                    <!--<input type="radio" id="mixedWeeklyRadio" class="form-check-input" name="radioDayvWeek" value="weekly" onchange="getGraphElementMap(drawCharts)">-->
+                    <!--Weekly Values-->
+                <!--</label>-->
                 <!--<br>-->
-                <!--<div class="col" id="barChartBox">-->
-                    <!--<canvas id="barChart" width="350" height="120"></canvas>-->
-                <!--</div>-->
-                <!--<br>-->
-            <!--</li>-->
-            <!--<li class="drag-item" id="position2">-->
-                <!--<div class="col">-->
-                    <!--<button class="btn btn-sm btn-primary float-right" onclick="hideChart('lineChartBox')">Hide/Show</button>-->
-                <!--</div>-->
-                <!--<br/>-->
-                <!--<div class="col" id="lineChartBox">-->
-                    <!--<canvas id="lineChart" width="350" height="120"></canvas>-->
-                <!--</div>-->
-                <!--<br>-->
-            <!--</li>-->
-            <!--<li class="drag-item" id="position3">-->
-                <!--<div class="col">-->
-                    <!--<button class="btn btn-sm btn-primary float-right" onclick="hideChart('chartBrushBox')">Hide/Show</button>-->
-                <!--</div>-->
-                <!--<br>-->
-                <!--<div class="col" id="chartBrushBox">-->
-                    <!--<div id="chartBrush"></div>-->
-                    <!--<div id="chartDetail"></div>-->
-                <!--</div>-->
-                <!--<br>-->
-            <!--</li>-->
-            <!--<li class="drag-item" id="position4">-->
-                <!--<div class="col">-->
-                    <!--<button class="btn btn-sm btn-primary float-right" onclick="hideChart('chartMixedBox')">Hide/Show</button>-->
-                <!--</div>-->
-                <!--<br>-->
-                <!--<div class="row justify-content-md-center " style="margin-top:10px; " id="chartMixedBox">-->
-                    <!--<div class="col-xs-12 col-sm-11  ">-->
-                        <!--<div id="chartMixed"></div>-->
-                    <!--</div>-->
-                <!--</div>-->
-                <!--<br>-->
-            <!--</li>-->
-            <!--<li class="drag-item" id="position5">-->
-                <!--<div class="col">-->
-                    <!--<button class="btn btn-sm btn-primary float-right" onclick="hideChart('videoArc')">Hide/Show</button>-->
-                <!--</div>-->
-                <!--<br>-->
-                <!--<div class="row justify-content-md-center " style="margin-top:10px; ">-->
-                    <!--<div id="videoArc" ></div>-->
-                <!--</div>-->
-            <!--</li>-->
-        <!--</ul>-->
-    <!--</div>-->
-
-    <!--<div class="row justify-content-md-center " >-->
-        <!--<ul class="container" id="blockBox">-->
-            <!--<li class="drag-item" id="position1">-->
-                <!--<div id="redBlock" style="width: 100px; height: 100px; background-color: red" class="draggable"></div>-->
-            <!--</li>-->
-            <!--<li class="drag-item" id="position2">-->
-                <!--<div id="blueBlock" style="width: 100px; height: 100px; background-color: blue" class="draggable"></div>-->
-            <!--</li>-->
-            <!--<li class="drag-item" id="position3">-->
-                <!--<div id="violetBlock" style="width: 100px; height: 100px; background-color: violet" class="draggable"></div>-->
-            <!--</li>-->
-        <!--</ul>-->
-    <!--</div>-->
-
-    <!--<div class="row justify-content-md-center " >-->
-        <!--<div class="block">-->
-            <!--<div id="redHome" style="width: 100px; height: 100px; background-color: black" class="droppable draggable-dropzone&#45;&#45;occupied">-->
-                <!--<div style="width: 100px; height: 100px; background-color: red" class="draggable"></div>-->
+                <!--<label class="form-check-label">-->
+                    <!--<input type="radio" id="mixedDailyRadio" class="form-check-input" name="radioDayvWeek" value="daily" onchange="getGraphElementMap(drawCharts)">-->
+                    <!--Daily Values-->
+                <!--</label>-->
             <!--</div>-->
-        <!--</div>-->
-        <!--<br>-->
-        <!--<div class="block">-->
-            <!--<div id="pinkHome"  style="width: 100px; height: 100px; background-color: black" class="droppable draggable-dropzone&#45;&#45;occupied">-->
-                <!--<div style="width: 100px; height: 100px; background-color: pink" class="draggable"></div>-->
-            <!--</div>-->
-        <!--</div>-->
+        </div>
 
-        <!--<div class="block">-->
-            <!--<div style="width: 200px; height: 200px; background-color: #eee" class="droppable" id="gray" ></div>-->
-        <!--</div>-->
+        <div class="chart-container col-xs-12 col-sm-11  " id="arcChartBox">
+            <div id="videoArc" ></div>
+        </div>
 
-        <!--<div class="block">-->
-            <!--<div style="width: 200px; height: 200px; background-color: #eeee55" class="droppable" id="yellow"></div>-->
-        <!--</div>-->
-    <!--</div>-->
-
+    </div>
 
     <script src = "https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
     <script src = "https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.15.0/umd/popper.min.js"></script>
@@ -441,7 +321,7 @@
     <script type="text/javascript" src="https://cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/blockui@1.0.0/jquery.blockUI.min.js"></script>
-    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/apexcharts@3.6.12/dist/apexcharts.min.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/apexcharts@3.8.0/dist/apexcharts.min.js"></script>
 
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@shopify/draggable@1.0.0-beta.5/lib/draggable.bundle.js"></script>
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@shopify/draggable@1.0.0-beta.5/lib/swappable.js"></script>

@@ -293,6 +293,12 @@
             <div id="chartDetail"></div>
         </div>
 
+        <div class="chart-container col-xs-12 col-sm-11  " id="boxplotChartBox">
+            <canvas id="boxplotChart" width="350" height="100"></canvas>
+            <!--<button id="limitMinMax">Limit to min/max</button>-->
+            <!--<button id="limitWhiskers">Limit to whiskers</button>-->
+        </div>
+
         <div class="chart-container col-xs-12 col-sm-11  " id="mixedChartBox">
             <div id="chartMixed"></div>
             <!--<div class="form-check">-->
@@ -322,6 +328,7 @@
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/blockui@1.0.0/jquery.blockUI.min.js"></script>
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/apexcharts@3.8.0/dist/apexcharts.min.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/chartjs-chart-box-and-violin-plot@2.1.0/build/Chart.BoxPlot.min.js"></script>
 
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@shopify/draggable@1.0.0-beta.5/lib/draggable.bundle.js"></script>
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@shopify/draggable@1.0.0-beta.5/lib/swappable.js"></script>
@@ -335,6 +342,7 @@
 
         let chart = null;
         let lineChart = null;
+        let boxChart = null;
 
         $(function() {
             $('input[name="daterange"]').daterangepicker({

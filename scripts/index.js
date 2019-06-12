@@ -2588,6 +2588,143 @@ function drawCharts(graphElementMap, start, end) {
         lineChart.destroy();
     }
     lineChart = new Chart(lineCtx, lineOptions);
+
+    // BOXPLOT https://codepen.io/sgratzl/pen/QxoLoY
+
+    let weekly = true;
+
+    let weeklyPostContents = groupWeeklyMapped(graphElementMap, 'orderedForumPostContent');
+    let weeklyRegPostContents = groupWeeklyMapped(graphElementMap, 'orderedForumPostContentRegulars');
+    let weeklyOccPostContents = groupWeeklyMapped(graphElementMap, 'orderedForumPostContentOccasionals');
+
+    let dateLabels = [];
+    let postContentData = [];
+    let regPostContentData = [];
+    let occPostContentData = [];
+
+    if (weekly === true){
+        for (let date in weeklyPostContents['weeklySum']){
+            dateLabels.push(new Date(date))
+        }
+        postContentData = Object.values(weeklyPostContents['weeklySum']);
+        regPostContentData = Object.values(weeklyRegPostContents['weeklySum']);
+        occPostContentData = Object.values(weeklyOccPostContents['weeklySum']);
+    } else {
+        for (let date of graphElementMap["dateListChart"]){
+            dateLabels.push(date)
+        }
+        postContentData = Object.values(graphElementMap['orderedForumPostContent']);
+        regPostContentData = Object.values(graphElementMap['orderedForumPostContentRegulars']);
+        occPostContentData = Object.values(graphElementMap['orderedForumPostContentOccasionals']);
+    }
+
+    let boxCtx = document.getElementById("boxplotChart").getContext("2d");
+
+    let boxplotData = {
+        labels: dateLabels,
+        datasets: [{
+        //     label: 'All Posts',
+        //     backgroundColor: 'rgba(255,0,0,0.5)',
+        //     borderColor: 'red',
+        //     borderWidth: 1,
+        //     outlierColor: '#999999',
+        //     padding: 10,
+        //     itemRadius: 0,
+        //     outlierColor: '#999999',
+        //     data: postContentData
+        // }, {
+            label: 'Posts by Regulars',
+            backgroundColor:  'rgba(0,0,255,0.5)',
+            borderColor: 'blue',
+            borderWidth: 1,
+            outlierColor: '#999999',
+            padding: 10,
+            itemRadius: 0,
+            outlierColor: '#999999',
+            data: regPostContentData
+        }, {
+            label: 'Posts by Occasionals',
+            backgroundColor:  '#11aa00',
+            borderColor: 'green',
+            borderWidth: 1,
+            outlierColor: '#999999',
+            padding: 10,
+            itemRadius: 0,
+            outlierColor: '#999999',
+            data: occPostContentData
+        }]
+    };
+
+    let boxOptions = {
+        // type: 'boxplot',
+        // data: boxplotData,
+        // options: {
+            responsive: true,
+            legend: {
+                position: 'top',
+            },
+            title: {
+                display: true,
+                text: 'Post Content Analysis'
+            },
+            scales: {
+                xAxes: [{
+                    type: 'time',
+                    display: true,
+                    time: {
+                        unit: 'day',
+                        min: startDate.setDate(startDate.getDate() - 4),
+                        max: endDate
+                    },
+                    scaleLabel: {
+                        display: true,
+                        labelString: "Date",
+                    }
+                }],
+                yAxes: [{
+                    ticks: {
+                        beginAtZero: true,
+                        minStats: 'min',
+                        maxStats: 'whiskerMax'
+                    },
+                    position: 'left',
+                    display: true,
+                    scaleLabel: {
+                        display: true,
+                        labelString: "Number of Characters",
+                    }
+                }]
+            }
+        // }
+    }
+
+    if (boxChart !== null) {
+        boxChart.destroy();
+    }
+
+    boxChart = new Chart(boxCtx, {
+        type: 'boxplot',
+        data: boxplotData,
+        options: boxOptions
+    });
+    // document.getElementById('limitMinMax').onclick = function() {
+    //     options.scales.yAxes[0].ticks.minStats = 'min';
+    //     options.scales.yAxes[0].ticks.maxStats = 'max';
+    //     let boxChart = new Chart(boxCtx, {
+    //         type: 'boxplot',
+    //         data: boxplotData,
+    //         options: boxOptions
+    //     });
+    // };
+    // document.getElementById('limitWhiskers').onclick = function() {
+    //     options.scales.yAxes[0].ticks.minStats = 'whiskerMin';
+    //     options.scales.yAxes[0].ticks.maxStats = 'whiskerMax';
+    //     let boxChart = new Chart(boxCtx, {
+    //         type: 'boxplot',
+    //         data: boxplotData,
+    //         options: boxOptions
+    //     });
+    // };
 }
 
 
@@ -2598,375 +2735,429 @@ function getGraphElementMap(callback, start, end) {
             graphElementMap = result[0]['object'];
             callback(graphElementMap, start, end);
         } else {
+            connection.runSql("SELECT * FROM metadata WHERE name = 'metadata_map' ").then(function(result) {
+                if (result.length !== 1) {
+                    console.log('Metadata empty')
+                } else {
+                    let course_metadata_map = result[0]['object'];
+                    let query = '';
 
-            let dailySessions = {};
-            let dailyDurations = {};
+                    let dailySessions = {};
+                    let dailyDurations = {};
 
-            let quizSessions = {};
-            let quizDurations = {};
+                    let quizSessions = {};
+                    let quizDurations = {};
 
-            let videoSessions = {};
-            let videoDurations = {};
+                    let videoSessions = {};
+                    let videoDurations = {};
 
-            let forumSessions = {};
-            let forumDurations = {};
+                    let forumSessions = {};
+                    let forumDurations = {};
 
-            let forumPosts = {};
-            let forumPosters = {};
+                    let forumPosts = {};
+                    let forumPosters = {};
 
-            let dateListChart = [];
+                    let dateListChart = [];
 
-            let orderedSessions = {};
-            let orderedDurations = {};
-            let orderedStudents = {};
-            let orderedAvgDurations = {};
+                    let orderedSessions = {};
+                    let orderedDurations = {};
+                    let orderedStudents = {};
+                    let orderedAvgDurations = {};
 
-            let orderedQuizSessions = {};
-            let orderedQuizDurations = {};
+                    let orderedQuizSessions = {};
+                    let orderedQuizDurations = {};
 
-            let orderedVideoSessions = {};
-            let orderedVideoDurations = {};
+                    let orderedVideoSessions = {};
+                    let orderedVideoDurations = {};
 
-            let orderedForumSessions = {};
-            let orderedForumStudents = {};
-            let orderedForumDurations = {};
-            let orderedForumAvgDurations = {};
-            let orderedForumRegulars = {};
-            let orderedForumSessionRegulars = {};
-            let orderedForumSessionOccasionals = {};
-            let orderedForumOccasionals = {};
+                    let orderedForumSessions = {};
+                    let orderedForumStudents = {};
+                    let orderedForumDurations = {};
+                    let orderedForumAvgDurations = {};
+                    let orderedForumRegulars = {};
+                    let orderedForumSessionRegulars = {};
+                    let orderedForumSessionOccasionals = {};
+                    let orderedForumOccasionals = {};
 
-            let orderedForumPosts = {};
-            let orderedForumPosters = {};
-            let orderedForumPosterRegulars = {};
-            let orderedForumPostByRegulars = {};
-            let orderedForumPosterOccasionals = {};
-            let orderedForumPostByOccasionals = {};
+                    let orderedForumPosts = {};
+                    let orderedForumPostContent = {};
+                    let orderedForumPosters = {};
+                    let orderedForumPosterRegulars = {};
+                    let orderedForumPostContentRegulars = {};
+                    let orderedForumPosterOccasionals = {};
+                    let orderedForumPostContentOccasionals = {};
 
-            let start_date = '';
-            let end_date = '';
-            let course_name = '';
+                    let start_date = '';
+                    let end_date = '';
+                    let course_name = '';
 
-            let query = "SELECT * FROM courses";
-            connection.runSql(query).then(function (courses) {
+                    connection.runSql("SELECT * FROM courses").then(function (courses) {
+                        courses.forEach(function (course) {
+                            $('#loading').show();
+                            $.blockUI();
+                            course_name = course['course_name'];
+                            start_date = course['start_time'].toDateString();
+                            end_date = course['end_time'].toDateString();
 
-                courses.forEach(function (course) {
-                    $('#loading').show();
-                    $.blockUI();
-                    course_name = course['course_name'];
-                    start_date = course['start_time'].toDateString();
-                    end_date = course['end_time'].toDateString();
+                            query = "SELECT * FROM sessions";
+                            connection.runSql(query).then(function (sessions) {
+                                toastr.info('Processing indicators');
 
-                    query = "SELECT * FROM sessions";
-                    connection.runSql(query).then(function (sessions) {
-                        toastr.info('Processing indicators');
-
-                        sessions.forEach(function (session) {
-                            let start = session["start_time"].toDateString();
-                            start = new Date(start);
-                            if (dailyDurations.hasOwnProperty(start)) {
-                                dailyDurations[start].push(session["duration"]);
-                                dailySessions[start].push(session["course_learner_id"]);
-                            } else {
-                                dailyDurations[start] = [];
-                                dailyDurations[start].push(session["duration"]);
-
-                                dailySessions[start] = [];
-                                dailySessions[start].push(session["course_learner_id"]);
-                            }
-                        });
-
-                        query = "SELECT * FROM quiz_sessions";
-                        connection.runSql(query).then(function (q_sessions) {
-                            q_sessions.forEach(function (session) {
-                                let start = session["start_time"].toDateString();
-                                start = new Date(start);
-                                if (quizDurations.hasOwnProperty(start)) {
-                                    quizDurations[start].push(session["duration"]);
-                                    quizSessions[start].push(session["course_learner_id"]);
-                                } else {
-                                    quizDurations[start] = [];
-                                    quizDurations[start].push(session["duration"]);
-
-                                    quizSessions[start] = [];
-                                    quizSessions[start].push(session["course_learner_id"]);
-                                }
-                            });
-
-                            toastr.info('Crunching quiz data');
-
-                            query = "SELECT * FROM video_interaction";
-                            connection.runSql(query).then(function (v_sessions) {
-                                v_sessions.forEach(function (session) {
+                                sessions.forEach(function (session) {
                                     let start = session["start_time"].toDateString();
                                     start = new Date(start);
-                                    if (videoDurations.hasOwnProperty(start)) {
-                                        videoDurations[start].push(session["duration"]);
-                                        videoSessions[start].push(session["course_learner_id"]);
+                                    if (dailyDurations.hasOwnProperty(start)) {
+                                        dailyDurations[start].push(session["duration"]);
+                                        dailySessions[start].push(session["course_learner_id"]);
                                     } else {
-                                        videoDurations[start] = [];
-                                        videoDurations[start].push(session["duration"]);
+                                        dailyDurations[start] = [];
+                                        dailyDurations[start].push(session["duration"]);
 
-                                        videoSessions[start] = [];
-                                        videoSessions[start].push(session["course_learner_id"]);
+                                        dailySessions[start] = [];
+                                        dailySessions[start].push(session["course_learner_id"]);
                                     }
                                 });
-                                toastr.info('Working on video sessions...');
 
-                                let dueDates = [];
-                                query = "SELECT * FROM quiz_questions";
-                                connection.runSql(query).then(function (questions) {
-                                    questions.forEach(function (question) {
-                                        dueDates.push(question['question_due'].toDateString())
-                                    });
+                                query = "SELECT * FROM quiz_sessions";
+                                connection.runSql(query).then(function (q_sessions) {
+                                    q_sessions.forEach(function (session) {
+                                        let start = session["start_time"].toDateString();
+                                        start = new Date(start);
+                                        if (quizDurations.hasOwnProperty(start)) {
+                                            quizDurations[start].push(session["duration"]);
+                                            quizSessions[start].push(session["course_learner_id"]);
+                                        } else {
+                                            quizDurations[start] = [];
+                                            quizDurations[start].push(session["duration"]);
 
-                                    let quizDates = Array.from(new Set(dueDates));
-                                    let annotations = quizDates.map(function (date, index) {
-                                        return {
-                                            type: 'line',
-                                            id: 'line' + index,
-                                            mode: 'vertical',
-                                            scaleID: 'x-axis-0',
-                                            value: new Date(date),
-                                            borderColor: 'red',
-                                            borderWidth: 1,
-                                            label: {
-                                                enabled: true,
-                                                position: "top",
-                                                content: 'quiz'
-                                            }
+                                            quizSessions[start] = [];
+                                            quizSessions[start].push(session["course_learner_id"]);
                                         }
                                     });
 
-                                    query = "SELECT * FROM forum_sessions";
-                                    connection.runSql(query).then(function (f_sessions) {
-                                        f_sessions.forEach(function (session) {
+                                    toastr.info('Crunching quiz data');
+
+                                    query = "SELECT * FROM video_interaction";
+                                    connection.runSql(query).then(function (v_sessions) {
+                                        v_sessions.forEach(function (session) {
                                             let start = session["start_time"].toDateString();
                                             start = new Date(start);
-
-                                            if (forumDurations.hasOwnProperty(start)) {
-                                                forumDurations[start].push(session["duration"]);
-                                                forumSessions[start].push(session["course_learner_id"]);
+                                            if (videoDurations.hasOwnProperty(start)) {
+                                                videoDurations[start].push(session["duration"]);
+                                                videoSessions[start].push(session["course_learner_id"]);
                                             } else {
-                                                forumDurations[start] = [];
-                                                forumDurations[start].push(session["duration"]);
+                                                videoDurations[start] = [];
+                                                videoDurations[start].push(session["duration"]);
 
-                                                forumSessions[start] = [];
-                                                forumSessions[start].push(session["course_learner_id"]);
+                                                videoSessions[start] = [];
+                                                videoSessions[start].push(session["course_learner_id"]);
                                             }
                                         });
+                                        toastr.info('Working on video sessions...');
 
-                                        query = "SELECT * FROM forum_interaction";
-                                        connection.runSql(query).then(function (f_interactions) {
-                                            f_interactions.forEach(function (interaction) {
-                                                let timestamp = interaction["post_timestamp"].toDateString();
-                                                timestamp = new Date(timestamp);
-
-                                                if (forumPosts.hasOwnProperty(timestamp)) {
-
-                                                    forumPosts[timestamp].push(interaction["post_content"]);
-                                                    forumPosters[timestamp].push(interaction["course_learner_id"]);
-
-                                                } else {
-                                                    forumPosts[timestamp] = [];
-                                                    forumPosts[timestamp].push(interaction["post_content"]);
-
-                                                    forumPosters[timestamp] = [];
-                                                    forumPosters[timestamp].push(interaction["course_learner_id"]);
-                                                }
-                                            });
-                                            toastr.info('Almost there!');
-
-                                            // FORUM SEGMENTATION
-                                            let weeklyPosters = groupWeekly(forumPosters);
-                                            let posters = {};
-                                            let regularPosters = [];
-                                            let occasionalPosters = [];
-                                            for (let week in weeklyPosters){
-                                                let weekPosters = new Set(weeklyPosters[week]);
-                                                for (let poster of weekPosters) {
-                                                    if (posters.hasOwnProperty(poster)) {
-                                                        posters[poster] = posters[poster] + 1
-                                                    } else {
-                                                        posters[poster] = 1
-                                                    }
-                                                }
-                                            }
-                                            for (let p in posters){
-                                                if (posters[p] > 2) {
-                                                    regularPosters.push(p)
-                                                } else {
-                                                    occasionalPosters.push(p)
-                                                }
-                                            }
-
-                                            let weeklyFViewers = groupWeekly(forumSessions);
-                                            let fViewers = {};
-                                            let regularFViewers = [];
-                                            let occasionalFViewers = [];
-                                            for (let week in weeklyFViewers){
-                                                let weekViewers = new Set(weeklyFViewers[week]);
-                                                for (let viewer of weekViewers) {
-                                                    if (fViewers.hasOwnProperty(viewer)) {
-                                                        fViewers[viewer] = fViewers[viewer] + 1
-                                                    } else {
-                                                        fViewers[viewer] = 1
-                                                    }
-                                                }
-                                            }
-                                            for (let p in fViewers){
-                                                if (fViewers[p] > 2) {
-                                                    regularFViewers.push(p)
-                                                } else {
-                                                    occasionalFViewers.push(p)
-                                                }
-                                            }
-
-                                            let dateList = Object.keys(dailySessions);
-                                            dateList.sort(function (a, b) {
-                                                return new Date(a) - new Date(b);
+                                        let dueDates = [];
+                                        query = "SELECT * FROM quiz_questions";
+                                        connection.runSql(query).then(function (questions) {
+                                            questions.forEach(function (question) {
+                                                dueDates.push(question['question_due'].toDateString())
                                             });
 
-                                            for (let date of dateList) {
-                                                orderedSessions[date] = dailySessions[date].length;
-                                                orderedStudents[date] = new Set(dailySessions[date]).size;
-                                                orderedDurations[date] = dailyDurations[date];
-
-                                                orderedForumStudents[date] = new Set(forumSessions[date]).size;
-
-                                                if (quizSessions.hasOwnProperty(date)) {
-                                                    orderedQuizSessions[date] = quizSessions[date].length;
-                                                } else {
-                                                    orderedQuizSessions[date] = 0
-                                                }
-
-                                                if (videoSessions.hasOwnProperty(date)) {
-                                                    orderedVideoSessions[date] = videoSessions[date].length;
-                                                } else {
-                                                    orderedVideoSessions[date] = 0
-                                                }
-
-                                                let regulars = [];
-                                                let occasionals = [];
-                                                if (forumSessions.hasOwnProperty(date)) {
-                                                    orderedForumSessions[date] = forumSessions[date].length;
-                                                    for (let student of forumSessions[date]){
-                                                        if (regularFViewers.includes(student)){
-                                                            regulars.push(student)
-                                                        } else {
-                                                            occasionals.push(student)
-                                                        }
+                                            let quizDates = Array.from(new Set(dueDates));
+                                            let annotationsDue = quizDates.map(function (date, index) {
+                                                return {
+                                                    type: 'line',
+                                                    id: 'line' + index,
+                                                    mode: 'vertical',
+                                                    scaleID: 'x-axis-0',
+                                                    value: new Date(date),
+                                                    borderColor: 'red',
+                                                    borderWidth: 1,
+                                                    label: {
+                                                        enabled: true,
+                                                        position: "top",
+                                                        content: 'Quiz Due'
                                                     }
-                                                } else {
-                                                    orderedForumSessions[date] = 0
                                                 }
-                                                orderedForumSessionRegulars[date] = regulars.length;
-                                                orderedForumRegulars[date] = new Set(regulars).size;
-                                                orderedForumSessionOccasionals[date] = occasionals.length;
-                                                orderedForumOccasionals[date] = new Set(occasionals).size;
+                                            });
 
-                                                orderedForumPosterOccasionals[date] = 0;
-                                                orderedForumPosterRegulars[date] = 0;
-                                                if (forumPosters.hasOwnProperty(date)) {
-                                                    orderedForumPosters[date] = Math.round(forumPosters[date].length);
-                                                    for (let poster of forumPosters[date]) {
-                                                        if (regularPosters.includes(poster)) {
-                                                            orderedForumPosterRegulars[date] = orderedForumPosterRegulars[date] + 1
-                                                        } else {
-                                                            orderedForumPosterOccasionals[date] = orderedForumPosterOccasionals[date] + 1
-                                                        }
-                                                    }
-                                                } else {
-                                                    orderedForumPosters[date] = 0;
+                                            let startDates = [];
+                                            for (let el in course_metadata_map.element_time_map) {
+                                                if (el.includes('problem')) {
+                                                    startDates.push(course_metadata_map.element_time_map[el].toDateString())
                                                 }
-
-                                                if (forumPosts.hasOwnProperty(date)) {
-                                                    orderedForumPosts[date] = Math.round(forumPosts[date].length);
-                                                    // for (let post of forumPosts[date]) {
-                                                    //     if ()
-                                                    // }
-                                                } else {
-                                                    orderedForumPosts[date] = 0;
-                                                }
-
-                                                let total = 0;
-                                                for (let i = 0; i < dailyDurations[date].length; i++) {
-                                                    total += dailyDurations[date][i];
-                                                }
-                                                orderedAvgDurations[date] = (total / dailyDurations[date].length).toFixed(2);
-
-                                                let quizTotal = 0;
-                                                for (let i = 0; i < orderedQuizSessions[date].length; i++) {
-                                                    quizTotal += quizDurations[date][i];
-                                                }
-                                                orderedQuizDurations[date] = quizTotal / orderedQuizSessions[date];
-
-                                                let vidTotal = 0;
-                                                for (let i = 0; i < orderedVideoSessions[date].length; i++) {
-                                                    vidTotal += videoDurations[date][i];
-                                                }
-                                                orderedVideoDurations[date] = vidTotal / orderedVideoSessions[date].length;
-
-                                                let forumTotal = 0;
-                                                if (forumDurations.hasOwnProperty(date)){
-                                                    for (let i = 0; i < forumDurations[date].length; i++) {
-                                                        forumTotal += forumDurations[date][i];
-                                                    }
-                                                    orderedForumDurations[date] = Math.round(forumTotal);
-                                                    orderedForumAvgDurations[date] = Math.round(forumTotal / forumDurations[date].length);
-                                                } else {
-                                                    orderedForumDurations[date] = 0;
-                                                    orderedForumAvgDurations[date] = 0;
-                                                }
-
-                                                dateListChart.push(new Date(date));
                                             }
+                                            let quizReleaseDates = Array.from(new Set(startDates));
+                                            let annotationStart = quizReleaseDates.map(function (date, index) {
+                                                return {
+                                                    type: 'line',
+                                                    id: 'line' + index,
+                                                    mode: 'vertical',
+                                                    scaleID: 'x-axis-0',
+                                                    value: new Date(date),
+                                                    borderColor: 'green',
+                                                    borderWidth: 1,
+                                                    label: {
+                                                        enabled: true,
+                                                        position: "top",
+                                                        content: 'Quiz Start'
+                                                    }
+                                                }
+                                            });
+                                            let annotations = annotationsDue.concat(annotationStart);
 
-                                            graphElementMap = {
-                                                'course_name': course_name,
-                                                'start_date': start_date,
-                                                'end_date': end_date,
-                                                'dateListChart': dateListChart,
+                                            query = "SELECT * FROM forum_sessions";
+                                            connection.runSql(query).then(function (f_sessions) {
+                                                f_sessions.forEach(function (session) {
+                                                    let start = session["start_time"].toDateString();
+                                                    start = new Date(start);
 
-                                                'orderedSessions': orderedSessions,
-                                                'orderedStudents': orderedStudents,
-                                                'orderedDurations': orderedDurations,
-                                                'orderedAvgDurations': orderedAvgDurations,
+                                                    if (forumDurations.hasOwnProperty(start)) {
+                                                        forumDurations[start].push(session["duration"]);
+                                                        forumSessions[start].push(session["course_learner_id"]);
+                                                    } else {
+                                                        forumDurations[start] = [];
+                                                        forumDurations[start].push(session["duration"]);
 
-                                                'orderedQuizSessions': orderedQuizSessions,
-                                                'orderedQuizDurations': orderedQuizDurations,
+                                                        forumSessions[start] = [];
+                                                        forumSessions[start].push(session["course_learner_id"]);
+                                                    }
+                                                });
 
-                                                'orderedVideoSessions': orderedVideoSessions,
-                                                'orderedVideoDurations': orderedVideoDurations,
+                                                query = "SELECT * FROM forum_interaction";
+                                                connection.runSql(query).then(function (f_interactions) {
+                                                    let posterPostMap = {};
+                                                    f_interactions.forEach(function (interaction) {
+                                                        let timestamp = interaction["post_timestamp"].toDateString();
+                                                        timestamp = new Date(timestamp);
+                                                        posterPostMap[interaction["post_content"]] = interaction["course_learner_id"];
+                                                        if (forumPosts.hasOwnProperty(timestamp)) {
 
-                                                'orderedForumSessions': orderedForumSessions,
-                                                'orderedForumSessionRegulars': orderedForumSessionRegulars,
-                                                'orderedForumSessionOccasionals': orderedForumSessionOccasionals,
-                                                'orderedForumDurations': orderedForumDurations,
-                                                'orderedForumAvgDurations': orderedForumAvgDurations,
+                                                            forumPosts[timestamp].push(interaction["post_content"]);
+                                                            forumPosters[timestamp].push(interaction["course_learner_id"]);
 
-                                                'orderedForumPosts': orderedForumPosts,
-                                                'orderedForumPosters': orderedForumPosters,
-                                                'orderedForumPosterRegulars': orderedForumPosterRegulars,
-                                                'orderedForumPosterOccasionals': orderedForumPosterOccasionals,
+                                                        } else {
+                                                            forumPosts[timestamp] = [];
+                                                            forumPosts[timestamp].push(interaction["post_content"]);
 
-                                                'orderedForumStudents': orderedForumStudents,
-                                                'orderedForumRegulars': orderedForumRegulars,
-                                                'orderedForumOccasionals': orderedForumOccasionals,
-                                                'annotations': annotations
-                                            };
-                                            let graphElements = [{'name': 'graphElements', 'object': graphElementMap}];
-                                            toastr.info('Processing graph data');
-                                            sqlInsert('webdata', graphElements);
-                                            callback(graphElementMap, start, end);
-                                        })
+                                                            forumPosters[timestamp] = [];
+                                                            forumPosters[timestamp].push(interaction["course_learner_id"]);
+                                                        }
+                                                    });
+                                                    toastr.info('Almost there!');
+
+                                                    // FORUM SEGMENTATION /////////////////////////////////////////
+                                                    let weeklyPosters = groupWeekly(forumPosters);
+                                                    let posters = {};
+                                                    let regularPosters = [];
+                                                    let occasionalPosters = [];
+                                                    for (let week in weeklyPosters) {
+                                                        let weekPosters = new Set(weeklyPosters[week]);
+                                                        for (let poster of weekPosters) {
+                                                            if (posters.hasOwnProperty(poster)) {
+                                                                posters[poster] = posters[poster] + 1
+                                                            } else {
+                                                                posters[poster] = 1
+                                                            }
+                                                        }
+                                                    }
+                                                    for (let p in posters) {
+                                                        if (posters[p] > 2) {
+                                                            regularPosters.push(p)
+                                                        } else {
+                                                            occasionalPosters.push(p)
+                                                        }
+                                                    }
+
+                                                    let weeklyFViewers = groupWeekly(forumSessions);
+                                                    let fViewers = {};
+                                                    let regularFViewers = [];
+                                                    let occasionalFViewers = [];
+                                                    for (let week in weeklyFViewers) {
+                                                        let weekViewers = new Set(weeklyFViewers[week]);
+                                                        for (let viewer of weekViewers) {
+                                                            if (fViewers.hasOwnProperty(viewer)) {
+                                                                fViewers[viewer] = fViewers[viewer] + 1
+                                                            } else {
+                                                                fViewers[viewer] = 1
+                                                            }
+                                                        }
+                                                    }
+                                                    for (let p in fViewers) {
+                                                        if (fViewers[p] > 2) {
+                                                            regularFViewers.push(p)
+                                                        } else {
+                                                            occasionalFViewers.push(p)
+                                                        }
+                                                    }
+                                                    // FORUM SEGMENTATION /////////////////////////////////////////
+
+                                                    let dateList = Object.keys(dailySessions);
+                                                    dateList.sort(function (a, b) {
+                                                        return new Date(a) - new Date(b);
+                                                    });
+
+                                                    for (let date of dateList) {
+                                                        orderedSessions[date] = dailySessions[date].length;
+                                                        orderedStudents[date] = new Set(dailySessions[date]).size;
+                                                        orderedDurations[date] = dailyDurations[date];
+
+                                                        orderedForumStudents[date] = new Set(forumSessions[date]).size;
+
+                                                        if (quizSessions.hasOwnProperty(date)) {
+                                                            orderedQuizSessions[date] = quizSessions[date].length;
+                                                        } else {
+                                                            orderedQuizSessions[date] = 0
+                                                        }
+
+                                                        if (videoSessions.hasOwnProperty(date)) {
+                                                            orderedVideoSessions[date] = videoSessions[date].length;
+                                                        } else {
+                                                            orderedVideoSessions[date] = 0
+                                                        }
+
+                                                        let regulars = [];
+                                                        let occasionals = [];
+                                                        if (forumSessions.hasOwnProperty(date)) {
+                                                            orderedForumSessions[date] = forumSessions[date].length;
+                                                            for (let student of forumSessions[date]) {
+                                                                if (regularFViewers.includes(student)) {
+                                                                    regulars.push(student)
+                                                                } else {
+                                                                    occasionals.push(student)
+                                                                }
+                                                            }
+                                                        } else {
+                                                            orderedForumSessions[date] = 0
+                                                        }
+                                                        orderedForumSessionRegulars[date] = regulars.length;
+                                                        orderedForumRegulars[date] = new Set(regulars).size;
+                                                        orderedForumSessionOccasionals[date] = occasionals.length;
+                                                        orderedForumOccasionals[date] = new Set(occasionals).size;
+
+                                                        orderedForumPosterOccasionals[date] = 0;
+                                                        orderedForumPosterRegulars[date] = 0;
+                                                        if (forumPosters.hasOwnProperty(date)) {
+                                                            orderedForumPosters[date] = Math.round(forumPosters[date].length);
+                                                            for (let poster of forumPosters[date]) {
+                                                                if (regularPosters.includes(poster)) {
+                                                                    orderedForumPosterRegulars[date] = orderedForumPosterRegulars[date] + 1
+                                                                } else {
+                                                                    orderedForumPosterOccasionals[date] = orderedForumPosterOccasionals[date] + 1
+                                                                }
+                                                            }
+                                                        } else {
+                                                            orderedForumPosters[date] = 0;
+                                                        }
+
+                                                        if (forumPosts.hasOwnProperty(date)) {
+                                                            orderedForumPosts[date] = Math.round(forumPosts[date].length);
+                                                            let dailyContent = [];
+                                                            let dailyContentReg = [];
+                                                            let dailyContentOcc = [];
+                                                            for (let post of forumPosts[date]){
+                                                                dailyContent.push(post.length);
+                                                                if (regularPosters.includes(posterPostMap[post])){
+                                                                    dailyContentReg.push(post.length)
+                                                                } else {
+                                                                    dailyContentOcc.push(post.length)
+                                                                }
+                                                            }
+                                                            orderedForumPostContent[date] = dailyContent;
+                                                            orderedForumPostContentRegulars[date] = dailyContentReg;
+                                                            orderedForumPostContentOccasionals[date] = dailyContentOcc
+                                                        } else {
+                                                            orderedForumPosts[date] = 0;
+                                                            orderedForumPostContent[date] = [];
+                                                            orderedForumPostContentRegulars[date] = [];
+                                                            orderedForumPostContentOccasionals[date] = [];
+                                                        }
+
+                                                        let total = 0;
+                                                        for (let i = 0; i < dailyDurations[date].length; i++) {
+                                                            total += dailyDurations[date][i];
+                                                        }
+                                                        orderedAvgDurations[date] = (total / dailyDurations[date].length).toFixed(2);
+
+                                                        let quizTotal = 0;
+                                                        for (let i = 0; i < orderedQuizSessions[date].length; i++) {
+                                                            quizTotal += quizDurations[date][i];
+                                                        }
+                                                        orderedQuizDurations[date] = quizTotal / orderedQuizSessions[date];
+
+                                                        let vidTotal = 0;
+                                                        for (let i = 0; i < orderedVideoSessions[date].length; i++) {
+                                                            vidTotal += videoDurations[date][i];
+                                                        }
+                                                        orderedVideoDurations[date] = vidTotal / orderedVideoSessions[date].length;
+
+                                                        let forumTotal = 0;
+                                                        if (forumDurations.hasOwnProperty(date)) {
+                                                            for (let i = 0; i < forumDurations[date].length; i++) {
+                                                                forumTotal += forumDurations[date][i];
+                                                            }
+                                                            orderedForumDurations[date] = Math.round(forumTotal);
+                                                            orderedForumAvgDurations[date] = Math.round(forumTotal / forumDurations[date].length);
+                                                        } else {
+                                                            orderedForumDurations[date] = 0;
+                                                            orderedForumAvgDurations[date] = 0;
+                                                        }
+
+                                                        dateListChart.push(new Date(date));
+                                                    }
+
+                                                    graphElementMap = {
+                                                        'course_name': course_name,
+                                                        'start_date': start_date,
+                                                        'end_date': end_date,
+                                                        'dateListChart': dateListChart,
+
+                                                        'orderedSessions': orderedSessions,
+                                                        'orderedStudents': orderedStudents,
+                                                        'orderedDurations': orderedDurations,
+                                                        'orderedAvgDurations': orderedAvgDurations,
+
+                                                        'orderedQuizSessions': orderedQuizSessions,
+                                                        'orderedQuizDurations': orderedQuizDurations,
+
+                                                        'orderedVideoSessions': orderedVideoSessions,
+                                                        'orderedVideoDurations': orderedVideoDurations,
+
+                                                        'orderedForumSessions': orderedForumSessions,
+                                                        'orderedForumSessionRegulars': orderedForumSessionRegulars,
+                                                        'orderedForumSessionOccasionals': orderedForumSessionOccasionals,
+                                                        'orderedForumDurations': orderedForumDurations,
+                                                        'orderedForumAvgDurations': orderedForumAvgDurations,
+
+                                                        'orderedForumPosts': orderedForumPosts,
+                                                        'orderedForumPostContent': orderedForumPostContent,
+                                                        'orderedForumPostContentRegulars': orderedForumPostContentRegulars,
+                                                        'orderedForumPostContentOccasionals': orderedForumPostContentOccasionals,
+                                                        'orderedForumPosters': orderedForumPosters,
+                                                        'orderedForumPosterRegulars': orderedForumPosterRegulars,
+                                                        'orderedForumPosterOccasionals': orderedForumPosterOccasionals,
+
+                                                        'orderedForumStudents': orderedForumStudents,
+                                                        'orderedForumRegulars': orderedForumRegulars,
+                                                        'orderedForumOccasionals': orderedForumOccasionals,
+                                                        'annotations': annotations
+                                                    };
+                                                    let graphElements = [{
+                                                        'name': 'graphElements',
+                                                        'object': graphElementMap
+                                                    }];
+                                                    toastr.info('Processing graph data');
+                                                    sqlInsert('webdata', graphElements);
+                                                    callback(graphElementMap, start, end);
+                                                })
+                                            })
+                                        });
                                     })
-                                });
-                            })
-                        })
+                                })
+                            });
+                        });
                     });
-                });
-            });
+                }
+            })
         }
     })
 }
@@ -3808,9 +3999,9 @@ function drawVideoArc(){ // https://www.d3-graph-gallery.com/graph/arc_template.
             videoTransitions()
         } else {
             let nodeData = result[0]['object'];
-            let margin = {top: 0, right: 50, bottom: 250, left: 50},
+            let margin = {top: 50, right: 50, bottom: 250, left: 50},
                 width = 1500 - margin.left - margin.right,
-                height = 500 - margin.top - margin.bottom;
+                height = 700 - margin.top - margin.bottom;
 
             let svg = d3.select("#videoArc")
                 .append("svg")
@@ -4089,9 +4280,7 @@ function saveDashboard(){
             };
             i++;
         }
-        sqlInsert('webdata', [{'name':'chartList', 'object': ordered}]).then(function () {
-            toastr.success('Please reload the page now', 'Dashboard options saved!', {timeOut: 5000})
-        })
+        sqlInsert('webdata', [{'name':'chartList', 'object': ordered}]);
     });
 }
 

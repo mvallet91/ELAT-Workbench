@@ -3776,16 +3776,18 @@ function groupWeeklyMapped(graphElementMap, orderedElements) {
         let weekList = [];
         let weekType = 'number';
         for (let day of weekDays) {
-            if (typeof graphElementMap[orderedElements][day] === "number") {
-                weekTotal += graphElementMap[orderedElements][day];
-            } else {
-                weekType = 'list';
-                let weekValues = [];
-                if (graphElementMap[orderedElements].hasOwnProperty(day)) {
-                    weekValues = graphElementMap[orderedElements][day];
-                }
-                for (let element of weekValues) {
-                    weekList.push(element);
+            if (graphElementMap[orderedElements].hasOwnProperty(day)) {
+                if (typeof graphElementMap[orderedElements][day] === "number") {
+                    weekTotal += graphElementMap[orderedElements][day];
+                } else {
+                    weekType = 'list';
+                    let weekValues = [];
+                    if (graphElementMap[orderedElements].hasOwnProperty(day)) {
+                        weekValues = graphElementMap[orderedElements][day];
+                    }
+                    for (let element of weekValues) {
+                        weekList.push(element);
+                    }
                 }
             }
         }

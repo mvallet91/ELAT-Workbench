@@ -2683,7 +2683,7 @@ function drawCharts(graphElementMap, start, end) {
             },
             title: {
                 display: true,
-                text: 'Post Content Analysis',
+                text: 'Size of Posting (character count)',
                 position: 'top',
                 fontSize:  16,
                 color:  '#263238',
@@ -2748,6 +2748,9 @@ function drawCharts(graphElementMap, start, end) {
     //     });
     // };
 }
+
+// TODO - ADD REGULAR POSTER AND OCCASIONAL POSTER PER WEEK
+// TODO - ADD AVG. GRADE HEATMAP BY GROUPS OF REG-OCC-NON POSTERS VS VIEWERS
 
 
 function getGraphElementMap(callback, start, end) {

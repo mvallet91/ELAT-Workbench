@@ -222,7 +222,6 @@
                 </div>
                 <div class="form-check">
                     <label class="form-check-label">
-                        <!--<input type="radio" class="form-check-input" name="optradio" value="specificDates" onchange="getGraphElementMap(drawCharts)">-->
                         Specific Dates - <input type="text" name="daterange" />
                     </label>
                 </div>
@@ -251,6 +250,12 @@
                         <label class="form-check-label">
                             <input type="checkbox" id="showMixedChart" class="form-check-input" value="show" onclick="updateDashboard()">
                             Mixed Chart
+                        </label>
+                    </li>
+                    <li id="box-whisker">
+                        <label class="form-check-label">
+                            <input type="checkbox" id="showBoxChart" class="form-check-input" value="show" onclick="updateDashboard()">
+                            Box and Whisker Chart
                         </label>
                     </li>
                     <li id="arc">
@@ -297,8 +302,8 @@
             <div id="chartDetail"></div>
         </div>
 
-        <div class="chart-container col-xs-12 col-sm-11  " id="boxplotChartBox">
-            <canvas id="boxplotChart" width="350" height="100"></canvas>
+        <div class="chart-container col-xs-12 col-sm-11  " id="boxChartBox">
+            <canvas id="boxChart" width="350" height="100"></canvas>
             <!--<button id="limitMinMax">Limit to min/max</button>-->
             <!--<button id="limitWhiskers">Limit to whiskers</button>-->
         </div>
@@ -321,7 +326,6 @@
         <div class="chart-container col-xs-12 col-sm-11  " id="arcChartBox">
             <div id="videoArc" ></div>
         </div>
-
     </div>
 
     <script src = "https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
@@ -342,12 +346,9 @@
     <script src="scripts/index.js"></script>
 
     <script>
-        // getGraphElementMap(drawCharts);
-
-        let chart = null;
         let lineChart = null;
+        let areaChart = null;
         let boxChart = null;
-
         $(function() {
             $('input[name="daterange"]').daterangepicker({
                 opens: 'left'
@@ -357,7 +358,6 @@
                 getGraphElementMap(drawCharts, start.format('YYYY-MM-DD'), end.format('YYYY-MM-DD'));
             });
         });
-
     </script>
     <link href="style/main.css " rel="stylesheet " type="text/css " />
 </body>

@@ -2401,13 +2401,13 @@ function processSessions(tablename, headers) {
 function drawCharts(graphElementMap, start, end) {
     drawApex(graphElementMap, start, end);
     let canvas = document.getElementById('lineChart');
-    let ctx = canvas.getContext('2d');
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    let lineCtx = canvas.getContext('2d');
+    lineCtx.clearRect(0, 0, canvas.width, canvas.height);
 
     let startDate = new Date(start);
     let endDate = new Date(end);
 
-    let data = {
+    let lineData = {
         labels: graphElementMap['dateListChart'],
         datasets: [{
             fill: false,
@@ -2439,11 +2439,21 @@ function drawCharts(graphElementMap, start, end) {
         }
     }
 
-    let options = {
+    let lineOptions = {
         type: 'line',
-        data: data,
-        title: graphElementMap['course_name'],
+        data: lineData,
         options: {
+            legend: {
+                position: 'top',
+            },
+            title: {
+                display: true,
+                text: 'Session and Student Count',
+                position: 'top',
+                fontSize:  16,
+                color:  '#263238',
+                fontFamily: 'Helvetica'
+            },
             fill: true,
             responsive: true,
             scales: {
@@ -2487,15 +2497,14 @@ function drawCharts(graphElementMap, start, end) {
         }
     };
 
-    if (chart !== null) {
-        chart.destroy();
+    if (lineChart !== null) {
+        lineChart.destroy();
     }
+    lineChart = new Chart(lineCtx, lineOptions);
 
-    chart = new Chart(ctx, options);
+    let areaCtx = document.getElementById('areaChart').getContext('2d');
 
-    let lineCtx = document.getElementById('areaChart').getContext('2d');
-
-    let lineData = {
+    let areaData = {
         labels: graphElementMap['dateListChart'],
         datasets: [{
             fill: false,
@@ -2532,15 +2541,24 @@ function drawCharts(graphElementMap, start, end) {
         }]
     };
 
-    let lineOptions = {
+    let areaOptions = {
         type: 'line',
-        data: lineData,
+        data: areaData,
         options: {
-
+            legend: {
+                position: 'top',
+            },
+            title: {
+                display: true,
+                    text: 'Session Count Comparison',
+                    position: 'top',
+                    fontSize:  16,
+                    color:  '#263238',
+                    fontFamily: 'Helvetica'
+            },
             annotation: {
                 annotations: graphElementMap['annotations']
             },
-
             fill: false,
             responsive: true,
             scales: {
@@ -2584,10 +2602,10 @@ function drawCharts(graphElementMap, start, end) {
             }
         }
     };
-    if (lineChart !== null) {
-        lineChart.destroy();
+    if (areaChart !== null) {
+        areaChart.destroy();
     }
-    lineChart = new Chart(lineCtx, lineOptions);
+    areaChart = new Chart(areaCtx, areaOptions);
 
     // BOXPLOT https://codepen.io/sgratzl/pen/QxoLoY
 
@@ -2618,7 +2636,7 @@ function drawCharts(graphElementMap, start, end) {
         occPostContentData = Object.values(graphElementMap['orderedForumPostContentOccasionals']);
     }
 
-    let boxCtx = document.getElementById("boxplotChart").getContext("2d");
+    let boxCtx = document.getElementById("boxChart").getContext("2d");
 
     let boxplotData = {
         labels: dateLabels,
@@ -2665,7 +2683,11 @@ function drawCharts(graphElementMap, start, end) {
             },
             title: {
                 display: true,
-                text: 'Post Content Analysis'
+                text: 'Post Content Analysis',
+                position: 'top',
+                fontSize:  16,
+                color:  '#263238',
+                fontFamily: 'Helvetica'
             },
             scales: {
                 xAxes: [{
@@ -2673,8 +2695,8 @@ function drawCharts(graphElementMap, start, end) {
                     display: true,
                     time: {
                         unit: 'day',
-                        min: startDate.setDate(startDate.getDate() - 4),
-                        max: endDate
+                        min: startDate.setDate(startDate.getDate() - 5),
+                        max: endDate.setDate(endDate.getDate() + 3),
                     },
                     scaleLabel: {
                         display: true,
@@ -2696,7 +2718,7 @@ function drawCharts(graphElementMap, start, end) {
                 }]
             }
         // }
-    }
+    };
 
     if (boxChart !== null) {
         boxChart.destroy();
@@ -2898,7 +2920,7 @@ function getGraphElementMap(callback, start, end) {
                                                     borderWidth: 1,
                                                     label: {
                                                         enabled: true,
-                                                        position: "top",
+                                                        position: "center",
                                                         content: 'Quiz Start'
                                                     }
                                                 }
@@ -3336,12 +3358,15 @@ function drawApex(graphElementMap, start, end){
             breakpoint: 480,
             options: {
                 legend: {
-                    position: 'bottom',
+                    position: 'top',
                     offsetX: -10,
                     offsetY: 0
                 }
             }
         }],
+        legend: {
+            position: 'top'
+        },
         plotOptions: {
             bar: {
                 horizontal: false,
@@ -3369,7 +3394,13 @@ function drawApex(graphElementMap, start, end){
             width: [1, 1, 3, 3]
         },
         title: {
-            text: 'Weekly Forum Analysis'
+            text: 'Weekly Forum Analysis',
+            align: 'center',
+            style: {
+                fontSize:  '16px',
+                color:  '#263238',
+                fontFamily: 'Helvetica'
+            },
         },
         labels: dateLabels,
         xaxis: {
@@ -3395,9 +3426,9 @@ function drawApex(graphElementMap, start, end){
                     color: '#008FFB',
                 }
             },
-            tooltip: {
-                enabled: true
-            }
+            // tooltip: {
+            //     enabled: true
+            // }
         },
         {
             seriesName: 'Posts by Regulars',
@@ -4023,11 +4054,13 @@ function drawVideoArc(){ // https://www.d3-graph-gallery.com/graph/arc_template.
             videoTransitions()
         } else {
             let nodeData = result[0]['object'];
-            let margin = {top: 50, right: 50, bottom: 250, left: 50},
-                width = 1500 - margin.left - margin.right,
+            let arcDiv = document.getElementById("videoArc");
+
+            let margin = {top: 50, right: 50, bottom: 280, left: 50},
+                width = arcDiv.clientWidth - margin.left - margin.right,
                 height = 700 - margin.top - margin.bottom;
 
-            let svg = d3.select("#videoArc")
+            let svg = d3.select(arcDiv)
                 .append("svg")
                 .attr("width", width + margin.left + margin.right)
                 .attr("height", height + margin.top + margin.bottom)
@@ -4036,11 +4069,11 @@ function drawVideoArc(){ // https://www.d3-graph-gallery.com/graph/arc_template.
                     "translate(" + margin.left + "," + margin.top + ")");
 
                 svg.append("text")
-                .attr("x", (width / 30))
+                .attr("x", (width / 2))
                 .attr("y", 20 - (margin.top / 2))
                 .attr("text-anchor", "middle")
                 .style("font-size", "16px")
-                .style("text-decoration", "underline")
+                .style("font-family", "Helvetica")
                 .text("Video Transitions");
 
             let allNodes = nodeData.nodes.map(function (d) {
@@ -4069,7 +4102,6 @@ function drawVideoArc(){ // https://www.d3-graph-gallery.com/graph/arc_template.
                 idToNode[n.id] = n;
             });
 
-            // Add the links
             let links = svg
                 .selectAll('mylinks')
                 .data(nodeData.links)
@@ -4120,7 +4152,10 @@ function drawVideoArc(){ // https://www.d3-graph-gallery.com/graph/arc_template.
                 .style("fill", function (d) {
                     return color(d.grp)
                 })
-                .attr("stroke", "white");
+                .attr("stroke", "transparent")
+                .attr("stroke-width", function (d) {
+                    return (25 - d.n)
+                });
 
             let labels = svg
                 .selectAll("mylabels")
@@ -4214,13 +4249,6 @@ function webdataJSON(){
         });
         console.log(jsonString.slice(0, jsonString.lastIndexOf(',')) + ']')
     });
-    connection.runSql("SELECT * FROM metadata").then(function(webElements) {
-        let jsonString = '[';
-        webElements.forEach(function (element) {
-            jsonString += JSON.stringify(element) + ',\n'
-        });
-        console.log(jsonString.slice(0, jsonString.lastIndexOf(',')) + ']')
-    })
 }
 
 function populateSamples(courseId){
@@ -4243,8 +4271,8 @@ function populateSamples(courseId){
     })
 }
 
-// let Draggable = window.Draggable;  //https://stackoverflow.com/a/49690740/8331561
-new window.Draggable.Sortable(document.querySelectorAll('ul'), { draggable: 'li' });//https://github.com/Shopify/draggable/issues/6#issuecomment-341180135
+let Draggable = window.Draggable;  //https://stackoverflow.com/a/49690740/8331561
+new Draggable.Sortable(document.querySelectorAll('ul'), { draggable: 'li' }); //https://github.com/Shopify/draggable/issues/6#issuecomment-341180135
 // .on('drag:start', () => console.log('drag:start'))
 // .on('drag:move',  () => console.log('drag:move'))
 // .on('drag:stop', () => console.log('drag:stop'));
@@ -4274,6 +4302,7 @@ function updateDashboard(){
         'area': 'areaChartBox',
         'brush': 'brushChartBox',
         'mixed': 'mixedChartBox',
+        'box-whisker': 'boxChartBox',
         'arc': 'arcChartBox'
     };
     let containerContents = {};

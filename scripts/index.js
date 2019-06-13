@@ -2651,7 +2651,7 @@ function drawCharts(graphElementMap, start, end) {
         //     outlierColor: '#999999',
         //     data: postContentData
         // }, {
-            label: 'Posts by Regulars',
+            label: 'Posts by Regulars - ' + graphElementMap['forumSegmentation']['regularPosters'] + ' students',
             backgroundColor:  'rgba(0,0,255,0.5)',
             borderColor: 'blue',
             borderWidth: 1,
@@ -2661,7 +2661,7 @@ function drawCharts(graphElementMap, start, end) {
             outlierColor: '#999999',
             data: regPostContentData
         }, {
-            label: 'Posts by Occasionals',
+            label: 'Posts by Occasionals - ' + graphElementMap['forumSegmentation']['occasionalPosters'] + ' students',
             backgroundColor:  '#11aa00',
             borderColor: 'green',
             borderWidth: 1,
@@ -3011,6 +3011,12 @@ function getGraphElementMap(callback, start, end) {
                                                             occasionalFViewers.push(p)
                                                         }
                                                     }
+                                                    let forumSegmentation = {
+                                                        'regularPosters': new Set(regularPosters).size,
+                                                        'regularViewers': new Set(regularFViewers).size,
+                                                        'occasionalPosters': new Set(occasionalPosters).size,
+                                                        'occasionalViewers': new Set(occasionalFViewers).size
+                                                    };
                                                     // FORUM SEGMENTATION /////////////////////////////////////////
 
                                                     let dateList = Object.keys(dailySessions);
@@ -3150,6 +3156,7 @@ function getGraphElementMap(callback, start, end) {
                                                         'orderedForumDurations': orderedForumDurations,
                                                         'orderedForumAvgDurations': orderedForumAvgDurations,
 
+                                                        'forumSegmentation': forumSegmentation,
                                                         'orderedForumPosts': orderedForumPosts,
                                                         'orderedForumPostContent': orderedForumPostContent,
                                                         'orderedForumPostContentRegulars': orderedForumPostContentRegulars,
@@ -3321,6 +3328,8 @@ function drawApex(graphElementMap, start, end){
     let weeklyOccPosts = groupWeeklyMapped(graphElementMap, 'orderedForumPosterOccasionals');
     let weeklyForumSessions = groupWeeklyMapped(graphElementMap, 'orderedForumAvgDurations');
     let weeklyForumStudents = groupWeeklyMapped(graphElementMap, 'orderedForumStudents');
+    let weeklyForumRegulars = groupWeeklyMapped(graphElementMap, 'orderedForumRegulars');
+    let weeklyForumOccasionals = groupWeeklyMapped(graphElementMap, 'orderedForumOccasionals');
 
     let dateLabels = [];
     let forumData = [];
@@ -3328,6 +3337,8 @@ function drawApex(graphElementMap, start, end){
     let forumOccData = [];
     let forumDurations = [];
     let forumStudents = [];
+    let forumStudentsRegulars = [];
+    let forumStudentsOccasionals = [];
     if (weekly === true){
         for (let date in weeklyPosts['weeklySum']){
             dateLabels.push(date.toLocaleString())
@@ -3337,6 +3348,8 @@ function drawApex(graphElementMap, start, end){
         forumOccData = Object.values(weeklyOccPosts['weeklySum']);
         forumDurations = Object.values(weeklyForumSessions['weeklyAvg']);
         forumStudents = Object.values(weeklyForumStudents['weeklySum']);
+        forumStudentsRegulars = Object.values(weeklyForumRegulars['weeklySum']);
+        forumStudentsOccasionals = Object.values(weeklyForumOccasionals['weeklySum']);
     } else {
         for (let date of graphElementMap["dateListChart"]){
             dateLabels.push(date.toLocaleString())
@@ -3346,13 +3359,15 @@ function drawApex(graphElementMap, start, end){
         forumOccData = Object.values(graphElementMap["orderedForumPosterOccasionals"]);
         forumDurations = Object.values(graphElementMap['orderedForumAvgDurations']);
         forumStudents = Object.values(graphElementMap['orderedForumStudents']);
+        forumStudentsRegulars = Object.values(graphElementMap['orderedForumStudentsRegulars']);
+        forumStudentsOccasionals = Object.values(graphElementMap['orderedForumStudentsOccasionals']);
     }
 
     let optionsMixed = {
         chart: {
             height: '420px',
             type: 'line',
-            stacked: true,
+            // stacked: true,
         },
         responsive: [{
             breakpoint: 480,
@@ -3374,24 +3389,28 @@ function drawApex(graphElementMap, start, end){
             },
         },
         series: [{
-            name: 'Posts by Regulars',
+            name: 'Posts by Regulars - ' + graphElementMap['forumSegmentation']['regularPosters'] + ' students',
             type: 'column',
             data: forumRegData
         }, {
-            name: 'Posts by Occasionals',
+            name: 'Regular Viewers in Forums - ' + graphElementMap['forumSegmentation']['regularViewers'] + ' students',
+            type: 'line',
+            data: forumStudentsRegulars
+        }, {
+            name: 'Posts by Occasionals - ' + graphElementMap['forumSegmentation']['occasionalPosters'] + ' students',
             type: 'column',
             data: forumOccData
         }, {
-            name: 'Average time spent in Forums',
+            name: 'Occasional Viewers in Forums - ' + graphElementMap['forumSegmentation']['occasionalViewers'] + ' students',
             type: 'line',
-            data: forumDurations
-        }, {
-            name: 'Number of Students in Forums',
-            type: 'line',
-            data: forumStudents
+            data: forumStudentsOccasionals
+        // }, {
+        //     name: 'Average time spent in Forums',
+        //     type: 'line',
+        //     data: forumDurations
         }],
         stroke: {
-            width: [1, 1, 3, 3]
+            width: [1, 3, 1, 3, 3]
         },
         title: {
             text: 'Weekly Forum Analysis',
@@ -3407,6 +3426,7 @@ function drawApex(graphElementMap, start, end){
             type: 'datetime'
         },
         yaxis: [{
+            // seriesName: 'Posts by Regulars - ' + graphElementMap['forumSegmentation']['regularPosters'] + ' students',
             axisTicks: {
                 show: true,
             },
@@ -3425,13 +3445,10 @@ function drawApex(graphElementMap, start, end){
                 style: {
                     color: '#008FFB',
                 }
-            },
-            // tooltip: {
-            //     enabled: true
-            // }
-        },
-        {
-            seriesName: 'Posts by Regulars',
+            }
+        }, {
+            // seriesName: 'Occasional Viewers in Forums - ' + graphElementMap['forumSegmentation']['occasionalViewers'] + ' students',
+            opposite: true,
             axisTicks: {
                 show: true,
             },
@@ -3446,92 +3463,56 @@ function drawApex(graphElementMap, start, end){
                 formatter: v => v.toFixed(0)
             },
             title: {
-                text: "New Posts Added",
+                text: "Students visiting Forums",
                 style: {
                     color: '#00E396',
                 }
-            },
-        },
-        {
-            seriesName: 'Average time spent in Forums',
+            }
+        }, {
+            // seriesName: 'Posts by Occasionals - ' + graphElementMap['forumSegmentation']['occasionalPosters'] + ' students',
             opposite: true,
             axisTicks: {
-                show: true,
+                show: false,
             },
             axisBorder: {
-                show: true,
+                show: false,
                 color: '#FEB019'
             },
             labels: {
+                show: false,
                 style: {
                     color: '#FEB019',
                 },
                 formatter: v => v.toFixed(0)
             },
             title: {
-                text: "Average Seconds Spent in Forums p/Session",
+                // text: "Posts by Occasional Students",
                 style: {
                     color: '#FEB019',
                 }
             }
-        },
-        {
-            seriesName: 'Number of Students in Forums',
-            opposite: true,
+        }, {
+            // seriesName: 'Occasional Viewers in Forums - ' + graphElementMap['forumSegmentation']['occasionalViewers'] + ' students',
             axisTicks: {
-                show: true,
+                show: false,
             },
             axisBorder: {
-                show: true,
+                show: false,
                 color: '#fe1100'
             },
             labels: {
+                show: false,
                 style: {
                     color: '#fe1100',
                 },
                 formatter: v => v.toFixed(0)
             },
             title: {
-                text: "Students in Forums",
+                // text: "New Posts",
                 style: {
                     color: '#fe1100',
                 }
             }
-        //     // title: {
-        //     //     text: 'New Forum Posts',
-        //     // },
-        //     labels: {
-        //         show: false,
-        //         formatter: function(val, index) {
-        //             return val.toFixed(0);
-        //         }
-        //     },
-        //     seriesName: 'Forum Posts by Reg',
-        //     // forceNiceScale: true
-        // }, {
-        //     title: {
-        //         text: 'New Forum Posts',
-        //     },
-        //     labels: {
-        //         show: true,
-        //         formatter: function(val, index) {
-        //             return val.toFixed(0);
-        //         }
-        //     },
-        //     seriesName: 'Forum Posts by Occ',
-        //     forceNiceScale: true
-        // }, {
-        //     title: {
-        //         text: 'Students visiting Forums',
-        //     },
-        //     labels: {
-        //         show: true,
-        //         formatter: function(val, index) {
-        //             return val.toFixed(0);
-        //         }
-        //     },
-        //     seriesName: 'Number of Students in Forums',
-        //     forceNiceScale: true
         // }, {
         //     opposite: true,
         //     title: {
@@ -3544,7 +3525,6 @@ function drawApex(graphElementMap, start, end){
         //         }
         //     },
         //     seriesName: 'Average time spent in Forums',
-        //     forceNiceScale: true
         }]
     };
 

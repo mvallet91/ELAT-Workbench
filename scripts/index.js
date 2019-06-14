@@ -3412,35 +3412,35 @@ function drawApex(graphElementMap, start, end){
             },
         },
         series: [{
-            name: 'Posts by Regulars - ' + graphElementMap['forumSegmentation']['regularPosters'] + ' students',
+            name: 'Posts by Regulars',
             type: 'column',
             data: forumRegData
         }, {
-            name: 'Regular Viewers in Forums - ' + graphElementMap['forumSegmentation']['regularViewers'] + ' students',
+            name: 'Regular Viewers', // - ' + graphElementMap['forumSegmentation']['regularViewers'] + ' students',
             type: 'line',
             data: forumStudentsRegulars
         }, {
-            name: 'Posts by Occasionals - ' + graphElementMap['forumSegmentation']['occasionalPosters'] + ' students',
-            type: 'column',
-            data: forumOccData
-        }, {
-            name: 'Occasional Viewers in Forums - ' + graphElementMap['forumSegmentation']['occasionalViewers'] + ' students',
-            type: 'line',
-            data: forumStudentsOccasionals
-        }, {
-            name: 'Regular Posters in Forums',
+            name: 'Regular Posters', // - ' + graphElementMap['forumSegmentation']['regularPosters'] + ' students',
             type: 'line',
             data: forumRegPosters
         }, {
-            name: 'Occasional Posters in Forums',
+            name: 'Posts by Occasionals',
+            type: 'column',
+            data: forumOccData
+        }, {
+            name: 'Occasional Viewers', //- ' + graphElementMap['forumSegmentation']['occasionalViewers'] + ' students',
+            type: 'line',
+            data: forumStudentsOccasionals
+        }, {
+            name: 'Occasional Posters' , // - ' + graphElementMap['forumSegmentation']['occasionalPosters'] + ' students',
             type: 'line',
             data: forumOccPosters
         }],
         stroke: {
-            width: [1, 3, 1, 3, 3, 3],
-            dashArray: [0, 0, 0, 0, 3, 3]
+            width: [1, 3, 3, 1, 3, 3],
+            dashArray: [0, 0, 3, 0, 0, 3]
         },
-        colors: ['#C41E3D', '#7D1128', '#5EB1BF', '#54F2F2', '#FF2C55', '#042A2B'],
+        colors: ['#C41E3D', '#7D1128', '#FF2C55', '#5EB1BF', '#54F2F2', '#042A2B'],
         title: {
             text: 'Weekly Forum Analysis',
             align: 'center',
@@ -3455,7 +3455,7 @@ function drawApex(graphElementMap, start, end){
             type: 'datetime'
         },
         yaxis: [{
-            // seriesName: 'Posts by Regulars - ' + graphElementMap['forumSegmentation']['regularPosters'] + ' students',
+            seriesName: 'Posts by Regulars',
             axisTicks: {
                 show: true,
             },
@@ -3476,7 +3476,7 @@ function drawApex(graphElementMap, start, end){
                 }
             }
         }, {
-            // seriesName: 'Occasional Viewers in Forums - ' + graphElementMap['forumSegmentation']['occasionalViewers'] + ' students',
+            seriesName: 'Regular Viewers',
             opposite: true,
             axisTicks: {
                 show: true,
@@ -3498,17 +3498,39 @@ function drawApex(graphElementMap, start, end){
                 }
             }
         }, {
-            // seriesName: 'Posts by Occasionals - ' + graphElementMap['forumSegmentation']['occasionalPosters'] + ' students',
-            opposite: true,
+            seriesName: 'Regular Posters',
             axisTicks: {
-                show: false,
+                show: true,
             },
             axisBorder: {
-                show: false,
+                show: true,
+                color: '#753599'
+            },
+            labels: {
+                show: true,
+                style: {
+                    color: '#753599',
+                },
+                formatter: v => v.toFixed(0)
+            },
+            title: {
+                // text: "New Posts",
+                style: {
+                    color: '#753599',
+                }
+            }
+        }, {
+            name: 'Posts by Occasionals',
+            opposite: true,
+            axisTicks: {
+                show: true,
+            },
+            axisBorder: {
+                show: true,
                 color: '#FEB019'
             },
             labels: {
-                show: false,
+                show: true,
                 style: {
                     color: '#FEB019',
                 },
@@ -3521,16 +3543,17 @@ function drawApex(graphElementMap, start, end){
                 }
             }
         }, {
-            // seriesName: 'Occasional Viewers in Forums - ' + graphElementMap['forumSegmentation']['occasionalViewers'] + ' students',
+            name: 'Occasional Viewers',
+            opposite: true,
             axisTicks: {
-                show: false,
+                show: true,
             },
             axisBorder: {
-                show: false,
+                show: true,
                 color: '#fe1100'
             },
             labels: {
-                show: false,
+                show: true,
                 style: {
                     color: '#fe1100',
                 },
@@ -3543,38 +3566,16 @@ function drawApex(graphElementMap, start, end){
                 }
             }
         }, {
-            // seriesName: 'Regular Posters in Forums - ',
+            name: 'Occasional Posters',
             axisTicks: {
-                show: false,
+                show: true,
             },
             axisBorder: {
-                show: false,
-                color: '#753599'
-            },
-            labels: {
-                show: false,
-                style: {
-                    color: '#753599',
-                },
-                formatter: v => v.toFixed(0)
-            },
-            title: {
-                // text: "New Posts",
-                style: {
-                    color: '#753599',
-                }
-            }
-        }, {
-            // seriesName: 'Occasional Posters in Forums - ',
-            axisTicks: {
-                show: false,
-            },
-            axisBorder: {
-                show: false,
+                show: true,
                 color: '#ff1ebc'
             },
             labels: {
-                show: false,
+                show: true,
                 style: {
                     color: '#ff1ebc',
                 },
@@ -3586,18 +3587,6 @@ function drawApex(graphElementMap, start, end){
                     color: '#ff1ebc',
                 }
             }
-        // }, {
-        //     opposite: true,
-        //     title: {
-        //         text: 'Seconds in Forums / New Posts'
-        //     },
-        //     labels: {
-        //         show: true,
-        //         formatter: function(val, index) {
-        //             return val.toFixed(0);
-        //         }
-        //     },
-        //     seriesName: 'Average time spent in Forums',
         }]
     };
 

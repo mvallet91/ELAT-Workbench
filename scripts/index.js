@@ -2807,9 +2807,11 @@ function getGraphElementMap(callback, start, end) {
                     let orderedForumPosts = {};
                     let orderedForumPostContent = {};
                     let orderedForumPosters = {};
-                    let orderedForumPosterRegulars = {};
+                    let orderedForumPostsByRegulars = {};
+                    let orderedForumPostersRegulars = {};
                     let orderedForumPostContentRegulars = {};
-                    let orderedForumPosterOccasionals = {};
+                    let orderedForumPostsByOccasionals = {};
+                    let orderedForumPostersOccasionals = {};
                     let orderedForumPostContentOccasionals = {};
 
                     let start_date = '';
@@ -3065,20 +3067,28 @@ function getGraphElementMap(callback, start, end) {
                                                         orderedForumSessionOccasionals[date] = occasionals.length;
                                                         orderedForumOccasionals[date] = new Set(occasionals).size;
 
-                                                        orderedForumPosterOccasionals[date] = 0;
-                                                        orderedForumPosterRegulars[date] = 0;
+                                                        orderedForumPostsByOccasionals[date] = 0;
+                                                        orderedForumPostsByRegulars[date] = 0;
+                                                        orderedForumPostersRegulars[date] = [];
+                                                        orderedForumPostersOccasionals[date] = [];
+
                                                         if (forumPosters.hasOwnProperty(date)) {
                                                             orderedForumPosters[date] = Math.round(forumPosters[date].length);
                                                             for (let poster of forumPosters[date]) {
                                                                 if (regularPosters.includes(poster)) {
-                                                                    orderedForumPosterRegulars[date] = orderedForumPosterRegulars[date] + 1
+                                                                    orderedForumPostsByRegulars[date] = orderedForumPostsByRegulars[date] + 1
+                                                                    orderedForumPostersRegulars[date].push(poster)
                                                                 } else {
-                                                                    orderedForumPosterOccasionals[date] = orderedForumPosterOccasionals[date] + 1
+                                                                    orderedForumPostsByOccasionals[date] = orderedForumPostsByOccasionals[date] + 1
+                                                                    orderedForumPostersOccasionals[date].push(poster);
                                                                 }
                                                             }
                                                         } else {
                                                             orderedForumPosters[date] = 0;
                                                         }
+
+                                                        orderedForumPostersRegulars[date] = new Set(orderedForumPostersRegulars[date]).size;
+                                                        orderedForumPostersOccasionals[date] = new Set(orderedForumPostersOccasionals[date]).size;
 
                                                         if (forumPosts.hasOwnProperty(date)) {
                                                             orderedForumPosts[date] = Math.round(forumPosts[date].length);
@@ -3165,8 +3175,10 @@ function getGraphElementMap(callback, start, end) {
                                                         'orderedForumPostContentRegulars': orderedForumPostContentRegulars,
                                                         'orderedForumPostContentOccasionals': orderedForumPostContentOccasionals,
                                                         'orderedForumPosters': orderedForumPosters,
-                                                        'orderedForumPosterRegulars': orderedForumPosterRegulars,
-                                                        'orderedForumPosterOccasionals': orderedForumPosterOccasionals,
+                                                        'orderedForumPostersRegulars': orderedForumPostersRegulars,
+                                                        'orderedForumPostersOccasionals': orderedForumPostersOccasionals,
+                                                        'orderedForumPostsByRegulars': orderedForumPostsByRegulars,
+                                                        'orderedForumPostsByOccasionals': orderedForumPostsByOccasionals,
 
                                                         'orderedForumStudents': orderedForumStudents,
                                                         'orderedForumRegulars': orderedForumRegulars,
@@ -3327,8 +3339,10 @@ function drawApex(graphElementMap, start, end){
     }
 
     let weeklyPosts = groupWeeklyMapped(graphElementMap, 'orderedForumPosts');
-    let weeklyRegPosts = groupWeeklyMapped(graphElementMap, 'orderedForumPosterRegulars');
-    let weeklyOccPosts = groupWeeklyMapped(graphElementMap, 'orderedForumPosterOccasionals');
+    let weeklyRegPosts = groupWeeklyMapped(graphElementMap, 'orderedForumPostsByRegulars');
+    let weeklyRegPosters = groupWeeklyMapped(graphElementMap, 'orderedForumPostersRegulars');
+    let weeklyOccPosts = groupWeeklyMapped(graphElementMap, 'orderedForumPostsByOccasionals');
+    let weeklyOccPosters = groupWeeklyMapped(graphElementMap, 'orderedForumPostersOccasionals');
     let weeklyForumSessions = groupWeeklyMapped(graphElementMap, 'orderedForumAvgDurations');
     let weeklyForumStudents = groupWeeklyMapped(graphElementMap, 'orderedForumStudents');
     let weeklyForumRegulars = groupWeeklyMapped(graphElementMap, 'orderedForumRegulars');
@@ -3337,7 +3351,9 @@ function drawApex(graphElementMap, start, end){
     let dateLabels = [];
     let forumData = [];
     let forumRegData = [];
+    let forumRegPosters = [];
     let forumOccData = [];
+    let forumOccPosters = [];
     let forumDurations = [];
     let forumStudents = [];
     let forumStudentsRegulars = [];
@@ -3348,7 +3364,9 @@ function drawApex(graphElementMap, start, end){
         }
         forumData = Object.values(weeklyPosts['weeklySum']);
         forumRegData = Object.values(weeklyRegPosts['weeklySum']);
+        forumRegPosters = Object.values(weeklyRegPosters['weeklySum']);
         forumOccData = Object.values(weeklyOccPosts['weeklySum']);
+        forumOccPosters = Object.values(weeklyOccPosters['weeklySum']);
         forumDurations = Object.values(weeklyForumSessions['weeklyAvg']);
         forumStudents = Object.values(weeklyForumStudents['weeklySum']);
         forumStudentsRegulars = Object.values(weeklyForumRegulars['weeklySum']);
@@ -3358,8 +3376,10 @@ function drawApex(graphElementMap, start, end){
             dateLabels.push(date.toLocaleString())
         }
         forumData = Object.values(graphElementMap["orderedForumPosts"]);
-        forumRegData = Object.values(graphElementMap["orderedForumPosterRegulars"]);
-        forumOccData = Object.values(graphElementMap["orderedForumPosterOccasionals"]);
+        forumRegData = Object.values(graphElementMap["orderedForumPostsByRegulars"]);
+        forumRegPosters = Object.values(graphElementMap["orderedForumPostersRegulars"]);
+        forumOccData = Object.values(graphElementMap["orderedForumPostsByOccasionals"]);
+        forumOccPosters = Object.values(graphElementMap["orderedForumPostersOccasionals"]);
         forumDurations = Object.values(graphElementMap['orderedForumAvgDurations']);
         forumStudents = Object.values(graphElementMap['orderedForumStudents']);
         forumStudentsRegulars = Object.values(graphElementMap['orderedForumStudentsRegulars']);
@@ -3407,14 +3427,20 @@ function drawApex(graphElementMap, start, end){
             name: 'Occasional Viewers in Forums - ' + graphElementMap['forumSegmentation']['occasionalViewers'] + ' students',
             type: 'line',
             data: forumStudentsOccasionals
-        // }, {
-        //     name: 'Average time spent in Forums',
-        //     type: 'line',
-        //     data: forumDurations
+        }, {
+            name: 'Regular Posters in Forums',
+            type: 'line',
+            data: forumRegPosters
+        }, {
+            name: 'Occasional Posters in Forums',
+            type: 'line',
+            data: forumOccPosters
         }],
         stroke: {
-            width: [1, 3, 1, 3, 3]
+            width: [1, 3, 1, 3, 3, 3],
+            dashArray: [0, 0, 0, 0, 3, 3]
         },
+        colors: ['#C41E3D', '#7D1128', '#5EB1BF', '#54F2F2', '#FF2C55', '#042A2B'],
         title: {
             text: 'Weekly Forum Analysis',
             align: 'center',
@@ -3514,6 +3540,50 @@ function drawApex(graphElementMap, start, end){
                 // text: "New Posts",
                 style: {
                     color: '#fe1100',
+                }
+            }
+        }, {
+            // seriesName: 'Regular Posters in Forums - ',
+            axisTicks: {
+                show: false,
+            },
+            axisBorder: {
+                show: false,
+                color: '#753599'
+            },
+            labels: {
+                show: false,
+                style: {
+                    color: '#753599',
+                },
+                formatter: v => v.toFixed(0)
+            },
+            title: {
+                // text: "New Posts",
+                style: {
+                    color: '#753599',
+                }
+            }
+        }, {
+            // seriesName: 'Occasional Posters in Forums - ',
+            axisTicks: {
+                show: false,
+            },
+            axisBorder: {
+                show: false,
+                color: '#ff1ebc'
+            },
+            labels: {
+                show: false,
+                style: {
+                    color: '#ff1ebc',
+                },
+                formatter: v => v.toFixed(0)
+            },
+            title: {
+                // text: "New Posts",
+                style: {
+                    color: '#ff1ebc',
                 }
             }
         // }, {

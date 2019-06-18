@@ -322,18 +322,18 @@
             <!--<canvas id="lineChart" width="350" height="100"></canvas>-->
         <!--</div>-->
 
-        <div class="chart-container col-xs-12 col-sm-11  " id="areaChartBox">
-            <canvas id="areaChart" width="350" height="100"></canvas>
-        </div>
+        <!--<div class="chart-container col-xs-12 col-sm-11  " id="areaChartBox">-->
+            <!--<canvas id="areaChart" width="350" height="100"></canvas>-->
+        <!--</div>-->
 
         <div class="chart-container col-xs-12 col-sm-11  " id="brushChartBox">
             <div id="chartBrush"></div>
             <div id="chartDetail"></div>
         </div>
 
-        <div class="chart-container col-xs-12 col-sm-11  " id="boxChartBox">
-            <canvas id="boxChart" width="350" height="100"></canvas>
-        </div>
+        <!--<div class="chart-container col-xs-12 col-sm-11  " id="boxChartBox">-->
+            <!--<canvas id="boxChart" width="350" height="100"></canvas>-->
+        <!--</div>-->
 
         <!--<div class="chart-container col-xs-12 col-sm-11  " id="mixedChartBox">-->
             <!--<div id="mixedChart"></div>-->
@@ -374,39 +374,26 @@
                     <div id="heatChart"></div>
                 </div>
             </li>
-            <li id="3" data-row="3" data-col="1" data-sizex="12" data-sizey="4">
+            <li id="lineTile" data-row="3" data-col="1" data-sizex="12" data-sizey="4">
                 <header>|||</header>
                 <div class="container-fluid" id="lineChartBox" >
-                    <canvas id="lineChart" width="350" height="100"></canvas>
+                    <canvas id="lineChart"></canvas>
                 </div>
             </li>
-            <li id="4" data-row="4" data-col="1" data-sizex="12" data-sizey="4">
+            <li id="boxTile" data-row="4" data-col="1" data-sizex="12" data-sizey="4">
                 <header>|||</header>
-                <!--<div class="container-fluid ">-->
-                    FOUR
-                <!--</div>-->
+                <div class="container-fluid " id="boxChartBox">
+                    <canvas id="boxChart"></canvas>
+                </div>
+            </li>
+            <li id="areaTile" data-row="5" data-col="1" data-sizex="12" data-sizey="4">
+                <header>|||</header>
+                <div class="container-fluid " id="areaChartBox">
+                    <canvas id="areaChart"></canvas>
+                </div>
             </li>
         </ul>
     </div>
-
-
-    <style type="text/css">
-
-        .gridster li header {
-            background: #999;
-            display: block;
-            font-size: 20px;
-            line-height: normal;
-            padding: 4px 0 6px;
-            margin-bottom: 20px;
-            cursor: move;
-        }
-
-    </style>
-
-    <script type="text/javascript">
-
-    </script>
 
 
     <script src = "https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.15.0/umd/popper.min.js"></script>
@@ -429,15 +416,18 @@
         let lineChart = null;
         let areaChart = null;
         let boxChart = null;
-        $(function() {
-            $('input[name="daterange"]').daterangepicker({
-                opens: 'left'
-            }, function(start, end, label) {
-                document.getElementById('allDatesRadio').checked = false;
-                document.getElementById('courseDatesRadio').checked = false;
-                getGraphElementMap(drawCharts, start.format('YYYY-MM-DD'), end.format('YYYY-MM-DD'));
-            });
-        });
+        let mixedChart = null;
+        let arcChart = null;
+        let heatChart = null;
+        // $(function() {
+        //     $('input[name="daterange"]').daterangepicker({
+        //         opens: 'left'
+        //     }, function(start, end, label) {
+        //         document.getElementById('allDatesRadio').checked = false;
+        //         document.getElementById('courseDatesRadio').checked = false;
+        //         getGraphElementMap(drawCharts, start.format('YYYY-MM-DD'), end.format('YYYY-MM-DD'));
+        //     });
+        // });
     </script>
 
 </body>

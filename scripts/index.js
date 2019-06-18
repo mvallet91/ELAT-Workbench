@@ -2400,13 +2400,36 @@ function processSessions(tablename, headers) {
 
 
 function drawCharts(graphElementMap, start, end) {
-    drawApex(graphElementMap, start, end);
-    let canvas = document.getElementById('lineChart');
-    let lineCtx = canvas.getContext('2d');
-    lineCtx.clearRect(0, 0, canvas.width, canvas.height);
 
     let startDate = new Date(start);
     let endDate = new Date(end);
+    let weekly = true;
+
+    let radioValue = $("input[name='optradio']:checked").val();
+    if (radioValue){
+        if (radioValue === 'allDates'){
+            startDate = new Date(graphElementMap['dateListChart'][0]);
+            endDate = new Date(graphElementMap['dateListChart'][graphElementMap['dateListChart'].length - 1]);
+        } else if (radioValue === 'courseDates') {
+            endDate = new Date(graphElementMap['end_date']);
+            startDate = new Date(graphElementMap['start_date']);
+        }
+    }
+
+    let radioValueWeekly = $("input[name='dayVSweekRadio']:checked").val();
+    if (radioValueWeekly){
+        if (radioValueWeekly === 'weekly'){
+            weekly = true
+        } else if (radioValueWeekly === 'daily') {
+            weekly = false
+        }
+    }
+
+    drawApex(graphElementMap, startDate, endDate, weekly);
+
+    let canvas = document.getElementById('lineChart');
+    let lineCtx = canvas.getContext('2d');
+    lineCtx.clearRect(0, 0, canvas.width, canvas.height);
 
     let lineData = {
         labels: graphElementMap['dateListChart'],
@@ -2428,17 +2451,6 @@ function drawCharts(graphElementMap, start, end) {
             lineTension: 0.2,
         }]
     };
-
-    let radioValue = $("input[name='optradio']:checked").val();
-    if (radioValue){
-        if (radioValue === 'allDates'){
-            startDate = new Date(graphElementMap['dateListChart'][0]);
-            endDate = new Date(graphElementMap['dateListChart'][graphElementMap['dateListChart'].length - 1]);
-        } else if (radioValue === 'courseDates') {
-            endDate = new Date(graphElementMap['end_date']);
-            startDate = new Date(graphElementMap['start_date']);
-        }
-    }
 
     let lineOptions = {
         type: 'line',
@@ -2610,8 +2622,6 @@ function drawCharts(graphElementMap, start, end) {
 
     // BOXPLOT https://codepen.io/sgratzl/pen/QxoLoY
 
-    let weekly = true;
-
     let weeklyPostContents = groupWeeklyMapped(graphElementMap, 'orderedForumPostContent');
     let weeklyRegPostContents = groupWeeklyMapped(graphElementMap, 'orderedForumPostContentRegulars');
     let weeklyOccPostContents = groupWeeklyMapped(graphElementMap, 'orderedForumPostContentOccasionals');
@@ -2675,50 +2685,46 @@ function drawCharts(graphElementMap, start, end) {
     };
 
     let boxOptions = {
-        // type: 'boxplot',
-        // data: boxplotData,
-        // options: {
-            responsive: true,
-            legend: {
-                position: 'top',
-            },
-            title: {
+        responsive: true,
+        legend: {
+            position: 'top',
+        },
+        title: {
+            display: true,
+            text: 'Size of Posting (character count)',
+            position: 'top',
+            fontSize:  16,
+            color:  '#263238',
+            fontFamily: 'Helvetica'
+        },
+        scales: {
+            xAxes: [{
+                type: 'time',
                 display: true,
-                text: 'Size of Posting (character count)',
-                position: 'top',
-                fontSize:  16,
-                color:  '#263238',
-                fontFamily: 'Helvetica'
-            },
-            scales: {
-                xAxes: [{
-                    type: 'time',
+                time: {
+                    unit: 'day',
+                    min: startDate.setDate(startDate.getDate() - 5),
+                    max: endDate.setDate(endDate.getDate() + 3),
+                },
+                scaleLabel: {
                     display: true,
-                    time: {
-                        unit: 'day',
-                        min: startDate.setDate(startDate.getDate() - 5),
-                        max: endDate.setDate(endDate.getDate() + 3),
-                    },
-                    scaleLabel: {
-                        display: true,
-                        labelString: "Date",
-                    }
-                }],
-                yAxes: [{
-                    ticks: {
-                        beginAtZero: true,
-                        minStats: 'min',
-                        maxStats: 'whiskerMax'
-                    },
-                    position: 'left',
+                    labelString: "Date",
+                }
+            }],
+            yAxes: [{
+                ticks: {
+                    beginAtZero: true,
+                    minStats: 'min',
+                    maxStats: 'whiskerMax'
+                },
+                position: 'left',
+                display: true,
+                scaleLabel: {
                     display: true,
-                    scaleLabel: {
-                        display: true,
-                        labelString: "Number of Characters",
-                    }
-                }]
-            }
-        // }
+                    labelString: "Number of Characters",
+                }
+            }]
+        }
     };
 
     if (boxChart !== null) {
@@ -2755,6 +2761,7 @@ function drawCharts(graphElementMap, start, end) {
 // TODO - ADD AVG. GRADE HEATMAP BY GROUPS OF REG-OCC-NON POSTERS VS VIEWERS
 
 function getGraphElementMap(callback, start, end) {
+
     let graphElementMap = {};
     connection.runSql("SELECT * FROM webdata WHERE name = 'graphElements' ").then(function(result) {
         if (result.length === 1) {
@@ -3295,8 +3302,7 @@ function updateChart() {
 }
 
 
-
-function drawApex(graphElementMap, start, end){
+function drawApex(graphElementMap, start, end, weekly){
     let data = [];
 
     for (let date in graphElementMap["orderedSessions"]){
@@ -3318,9 +3324,6 @@ function drawApex(graphElementMap, start, end){
         stroke: {
             width: 3
         },
-        // dataLabels: {
-        //     enabled: true
-        // },
         fill: {
             opacity: 1,
         },
@@ -3397,13 +3400,6 @@ function drawApex(graphElementMap, start, end){
     );
     chartBrush.render();
 
-    let weekly = true;
-    let radioValue = $("input[name='radioDayvWeek']:checked").val();
-    if (radioValue === 'daily'){
-        weekly = false;
-        console.log('daily')
-    }
-
     let weeklyPosts = groupWeeklyMapped(graphElementMap, 'orderedForumPosts');
     let weeklyRegPosts = groupWeeklyMapped(graphElementMap, 'orderedForumPostsByRegulars');
     let weeklyRegPosters = groupWeeklyMapped(graphElementMap, 'orderedForumPostersRegulars');
@@ -3426,7 +3422,9 @@ function drawApex(graphElementMap, start, end){
     let forumStudentsOccasionals = [];
     if (weekly === true){
         for (let date in weeklyPosts['weeklySum']){
-            dateLabels.push(date.toLocaleString())
+            if (new Date(date) > start && new Date(date) < end) {
+                dateLabels.push(date.toLocaleString())
+            }
         }
         forumData = Object.values(weeklyPosts['weeklySum']);
         forumRegData = Object.values(weeklyRegPosts['weeklySum']);
@@ -3439,7 +3437,9 @@ function drawApex(graphElementMap, start, end){
         forumStudentsOccasionals = Object.values(weeklyForumOccasionals['weeklySum']);
     } else {
         for (let date of graphElementMap["dateListChart"]){
-            dateLabels.push(date.toLocaleString())
+            if (new Date(date) > start && new Date(date) < end) {
+                dateLabels.push(date.toLocaleString())
+            }
         }
         forumData = Object.values(graphElementMap["orderedForumPosts"]);
         forumRegData = Object.values(graphElementMap["orderedForumPostsByRegulars"]);
@@ -3448,10 +3448,12 @@ function drawApex(graphElementMap, start, end){
         forumOccPosters = Object.values(graphElementMap["orderedForumPostersOccasionals"]);
         forumDurations = Object.values(graphElementMap['orderedForumAvgDurations']);
         forumStudents = Object.values(graphElementMap['orderedForumStudents']);
-        forumStudentsRegulars = Object.values(graphElementMap['orderedForumStudentsRegulars']);
-        forumStudentsOccasionals = Object.values(graphElementMap['orderedForumStudentsOccasionals']);
+        forumStudentsRegulars = Object.values(graphElementMap['orderedForumRegulars']);
+        forumStudentsOccasionals = Object.values(graphElementMap['orderedForumOccasionals']);
     }
-
+    console.log(dateLabels);
+    console.log(start);
+    console.log(end);
     let optionsMixed = {
         chart: {
             height: '420px',
@@ -3531,7 +3533,9 @@ function drawApex(graphElementMap, start, end){
         },
         labels: dateLabels,
         xaxis: {
-            type: 'datetime'
+            type: 'datetime',
+            min: start.toDateString(),
+            max: end.toDateString()
         },
         yaxis: [{
             seriesName: 'Posts by Regulars',
@@ -3672,12 +3676,16 @@ function drawApex(graphElementMap, start, end){
         }]
     };
 
-    let chartMixed = new ApexCharts(
+    if (mixedChart !== null) {
+        mixedChart.destroy();
+    }
+
+    mixedChart = new ApexCharts(
         document.querySelector("#mixedChart"),
         optionsMixed
     );
 
-    chartMixed.render();
+    mixedChart.render();
 
     let heatOptions = {
         chart: {
@@ -4486,29 +4494,28 @@ function populateSamples(courseId){
 
 // let Draggable = window.Draggable;  //https://stackoverflow.com/a/49690740/8331561
 // new Draggable.Sortable(document.querySelectorAll('ul'), { draggable: 'li' }); //https://github.com/Shopify/draggable/issues/6#issuecomment-341180135
-
-function hideChart(divId) {
-    let x = document.getElementById(divId);
-    if (x.style.display === "none") {
-        x.style.display = "block";
-    } else {
-        x.style.display = "none";
-    }
-}
+//
+// function hideChart(divId) {
+//     let x = document.getElementById(divId);
+//     if (x.style.display === "none") {
+//         x.style.display = "block";
+//     } else {
+//         x.style.display = "none";
+//     }
+// }
 
 
 function updateDashboard(){
     let chartElements = document.getElementById('chartList');
-    let chartContainer = document.getElementById('chartContainer');
     let chartMap = {
         'line': 'lineChartBox',
         'area': 'areaChartBox',
         'brush': 'brushChartBox',
-        'mixed': 'mixedChartBox',
+        // 'mixed': 'mixedChartBox',
+        'mixed': 'mixedTile',
         'box-whisker': 'boxChartBox',
         'arc': 'arcChartBox'
     };
-    let containerContents = {};
     for (let e of chartElements.children){
         let divId = chartMap[e.id];
         let container = document.getElementById(divId);
@@ -4594,7 +4601,6 @@ function prepareDashboard() {
             $.each(localData, function (i, value) {
                 let id_name = "#";
                 id_name = id_name + value.id;
-                console.log(id_name);
                 $(id_name).attr({
                     "data-col": value.col,
                     "data-row": value.row,
@@ -4612,15 +4618,11 @@ function prepareDashboard() {
                 widget_base_dimensions: [100, 120],
                 widget_margins: [5, 5],
                 helper: 'clone',
-                // draggable: {
-                //     handle: 'header'
-                // },
                 resize: {
                     enabled: true,
                     stop: function (event, ui) {
                         let positions = JSON.stringify(this.serialize());
                         localStorage.setItem('positions', positions);
-                        console.log(positions);
                     }
                 },
                 serialize_params: function ($w, wgd) {
@@ -4637,10 +4639,19 @@ function prepareDashboard() {
                     stop: function (event, ui) {
                         let positions = JSON.stringify(this.serialize());
                         localStorage.setItem('positions', positions);
-                        console.log(positions);
                     }
                 }
             }).data('gridster');
+        });
+    });
+
+    $(function() {
+        $('input[name="daterange"]').daterangepicker({
+            opens: 'left'
+        }, function(start, end, label) {
+            document.getElementById('allDatesRadio').checked = false;
+            document.getElementById('courseDatesRadio').checked = false;
+            getGraphElementMap(drawCharts, start.format('YYYY-MM-DD'), end.format('YYYY-MM-DD'));
         });
     });
 }

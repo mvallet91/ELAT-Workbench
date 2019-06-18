@@ -13,6 +13,7 @@ window.onload = function () {
     getGraphElementMap(drawCharts);
     drawVideoArc();
     loadDashboard();
+    prepareDashboard();
 
     //// MULTI FILE SYSTEM  ///////////////////////////////////////////////////////////////////////////
     let  multiFileInput = document.getElementById('filesInput');
@@ -3539,18 +3540,18 @@ function drawApex(graphElementMap, start, end){
             },
             axisBorder: {
                 show: true,
-                color: '#008FFB'
+                color: '#138d00'
             },
             labels: {
                 style: {
-                    color: '#008FFB',
+                    color: '#138d00',
                 },
                 formatter: v => v.toFixed(0)
             },
             title: {
-                text: "New Posts",
+                text: "New Posts Added (bars)",
                 style: {
-                    color: '#008FFB',
+                    color: '#138d00',
                 }
             }
         }, {
@@ -3561,18 +3562,18 @@ function drawApex(graphElementMap, start, end){
             },
             axisBorder: {
                 show: true,
-                color: '#00E396'
+                color: '#913bff'
             },
             labels: {
                 style: {
-                    color: '#00E396',
+                    color: '#913bff',
                 },
                 formatter: v => v.toFixed(0)
             },
             title: {
-                text: "Students visiting Forums",
+                text: "Students visiting Forums (continuous line)",
                 style: {
-                    color: '#00E396',
+                    color: '#913bff',
                 }
             }
         }, {
@@ -3582,87 +3583,90 @@ function drawApex(graphElementMap, start, end){
             },
             axisBorder: {
                 show: true,
-                color: '#753599'
+                color: '#000000'
             },
             labels: {
                 show: true,
                 style: {
-                    color: '#753599',
+                    color: '#000000',
                 },
                 formatter: v => v.toFixed(0)
             },
             title: {
-                // text: "New Posts",
+                text: "Students Posting (dotted line)",
                 style: {
-                    color: '#753599',
+                    color: '#000000',
                 }
             }
         }, {
-            name: 'Posts by Occasionals',
+            // seriesName: 'Posts by Occasionals', // REAL NAME
+            seriesName: 'Posts by Regulars', // NAME FOR AXIS
             opposite: true,
             axisTicks: {
-                show: true,
+                show: false,
             },
             axisBorder: {
-                show: true,
-                color: '#FEB019'
+                show: false,
+                color: '#5EB1BF'
             },
             labels: {
-                show: true,
+                show: false,
                 style: {
-                    color: '#FEB019',
+                    color: '#5EB1BF',
                 },
                 formatter: v => v.toFixed(0)
             },
             title: {
                 // text: "Posts by Occasional Students",
                 style: {
-                    color: '#FEB019',
+                    color: '#5EB1BF',
                 }
             }
         }, {
-            name: 'Occasional Viewers',
+            // seriesName: 'Occasional Viewers',
+            seriesName: 'Regular Viewers',
             opposite: true,
             axisTicks: {
-                show: true,
+                show: false,
             },
             axisBorder: {
-                show: true,
-                color: '#fe1100'
+                show: false,
+                color: '#54F2F2'
             },
             labels: {
-                show: true,
+                show: false,
                 style: {
-                    color: '#fe1100',
+                    color: '#54F2F2',
                 },
                 formatter: v => v.toFixed(0)
             },
             title: {
                 // text: "New Posts",
                 style: {
-                    color: '#fe1100',
+                    color: '#54F2F2',
                 }
             }
         }, {
-            name: 'Occasional Posters',
+            // name: 'Occasional Posters',
+            seriesName: 'Regular Posters',
             axisTicks: {
-                show: true,
+                show: false,
             },
             axisBorder: {
-                show: true,
-                color: '#ff1ebc'
+                show: false,
+                color: '#042A2B'
             },
             labels: {
-                show: true,
+                show: false,
                 style: {
-                    color: '#ff1ebc',
+                    color: '#042A2B',
                 },
                 formatter: v => v.toFixed(0)
             },
             title: {
                 // text: "New Posts",
                 style: {
-                    color: '#ff1ebc',
+                    color: '#042A2B',
                 }
             }
         }]
@@ -4480,18 +4484,8 @@ function populateSamples(courseId){
     })
 }
 
-let Draggable = window.Draggable;  //https://stackoverflow.com/a/49690740/8331561
-new Draggable.Sortable(document.querySelectorAll('ul'), { draggable: 'li' }); //https://github.com/Shopify/draggable/issues/6#issuecomment-341180135
-// .on('drag:start', () => console.log('drag:start'))
-// .on('drag:move',  () => console.log('drag:move'))
-// .on('drag:stop', () => console.log('drag:stop'));
-//     .on('drag:stop', function (e) {
-    // updateDashboard();
-//     let elements = document.getElementById('chartList');
-//     for (let n of elements.children){
-//         console.log(n.id)
-//     }
-// });
+// let Draggable = window.Draggable;  //https://stackoverflow.com/a/49690740/8331561
+// new Draggable.Sortable(document.querySelectorAll('ul'), { draggable: 'li' }); //https://github.com/Shopify/draggable/issues/6#issuecomment-341180135
 
 function hideChart(divId) {
     let x = document.getElementById(divId);
@@ -4515,18 +4509,8 @@ function updateDashboard(){
         'arc': 'arcChartBox'
     };
     let containerContents = {};
-    // while (chartContainer.hasChildNodes()) {
-    //     containerContents[chartContainer.firstChild.id] = chartContainer.firstChild.innerHTML;
-    //     chartContainer.removeChild(chartContainer.firstChild);
-    // }
     for (let e of chartElements.children){
         let divId = chartMap[e.id];
-        // if (e.firstElementChild.firstElementChild.checked) {
-        //     let containerHTML = document.createElement('div');
-        //     containerHTML.id = divId;
-        //     containerHTML.innerHTML = containerContents[divId];
-        //     chartContainer.appendChild(containerHTML);
-        // }
         let container = document.getElementById(divId);
         if (e.firstElementChild.firstElementChild.checked) {
             container.style.display = "block";
@@ -4603,25 +4587,63 @@ function loadDashboard(){
     });
 }
 
+function prepareDashboard() {
+    $(function () {
+        let localData = JSON.parse(localStorage.getItem('positions'));
+        if (localData != null) {
+            $.each(localData, function (i, value) {
+                let id_name = "#";
+                id_name = id_name + value.id;
+                console.log(id_name);
+                $(id_name).attr({
+                    "data-col": value.col,
+                    "data-row": value.row,
+                    "data-sizex": value.size_x,
+                    "data-sizey": value.size_y
+                });
+            });
+        } else {
+            console.log('No data returned by the server');
+        }
 
-// window.ready = function () {
-//     let localData = JSON.parse(localStorage.getItem('positions'));
-//     if (localData != null) {
-//         $.each(localData, function (i, value) {
-//             let id_name = "#";
-//             id_name = id_name + value.id;
-//             console.log(id_name);
-//             $(id_name).attr({
-//                 "data-col": value.col,
-//                 "data-row": value.row,
-//                 "data-sizex": value.size_x,
-//                 "data-sizey": value.size_y
-//             });
-//         });
-//     } else {
-//         console.log('No data returned by the server');
-//     }
-// };
+        let gridster;
+        $(function () {
+            gridster = $(".gridster ul").gridster({
+                widget_base_dimensions: [100, 120],
+                widget_margins: [5, 5],
+                helper: 'clone',
+                // draggable: {
+                //     handle: 'header'
+                // },
+                resize: {
+                    enabled: true,
+                    stop: function (event, ui) {
+                        let positions = JSON.stringify(this.serialize());
+                        localStorage.setItem('positions', positions);
+                        console.log(positions);
+                    }
+                },
+                serialize_params: function ($w, wgd) {
+                    return {
+                        id: $($w).attr('id'),
+                        col: wgd.col,
+                        row: wgd.row,
+                        size_x: wgd.size_x,
+                        size_y: wgd.size_y,
+                    };
+                },
+                draggable: {
+                    handle: 'header',
+                    stop: function (event, ui) {
+                        let positions = JSON.stringify(this.serialize());
+                        localStorage.setItem('positions', positions);
+                        console.log(positions);
+                    }
+                }
+            }).data('gridster');
+        });
+    });
+}
 
 // R SCRIPT FOR MARKOV CHAIN VIZ
 // video.str <-

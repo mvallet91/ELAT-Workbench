@@ -217,69 +217,88 @@
             </button>
             <div id="graphOptions" class="collapse">
                 <br>
-                <h6>Date Range</h6>
-                <div class="form-check" >
-                    <label class="form-check-label">
-                        <input type="radio" id="allDatesRadio" class="form-check-input" name="optradio" value="allDates" onchange="getGraphElementMap(drawCharts)">
-                        All Processed Logs
-                    </label>
+                <div class="row">
+                    <div class="col-lg-3 col-sm-4">
+                        <h6>Show & Hide Charts</h6>
+                        <ul id="chartList">
+                            <li id="line">
+                                <label class="form-check-label">
+                                    <input type="checkbox" id="showLineChart" class="form-check-input" value="show" onclick="updateDashboard()">
+                                    Session Line Chart
+                                </label>
+                            </li>
+                            <li id="area">
+                                <label class="form-check-label">
+                                    <input type="checkbox" id="showAreaChart" class="form-check-input" value="show" onclick="updateDashboard()">
+                                    Video/Forum/Quiz Area Chart
+                                </label>
+                            </li>
+                            <li id="brush">
+                                <label class="form-check-label">
+                                    <input type="checkbox" id="showBrushChart" class="form-check-input" value="show" onclick="updateDashboard()">
+                                    Brush Chart
+                                </label>
+                            </li>
+                            <li id="mixed">
+                                <label class="form-check-label">
+                                    <input type="checkbox" id="showMixedChart" class="form-check-input" value="show" onclick="updateDashboard()">
+                                    Mixed Chart
+                                </label>
+                            </li>
+                            <li id="box-whisker">
+                                <label class="form-check-label">
+                                    <input type="checkbox" id="showBoxChart" class="form-check-input" value="show" onclick="updateDashboard()">
+                                    Box and Whisker Chart
+                                </label>
+                            </li>
+                            <li id="arc">
+                                <label class="form-check-label">
+                                    <input type="checkbox" id="showArcChart" class="form-check-input" value="show" onclick="updateDashboard()">
+                                    Arc Chart
+                                </label>
+                            </li>
+                        </ul>
+                        <div class="col ">
+                            <button type="button" class="btn btn-secondary btn-sm" id="saveChartOrder" onclick="saveDashboard()">Save</button>
+                            <button type="button" class="btn btn-secondary btn-sm" id="defaultChartOrder" onclick="deleteDashboard()">Default</button>
+                        </div>
+                    </div>
+                    <div class="col-lg-3 col-sm-4">
+                        <h6>Date Range</h6>
+                        <div class="form-check" >
+                            <label class="form-check-label">
+                                <input type="radio" id="allDatesRadio" class="form-check-input" name="optradio" value="allDates" onchange="getGraphElementMap(drawCharts)">
+                                All Processed Logs
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <label class="form-check-label">
+                                <input type="radio" id="courseDatesRadio" class="form-check-input" name="optradio" value="courseDates" checked onchange="getGraphElementMap(drawCharts)">
+                                Official Course Dates
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <label class="form-check-label">
+                                Specific Dates - <input type="text" name="daterange" />
+                            </label>
+                        </div>
+                    </div>
+                    <div class="col-lg-3 col-sm-4">
+                        <h6>Week vs Day</h6>
+                        <div class="form-check" >
+                            <label class="form-check-label">
+                                <input type="radio" id="weeklyRadio" class="form-check-input" name="dayVSweekRadio" value="weekly" checked onchange="getGraphElementMap(drawCharts)">
+                                Weekly Values
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <label class="form-check-label">
+                                <input type="radio" id="dailyRadio" class="form-check-input" name="dayVSweekRadio" value="daily" onchange="getGraphElementMap(drawCharts)">
+                                Daily Values
+                            </label>
+                        </div>
+                    </div>
                 </div>
-                <div class="form-check">
-                    <label class="form-check-label">
-                        <input type="radio" id="courseDatesRadio" class="form-check-input" name="optradio" value="courseDates" checked onchange="getGraphElementMap(drawCharts)">
-                        Official Course Dates
-                    </label>
-                </div>
-                <div class="form-check">
-                    <label class="form-check-label">
-                        Specific Dates - <input type="text" name="daterange" />
-                    </label>
-                </div>
-                <br>
-                <h6>Show & Hide Charts</h6>
-                <ul id="chartList">
-                    <li id="line">
-                        <label class="form-check-label">
-                            <input type="checkbox" id="showLineChart" class="form-check-input" value="show" onclick="updateDashboard()">
-                            Session Line Chart
-                        </label>
-                    </li>
-                    <li id="area">
-                        <label class="form-check-label">
-                            <input type="checkbox" id="showAreaChart" class="form-check-input" value="show" onclick="updateDashboard()">
-                            Video/Forum/Quiz Area Chart
-                        </label>
-                    </li>
-                    <li id="brush">
-                        <label class="form-check-label">
-                            <input type="checkbox" id="showBrushChart" class="form-check-input" value="show" onclick="updateDashboard()">
-                            Brush Chart
-                        </label>
-                    </li>
-                    <li id="mixed">
-                        <label class="form-check-label">
-                            <input type="checkbox" id="showMixedChart" class="form-check-input" value="show" onclick="updateDashboard()">
-                            Mixed Chart
-                        </label>
-                    </li>
-                    <li id="box-whisker">
-                        <label class="form-check-label">
-                            <input type="checkbox" id="showBoxChart" class="form-check-input" value="show" onclick="updateDashboard()">
-                            Box and Whisker Chart
-                        </label>
-                    </li>
-                    <li id="arc">
-                        <label class="form-check-label">
-                            <input type="checkbox" id="showArcChart" class="form-check-input" value="show" onclick="updateDashboard()">
-                            Arc Chart
-                        </label>
-                    </li>
-                </ul>
-                <div class="col ">
-                    <button type="button" class="btn btn-secondary btn-sm" id="saveChartOrder" onclick="saveDashboard()">Save</button>
-                    <button type="button" class="btn btn-secondary btn-sm" id="defaultChartOrder" onclick="deleteDashboard()">Default</button>
-                </div>
-
                 <br>
                 <h6>Export Charts</h6>
                 <div class="col ">
@@ -292,16 +311,16 @@
                 <br>
                 <h6>Update Graph Values</h6>
                 <div class="col ">
-                    <button type="button" class="btn btn-secondary btn-sm" id="updateChartValues" onclick="updateChart()">Update</button>
+                    <button type="button" class="btn btn-danger btn-sm" id="updateChartValues" onclick="updateChart()">Update</button>
                 </div>
             </div>
         </div>
     </div>
 
     <div id="chartContainer" class="row justify-content-md-center " style="margin-top:10px; ">
-        <div class="chart-container col-xs-12 col-sm-11  " id="lineChartBox" >
-            <canvas id="lineChart" width="350" height="100"></canvas>
-        </div>
+        <!--<div class="chart-container col-xs-12 col-sm-11  " id="lineChartBox" >-->
+            <!--<canvas id="lineChart" width="350" height="100"></canvas>-->
+        <!--</div>-->
 
         <div class="chart-container col-xs-12 col-sm-11  " id="areaChartBox">
             <canvas id="areaChart" width="350" height="100"></canvas>
@@ -341,26 +360,6 @@
     </div>
 
 
-    <!--<div class="gridster">-->
-        <!--<ul>-->
-            <!--<li data-row="1" data-col="1" data-sizex="2" data-sizey="2">-->
-                <!--<header>|||</header>-->
-                <!--0-->
-            <!--</li>-->
-            <!--<li data-row="1" data-col="3" data-sizex="1" data-sizey="2">-->
-                <!--<header>|||</header>-->
-                <!--1-->
-            <!--</li>-->
-            <!--<li data-row="2" data-col="1" data-sizex="15" data-sizey="1">-->
-                <!--<header>|||</header>-->
-                <!--2-->
-            <!--</li>-->
-            <!--<li data-row="3" data-col="1" data-sizex="15" data-sizey="1">-->
-                <!--<header>|||</header>-->
-                <!--3-->
-            <!--</li>-->
-        <!--</ul>-->
-    <!--</div>-->
     <div class="gridster">
         <ul>
             <li id="mixedTile" data-row="1" data-col="1" data-sizex="12" data-sizey="5">
@@ -377,8 +376,8 @@
             </li>
             <li id="3" data-row="3" data-col="1" data-sizex="12" data-sizey="4">
                 <header>|||</header>
-                <div class="container-fluid">
-                    THREE
+                <div class="container-fluid" id="lineChartBox" >
+                    <canvas id="lineChart" width="350" height="100"></canvas>
                 </div>
             </li>
             <li id="4" data-row="4" data-col="1" data-sizex="12" data-sizey="4">
@@ -406,61 +405,7 @@
     </style>
 
     <script type="text/javascript">
-        $(function () {
-        let localData = JSON.parse(localStorage.getItem('positions'));
-        if (localData != null) {
-            $.each(localData, function (i, value) {
-                let id_name = "#";
-                id_name = id_name + value.id;
-                console.log(id_name);
-                $(id_name).attr({
-                    "data-col": value.col,
-                    "data-row": value.row,
-                    "data-sizex": value.size_x,
-                    "data-sizey": value.size_y
-                });
-            });
-        } else {
-            console.log('No data returned by the server');
-        }
 
-        var gridster;
-        $(function () {
-            gridster = $(".gridster ul").gridster({
-                widget_base_dimensions: [100, 120],
-                widget_margins: [5, 5],
-                helper: 'clone',
-                // draggable: {
-                //     handle: 'header'
-                // },
-                resize: {
-                    enabled: true,
-                    stop: function (event, ui) {
-                        let positions = JSON.stringify(this.serialize());
-                        localStorage.setItem('positions', positions);
-                        console.log(positions);
-                    }
-                },
-                serialize_params: function ($w, wgd) {
-                    return {
-                        id: $($w).attr('id'),
-                        col: wgd.col,
-                        row: wgd.row,
-                        size_x: wgd.size_x,
-                        size_y: wgd.size_y,
-                    };
-                },
-                draggable: {
-                    handle: 'header',
-                    stop: function (event, ui) {
-                        let positions = JSON.stringify(this.serialize());
-                        localStorage.setItem('positions', positions);
-                        console.log(positions);
-                    }
-                }
-            }).data('gridster');
-        });
-        });
     </script>
 
 

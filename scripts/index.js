@@ -2750,8 +2750,8 @@ function drawCharts(graphElementMap, start, end) {
 }
 
 // TODO - REVIEW MIXED CHART AXES
+// TODO - VIDEO TRANSITION CHART: SLIDER FOR TOP N LINKS (ABSOLUTE TOP, NOT BY NODE)
 // TODO - ADD AVG. GRADE HEATMAP BY GROUPS OF REG-OCC-NON POSTERS VS VIEWERS
-
 
 function getGraphElementMap(callback, start, end) {
     let graphElementMap = {};
@@ -3456,6 +3456,19 @@ function drawApex(graphElementMap, start, end){
             height: '420px',
             type: 'line',
             // stacked: true,
+            toolbar: {
+                show: true,
+                tools: {
+                    download: true,
+                    selection: false,
+                    zoom: false,
+                    zoomin: false,
+                    zoomout: false,
+                    pan: false,
+                    customIcons: []
+                },
+                autoSelected: 'zoom'
+            },
         },
         responsive: [{
             breakpoint: 480,
@@ -4589,6 +4602,26 @@ function loadDashboard(){
         }
     });
 }
+
+
+// window.ready = function () {
+//     let localData = JSON.parse(localStorage.getItem('positions'));
+//     if (localData != null) {
+//         $.each(localData, function (i, value) {
+//             let id_name = "#";
+//             id_name = id_name + value.id;
+//             console.log(id_name);
+//             $(id_name).attr({
+//                 "data-col": value.col,
+//                 "data-row": value.row,
+//                 "data-sizex": value.size_x,
+//                 "data-sizey": value.size_y
+//             });
+//         });
+//     } else {
+//         console.log('No data returned by the server');
+//     }
+// };
 
 // R SCRIPT FOR MARKOV CHAIN VIZ
 // video.str <-

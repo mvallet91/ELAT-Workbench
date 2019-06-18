@@ -6,6 +6,9 @@
     <title>ELAT Workbench</title>
     <link rel="shortcut icon" type="image/x-icon" href="icons/favicon.ico">
     <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <link href="style/grids.css " rel="stylesheet " type="text/css " />
+
+    <link href="style/main.css " rel="stylesheet " type="text/css " />
 
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
 
@@ -17,15 +20,22 @@
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.6.4/css/bootstrap-datepicker.min.css" />
 
+    <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/jquery.gridster/0.5.6/jquery.gridster.min.css" />
+
+    <script src = "https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+
     <script src="https://cdn.jsdelivr.net/npm/jsstore@2.11.0/dist/jsstore.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jsstore@2.11.0/dist/jsstore.worker.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sqlweb@1.2.1/dist/sqlweb.min.js"></script>
+
     <script src="https://cdn.jsdelivr.net/gh/mvallet91/ELAT-Workbench/scripts/pako.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.8.0/Chart.bundle.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-annotation/0.5.7/chartjs-plugin-annotation.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.11/lodash.min.js"></script>
     <script src="https://d3js.org/d3.v4.js"></script>
     <script src="https://d3js.org/d3-scale-chromatic.v1.min.js"></script>
+
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery.gridster/0.5.6/jquery.gridster.min.js" charset="utf-8"></script>
 
     <link href="https://fonts.googleapis.com/css?family=Roboto:300,400" rel="stylesheet">
 
@@ -304,35 +314,156 @@
 
         <div class="chart-container col-xs-12 col-sm-11  " id="boxChartBox">
             <canvas id="boxChart" width="350" height="100"></canvas>
-            <!--<button id="limitMinMax">Limit to min/max</button>-->
-            <!--<button id="limitWhiskers">Limit to whiskers</button>-->
         </div>
 
-        <div class="chart-container col-xs-12 col-sm-11  " id="mixedChartBox">
-            <div id="mixedChart"></div>
-            <!--<div class="form-check">-->
-                <!--<label class="form-check-label">-->
-                    <!--<input type="radio" id="mixedWeeklyRadio" class="form-check-input" name="radioDayvWeek" value="weekly" onchange="getGraphElementMap(drawCharts)">-->
-                    <!--Weekly Values-->
-                <!--</label>-->
-                <!--<br>-->
-                <!--<label class="form-check-label">-->
-                    <!--<input type="radio" id="mixedDailyRadio" class="form-check-input" name="radioDayvWeek" value="daily" onchange="getGraphElementMap(drawCharts)">-->
-                    <!--Daily Values-->
-                <!--</label>-->
-            <!--</div>-->
-        </div>
+        <!--<div class="chart-container col-xs-12 col-sm-11  " id="mixedChartBox">-->
+            <!--<div id="mixedChart"></div>-->
+            <!--&lt;!&ndash;<div class="form-check">&ndash;&gt;-->
+                <!--&lt;!&ndash;<label class="form-check-label">&ndash;&gt;-->
+                    <!--&lt;!&ndash;<input type="radio" id="mixedWeeklyRadio" class="form-check-input" name="radioDayvWeek" value="weekly" onchange="getGraphElementMap(drawCharts)">&ndash;&gt;-->
+                    <!--&lt;!&ndash;Weekly Values&ndash;&gt;-->
+                <!--&lt;!&ndash;</label>&ndash;&gt;-->
+                <!--&lt;!&ndash;<br>&ndash;&gt;-->
+                <!--&lt;!&ndash;<label class="form-check-label">&ndash;&gt;-->
+                    <!--&lt;!&ndash;<input type="radio" id="mixedDailyRadio" class="form-check-input" name="radioDayvWeek" value="daily" onchange="getGraphElementMap(drawCharts)">&ndash;&gt;-->
+                    <!--&lt;!&ndash;Daily Values&ndash;&gt;-->
+                <!--&lt;!&ndash;</label>&ndash;&gt;-->
+            <!--&lt;!&ndash;</div>&ndash;&gt;-->
+        <!--</div>-->
 
-        <div class="chart-container col-xs-12 col-sm-11  " id="heatChartBox">
-            <div id="heatChart"></div>
-        </div>
+        <!--<div class="chart-container col-xs-12 col-sm-11  " id="heatChartBox">-->
+            <!--<div id="heatChart"></div>-->
+        <!--</div>-->
 
         <div class="chart-container col-xs-12 col-sm-11  " id="arcChartBox">
             <div id="videoArc" ></div>
         </div>
     </div>
 
-    <script src = "https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+
+    <!--<div class="gridster">-->
+        <!--<ul>-->
+            <!--<li data-row="1" data-col="1" data-sizex="2" data-sizey="2">-->
+                <!--<header>|||</header>-->
+                <!--0-->
+            <!--</li>-->
+            <!--<li data-row="1" data-col="3" data-sizex="1" data-sizey="2">-->
+                <!--<header>|||</header>-->
+                <!--1-->
+            <!--</li>-->
+            <!--<li data-row="2" data-col="1" data-sizex="15" data-sizey="1">-->
+                <!--<header>|||</header>-->
+                <!--2-->
+            <!--</li>-->
+            <!--<li data-row="3" data-col="1" data-sizex="15" data-sizey="1">-->
+                <!--<header>|||</header>-->
+                <!--3-->
+            <!--</li>-->
+        <!--</ul>-->
+    <!--</div>-->
+    <div class="gridster">
+        <ul>
+            <li id="mixedTile" data-row="1" data-col="1" data-sizex="12" data-sizey="5">
+                <header>|||</header>
+                <div class="container-fluid" id="mixedChartBox">
+                    <div id="mixedChart"></div>
+                </div>
+            </li>
+            <li id="heatTile" data-row="2" data-col="1" data-sizex="12" data-sizey="4">
+                <header>|||</header>
+                <div class="container-fluid" id="heatChartBox">
+                    <div id="heatChart"></div>
+                </div>
+            </li>
+            <li id="3" data-row="3" data-col="1" data-sizex="12" data-sizey="4">
+                <header>|||</header>
+                <div class="container-fluid">
+                    THREE
+                </div>
+            </li>
+            <li id="4" data-row="4" data-col="1" data-sizex="12" data-sizey="4">
+                <header>|||</header>
+                <!--<div class="container-fluid ">-->
+                    FOUR
+                <!--</div>-->
+            </li>
+        </ul>
+    </div>
+
+
+    <style type="text/css">
+
+        .gridster li header {
+            background: #999;
+            display: block;
+            font-size: 20px;
+            line-height: normal;
+            padding: 4px 0 6px;
+            margin-bottom: 20px;
+            cursor: move;
+        }
+
+    </style>
+
+    <script type="text/javascript">
+        $(function () {
+        let localData = JSON.parse(localStorage.getItem('positions'));
+        if (localData != null) {
+            $.each(localData, function (i, value) {
+                let id_name = "#";
+                id_name = id_name + value.id;
+                console.log(id_name);
+                $(id_name).attr({
+                    "data-col": value.col,
+                    "data-row": value.row,
+                    "data-sizex": value.size_x,
+                    "data-sizey": value.size_y
+                });
+            });
+        } else {
+            console.log('No data returned by the server');
+        }
+
+        var gridster;
+        $(function () {
+            gridster = $(".gridster ul").gridster({
+                widget_base_dimensions: [100, 120],
+                widget_margins: [5, 5],
+                helper: 'clone',
+                // draggable: {
+                //     handle: 'header'
+                // },
+                resize: {
+                    enabled: true,
+                    stop: function (event, ui) {
+                        let positions = JSON.stringify(this.serialize());
+                        localStorage.setItem('positions', positions);
+                        console.log(positions);
+                    }
+                },
+                serialize_params: function ($w, wgd) {
+                    return {
+                        id: $($w).attr('id'),
+                        col: wgd.col,
+                        row: wgd.row,
+                        size_x: wgd.size_x,
+                        size_y: wgd.size_y,
+                    };
+                },
+                draggable: {
+                    handle: 'header',
+                    stop: function (event, ui) {
+                        let positions = JSON.stringify(this.serialize());
+                        localStorage.setItem('positions', positions);
+                        console.log(positions);
+                    }
+                }
+            }).data('gridster');
+        });
+        });
+    </script>
+
+
     <script src = "https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.15.0/umd/popper.min.js"></script>
     <script src = "https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
     <script src = "https://cdnjs.cloudflare.com/ajax/libs/toastr.js/2.1.1/toastr.min.js"></script>
@@ -363,6 +494,6 @@
             });
         });
     </script>
-    <link href="style/main.css " rel="stylesheet " type="text/css " />
+
 </body>
 </html>

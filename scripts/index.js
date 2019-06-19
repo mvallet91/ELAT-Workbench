@@ -3764,7 +3764,7 @@ function drawApex(graphElementMap, start, end, weekly){
             }
         ],
         title: {
-            text: 'HeatMap Chart (Single color)'
+            text: 'Average Grades (completed course)'
         },
     };
 

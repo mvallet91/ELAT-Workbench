@@ -233,12 +233,12 @@
                                     Video/Forum/Quiz Area Chart
                                 </label>
                             </li>
-                            <li id="brush">
-                                <label class="form-check-label">
-                                    <input type="checkbox" id="showBrushChart" class="form-check-input" value="show" onclick="updateDashboard()">
-                                    Brush Chart
-                                </label>
-                            </li>
+                            <!--<li id="brush">-->
+                                <!--<label class="form-check-label">-->
+                                    <!--<input type="checkbox" id="showBrushChart" class="form-check-input" value="show" onclick="updateDashboard()">-->
+                                    <!--Brush Chart-->
+                                <!--</label>-->
+                            <!--</li>-->
                             <li id="mixed">
                                 <label class="form-check-label">
                                     <input type="checkbox" id="showMixedChart" class="form-check-input" value="show" onclick="updateDashboard()">
@@ -317,47 +317,6 @@
         </div>
     </div>
 
-    <div id="chartContainer" class="row justify-content-md-center " style="margin-top:10px; ">
-        <!--<div class="chart-container col-xs-12 col-sm-11  " id="lineChartBox" >-->
-            <!--<canvas id="lineChart" width="350" height="100"></canvas>-->
-        <!--</div>-->
-
-        <!--<div class="chart-container col-xs-12 col-sm-11  " id="areaChartBox">-->
-            <!--<canvas id="areaChart" width="350" height="100"></canvas>-->
-        <!--</div>-->
-
-        <div class="chart-container col-xs-12 col-sm-11  " id="brushChartBox">
-            <div id="chartBrush"></div>
-            <div id="chartDetail"></div>
-        </div>
-
-        <!--<div class="chart-container col-xs-12 col-sm-11  " id="boxChartBox">-->
-            <!--<canvas id="boxChart" width="350" height="100"></canvas>-->
-        <!--</div>-->
-
-        <!--<div class="chart-container col-xs-12 col-sm-11  " id="mixedChartBox">-->
-            <!--<div id="mixedChart"></div>-->
-            <!--&lt;!&ndash;<div class="form-check">&ndash;&gt;-->
-                <!--&lt;!&ndash;<label class="form-check-label">&ndash;&gt;-->
-                    <!--&lt;!&ndash;<input type="radio" id="mixedWeeklyRadio" class="form-check-input" name="radioDayvWeek" value="weekly" onchange="getGraphElementMap(drawCharts)">&ndash;&gt;-->
-                    <!--&lt;!&ndash;Weekly Values&ndash;&gt;-->
-                <!--&lt;!&ndash;</label>&ndash;&gt;-->
-                <!--&lt;!&ndash;<br>&ndash;&gt;-->
-                <!--&lt;!&ndash;<label class="form-check-label">&ndash;&gt;-->
-                    <!--&lt;!&ndash;<input type="radio" id="mixedDailyRadio" class="form-check-input" name="radioDayvWeek" value="daily" onchange="getGraphElementMap(drawCharts)">&ndash;&gt;-->
-                    <!--&lt;!&ndash;Daily Values&ndash;&gt;-->
-                <!--&lt;!&ndash;</label>&ndash;&gt;-->
-            <!--&lt;!&ndash;</div>&ndash;&gt;-->
-        <!--</div>-->
-
-        <!--<div class="chart-container col-xs-12 col-sm-11  " id="heatChartBox">-->
-            <!--<div id="heatChart"></div>-->
-        <!--</div>-->
-
-        <div class="chart-container col-xs-12 col-sm-11  " id="arcChartBox">
-            <div id="videoArc" ></div>
-        </div>
-    </div>
 
     <div class="gridster">
         <ul>
@@ -367,28 +326,49 @@
                     <div id="mixedChart"></div>
                 </div>
             </li>
-            <li id="heatTile" data-row="1" data-col="9" data-sizex="4" data-sizey="4">
+            <li id="heatTile" data-row="1" data-col="9" data-sizex="8" data-sizey="4">
                 <header>|||</header>
                 <div class="container-fluid" id="heatChartBox">
                     <div id="heatChart"></div>
                 </div>
             </li>
-            <li id="lineTile" data-row="5" data-col="1" data-sizex="9" data-sizey="4">
+            <li id="lineTile" data-row="5" data-col="1" data-sizex="8" data-sizey="4">
                 <header>|||</header>
                 <div class="container-fluid" id="lineChartBox" >
                     <canvas id="lineChart"></canvas>
                 </div>
             </li>
-            <li id="boxTile" data-row="9" data-col="1" data-sizex="9" data-sizey="4">
+            <li id="boxTile" data-row="5" data-col="9" data-sizex="8" data-sizey="4">
                 <header>|||</header>
                 <div class="container-fluid " id="boxChartBox">
                     <canvas id="boxChart"></canvas>
                 </div>
             </li>
-            <li id="areaTile" data-row="13" data-col="1" data-sizex="9" data-sizey="4">
+            <li id="areaTile" data-row="9" data-col="1" data-sizex="8" data-sizey="4">
                 <header>|||</header>
                 <div class="container-fluid " id="areaChartBox">
                     <canvas id="areaChart"></canvas>
+                </div>
+            </li>
+            <li id="arcTile" data-row="9" data-col="9" data-sizex="8" data-sizey="4">
+                <header>|||</header>
+                <div class="container-fluid  " id="arcChartBox">
+                    <form>
+                        <label for="links" style="float:right;"> - Number of Links</label>
+                        <input  type="range" min=10 max=500 step=10 id="links" value=30 style="float:right;">
+                        <label style="float:left;" for="arcType">Student Status - </label>
+                        <select name="type" id="arcType" style="float:left;">
+                            <option value="general">Everyone</option>
+                            <option value="passing">Passing Only</option>
+                        </select>
+                    </form>
+                    <div id="videoArc" ></div>
+                </div>
+            </li>
+            <li id="cycleTile" data-row="13" data-col="1" data-sizex="9" data-sizey="4">
+                <header>|||</header>
+                <div class="container-fluid  " id="cycleChartBox">
+                    <div id="cycleChart" ></div>
                 </div>
             </li>
         </ul>
@@ -418,15 +398,15 @@
         let mixedChart = null;
         let arcChart = null;
         let heatChart = null;
-        // $(function() {
-        //     $('input[name="daterange"]').daterangepicker({
-        //         opens: 'left'
-        //     }, function(start, end, label) {
-        //         document.getElementById('allDatesRadio').checked = false;
-        //         document.getElementById('courseDatesRadio').checked = false;
-        //         getGraphElementMap(drawCharts, start.format('YYYY-MM-DD'), end.format('YYYY-MM-DD'));
-        //     });
-        // });
+        $(function() {
+            $('input[name="daterange"]').daterangepicker({
+                opens: 'left'
+            }, function(start, end, label) {
+                document.getElementById('allDatesRadio').checked = false;
+                document.getElementById('courseDatesRadio').checked = false;
+                getGraphElementMap(drawCharts, start.format('YYYY-MM-DD'), end.format('YYYY-MM-DD'));
+            });
+        });
     </script>
 
 </body>

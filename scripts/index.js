@@ -11,9 +11,9 @@ window.onload = function () {
 
     initiateEdxDb();
     getGraphElementMap(drawCharts);
-    drawVideoArc();
     loadDashboard();
     prepareDashboard();
+    drawVideoArc();
 
     //// MULTI FILE SYSTEM  ///////////////////////////////////////////////////////////////////////////
     let  multiFileInput = document.getElementById('filesInput');
@@ -2757,8 +2757,7 @@ function drawCharts(graphElementMap, start, end) {
 }
 
 // TODO - REVIEW MIXED CHART AXES
-// TODO - VIDEO TRANSITION CHART: SLIDER FOR TOP N LINKS (ABSOLUTE TOP, NOT BY NODE)
-// TODO - ADD AVG. GRADE HEATMAP BY GROUPS OF REG-OCC-NON POSTERS VS VIEWERS
+// TODO - VIDEO TRANSITION CHART: CHECK LINK PERCENTAGES OF PASSING VS NOT-PASSING
 
 function getGraphElementMap(callback, start, end) {
 
@@ -3310,95 +3309,95 @@ function drawApex(graphElementMap, start, end, weekly){
         data.push(value)
     }
 
-    let optionsDetail = {
-        chart: {
-            id: 'chartDetail',
-            type: 'line',
-            height: 250,
-            toolbar: {
-                autoSelected: 'pan',
-                show: false
-            }
-        },
-        colors: ['#546E7A'],
-        stroke: {
-            width: 3
-        },
-        fill: {
-            opacity: 1,
-        },
-        markers: {
-            size: 0
-        },
-        series: [{
-            name: 'Sessions',
-            data: data
-        }],
-        xaxis: {
-            type: 'datetime'
-        },
-        yaxis: {
-            min: 0,
-            forceNiceScale: true
-        }
-    };
+    // let optionsDetail = {
+    //     chart: {
+    //         id: 'chartDetail',
+    //         type: 'line',
+    //         height: 250,
+    //         toolbar: {
+    //             autoSelected: 'pan',
+    //             show: false
+    //         }
+    //     },
+    //     colors: ['#546E7A'],
+    //     stroke: {
+    //         width: 3
+    //     },
+    //     fill: {
+    //         opacity: 1,
+    //     },
+    //     markers: {
+    //         size: 0
+    //     },
+    //     series: [{
+    //         name: 'Sessions',
+    //         data: data
+    //     }],
+    //     xaxis: {
+    //         type: 'datetime'
+    //     },
+    //     yaxis: {
+    //         min: 0,
+    //         forceNiceScale: true
+    //     }
+    // };
+    //
+    // let chartDetail = new ApexCharts(
+    //     document.querySelector("#chartDetail"),
+    //     optionsDetail
+    // );
+    //
+    // chartDetail.render();
 
-    let chartDetail = new ApexCharts(
-        document.querySelector("#chartDetail"),
-        optionsDetail
-    );
-
-    chartDetail.render();
-
-    let optionsBrush = {
-        chart: {
-            id: 'chartBrush',
-            height: 150,
-            type: 'area',
-            brush:{
-                target: 'chartDetail',
-                enabled: true
-            },
-            stroke: {
-                curve: 'straight'
-            },
-            selection: {
-                enabled: true,
-                xaxis: {
-                    min: start,
-                    max: end
-                }
-            },
-        },
-        colors: ['#008FFB'],
-        series: [{
-            name: 'Sessions',
-            data: data
-        }],
-        fill: {
-            type: 'gradient',
-            gradient: {
-                opacityFrom: 0.91,
-                opacityTo: 0.1,
-            }
-        },
-        xaxis: {
-            type: 'datetime',
-            tooltip: {
-                enabled: false
-            }
-        },
-        yaxis: {
-            tickAmount: 2,
-            min: 0
-        }
-    };
-
-    let chartBrush = new ApexCharts(
-        document.querySelector("#chartBrush"),
-        optionsBrush
-    );
-    chartBrush.render();
+    // let optionsBrush = {
+    //     chart: {
+    //         id: 'chartBrush',
+    //         height: 150,
+    //         type: 'area',
+    //         brush:{
+    //             target: 'chartDetail',
+    //             enabled: true
+    //         },
+    //         stroke: {
+    //             curve: 'straight'
+    //         },
+    //         selection: {
+    //             enabled: true,
+    //             xaxis: {
+    //                 min: start,
+    //                 max: end
+    //             }
+    //         },
+    //     },
+    //     colors: ['#008FFB'],
+    //     series: [{
+    //         name: 'Sessions',
+    //         data: data
+    //     }],
+    //     fill: {
+    //         type: 'gradient',
+    //         gradient: {
+    //             opacityFrom: 0.91,
+    //             opacityTo: 0.1,
+    //         }
+    //     },
+    //     xaxis: {
+    //         type: 'datetime',
+    //         tooltip: {
+    //             enabled: false
+    //         }
+    //     },
+    //     yaxis: {
+    //         tickAmount: 2,
+    //         min: 0
+    //     }
+    // };
+    //
+    // let chartBrush = new ApexCharts(
+    //     document.querySelector("#chartBrush"),
+    //     optionsBrush
+    // );
+    // chartBrush.render();
 
     let weeklyPosts = groupWeeklyMapped(graphElementMap, 'orderedForumPosts');
     let weeklyRegPosts = groupWeeklyMapped(graphElementMap, 'orderedForumPostsByRegulars');
@@ -3451,9 +3450,7 @@ function drawApex(graphElementMap, start, end, weekly){
         forumStudentsRegulars = Object.values(graphElementMap['orderedForumRegulars']);
         forumStudentsOccasionals = Object.values(graphElementMap['orderedForumOccasionals']);
     }
-    console.log(dateLabels);
-    console.log(start);
-    console.log(end);
+
     let optionsMixed = {
         chart: {
             height: '420px',
@@ -4269,17 +4266,41 @@ function videoTransitions() {
     });
 }
 
-function drawVideoArc(){ // https://www.d3-graph-gallery.com/graph/arc_template.html
+function drawVideoArc(linkNumber){ // https://www.d3-graph-gallery.com/graph/arc_template.html
     connection.runSql("SELECT * FROM webdata WHERE name = 'arcElements' ").then(function(result) {
         if (result.length !== 1) {
             videoTransitions()
         } else {
+
             let nodeData = result[0]['object'];
+            nodeData.links.sort(function(a, b) {
+                return b.value - a.value;
+            });
+
+            if (linkNumber == null){
+                linkNumber = nodeData.nodes.length
+            }
+
+            let linkSlider = d3.select('#links');
+            linkSlider.on('change', function() {
+                drawVideoArc(this.value);
+            });
+
+            let typeDropdown = d3.select('#arcType');
+            typeDropdown.on('change', function () {
+                drawVideoArc()
+            });
+
+            let arcTileDiv = document.getElementById("arcTile");
+            arcTileDiv.addEventListener("resize", drawVideoArc);
+
+            $("#videoArc").empty();
             let arcDiv = document.getElementById("videoArc");
 
-            let margin = {top: 50, right: 50, bottom: 280, left: 50},
+            let margin = {top: 50, right: 50, bottom: 80, left: 50},
                 width = arcDiv.clientWidth - margin.left - margin.right,
-                height = 700 - margin.top - margin.bottom;
+                height = arcDiv.clientWidth/3 - margin.top - margin.bottom;
+                // height = arcDiv.clientWidth/3 - margin.top - margin.bottom;
 
             let svg = d3.select(arcDiv)
                 .append("svg")
@@ -4323,31 +4344,45 @@ function drawVideoArc(){ // https://www.d3-graph-gallery.com/graph/arc_template.
                 idToNode[n.id] = n;
             });
 
+            let arcType = typeDropdown.node().value;
+
             let links = svg
                 .selectAll('mylinks')
-                .data(nodeData.links)
+                .data(nodeData.links.slice(0,linkNumber))
                 .enter()
                 .append('path')
                 .attr('d', function (d) {
-                    if (d.status === 'passing') {
-                        start = x(idToNode[d.source].name);
-                        end = x(idToNode[d.target].name);
-                        return ['M', start, height - 30,
-                            'A',
-                            (start - end) / 2.3, ',',
-                            (start - end) / 2, 0, 0, ',',
-                            start < end ? 1 : 1, end, ',', height - 30] // We always want the arc on top. So if end is before start, putting 0 here turn the arc upside down.
-                            .join(' ');
-                    // } else if (d.status === 'general') {
+                    if (arcType === 'general'){
+                        if (d.status === 'general') {
+                            let start = x(idToNode[d.source].name);
+                            let end = x(idToNode[d.target].name);
+                            return ['M', start, height - 30,
+                                'A',
+                                (start - end) / 2.3, ',',
+                                (start - end) / 2, 0, 0, ',',
+                                start < end ? 1 : 1, end, ',', height - 30]
+                                .join(' ');
+                        } else {
+                            let start = x(idToNode[d.source].name);
+                            let end = x(idToNode[d.target].name);
+                            return ['M', start, height - 30,
+                                'A',
+                                (start - end) / 2.3, ',',
+                                (start - end) / 2, 0, 0, ',',
+                                start < end ? 1 : 1, end, ',', height - 30]
+                                .join(' ');
+                        }
                     } else {
-                        start = x(idToNode[d.source].name);
-                        end = x(idToNode[d.target].name);
-                        return ['M', start, height - 30,
-                            'A',
-                            (start - end) / 2.3, ',',
-                            (start - end) / 2, 0, 0, ',',
-                            start < end ? 1 : 1, end, ',', height - 30] // We always want the arc on top. So if end is before start, putting 0 here turn the arc upside down.
-                            .join(' ');
+                        if (d.status === 'passing') {
+                            let start = x(idToNode[d.source].name);
+                            let end = x(idToNode[d.target].name);
+                            return ['M', start, height - 30,
+                                'A',
+                                (start - end) / 2.3, ',',
+                                (start - end) / 2, 0, 0, ',',
+                                start < end ? 1 : 1, end, ',', height - 30]
+                                .join(' ');
+                        }
                     }
                 })
                 .style("fill", "none")
@@ -4458,9 +4493,122 @@ function drawVideoArc(){ // https://www.d3-graph-gallery.com/graph/arc_template.
                     tooltip
                         .style("visibility", "hidden");
                 })
+
+            // // Handler for dropdown value change
+            // let dropdownChange = function() {
+            //     let newCereal = d3.select(this).property('value'),
+            //         newData   = cerealMap[newCereal];
+            //     updateBars(newData);
+            // };
+
+
+            // let dropdown = d3.select("#videoArc")
+            //     .insert("select", "svg")
+            //     .on("change", drawVideoArc());
+            //
+            // dropdown.selectAll("option")
+            //     .data([{'name':'Passing Only', 'value': 'passing'},
+            //         {'name':'Everyone', 'value': 'general'}])
+            //     .enter().append("option")
+            //     .attr("value", function (d) { return d.value; })
+            //     .text(function (d) {return d.name; });
         }
     })
 }
+
+drawCycles()
+
+function drawCycles(){
+    connection.runSql("SELECT * FROM webdata WHERE name = 'arcElements' ").then(function(result) {
+        if (result.length !== 1) {
+            videoTransitions()
+        } else {
+            let nodeData = result[0]['object'];
+
+            let cycleTileDiv = document.getElementById("cycleTile");
+            cycleTileDiv.addEventListener("resize", drawCycles);
+
+            $("#cycleChart").empty();
+            let cycleDiv = document.getElementById("cycleChart");
+
+            let margin = {top: 20, right: 20, bottom: 20, left: 20},
+                width = cycleDiv.clientWidth - margin.left - margin.right,
+                height = cycleDiv.clientWidth / 2 - margin.top - margin.bottom;
+
+            let svg = d3.select(cycleDiv)
+                .append("svg")
+                .attr("width", width + margin.left + margin.right)
+                .attr("height", height + margin.top + margin.bottom)
+                .append("g")
+                .attr("transform",
+                    "translate(" + margin.left + "," + margin.top + ")");
+
+            svg.append("text")
+                .attr("x", (width / 2))
+                .attr("y", 20 - (margin.top / 2))
+                .attr("text-anchor", "middle")
+                .style("font-size", "16px")
+                .style("font-family", "Helvetica")
+                .text("Learning Path");
+
+            let xUnit = width/6;
+            let yUnit = height/7;
+            let data = [{ "name": "VIDEO", 'cx': xUnit, 'cy':yUnit*2 },
+                { "name": "FORUM START", 'cx': xUnit*3, 'cy':yUnit }, { "name": "FORUM SUBMIT", 'cx': xUnit*5, 'cy':yUnit*2 }, { "name": "FORUM END", 'cx': xUnit*5, 'cy':yUnit*5 },
+                { "name": "QUIZ START", 'cx': xUnit*2, 'cy':yUnit*2 }, { "name": "QUIZ SUBMIT", 'cx': xUnit*2, 'cy':yUnit*5 }, { "name": "QUIZ END", 'cx': xUnit, 'cy':yUnit*5 },
+                { "name": "PROGRESS", 'cx': xUnit*3, 'cy':yUnit*6 }];
+
+            let g = svg.selectAll(null)
+                .data(data)
+                .enter()
+                .append("g")
+                .attr("transform", function(d) {
+                    return "translate(" + d.cx +','+ d.cy + ")" ;
+                });
+
+            g.append("circle")
+                .attr("r", 10)
+                .style("fill", "#69b3a2")
+                .style("fill-opacity", 0.3)
+                .attr("stroke", "#69a2b2")
+                .style("stroke-width", 4);
+
+            g.append("text")
+                .text(function(d) { return d.name; })
+                .attr("x", 10)
+                .attr("y", -10)
+                .style("font-size", "10px")
+                .style("font-family", "Helvetica")
+
+
+
+            //
+            // let nodes = svg.append("g")
+            //     .selectAll("circle")
+            //     .data(data)
+            //     .enter()
+            //     .append("circle")
+            //     .attr("r", 25)
+            //     .attr("cx", function (d) {
+            //         return (d.cx)
+            //     })
+            //     .attr("cy", function (d) {
+            //         return (d.cy)
+            //     })
+            //     .style("fill", "#69b3a2")
+            //     .style("fill-opacity", 0.3)
+            //     .attr("stroke", "#69a2b2")
+            //     .style("stroke-width", 4)
+                // .enter()
+                // .append("text")
+                // .attr("dx", function(d){return -20})
+                // .text("hhh")
+
+
+        }
+    })
+}
+
 
 function webdataJSON(){
     connection.runSql("SELECT * FROM webdata").then(function(webElements) {
@@ -4510,7 +4658,7 @@ function updateDashboard(){
     let chartMap = {
         'line': 'lineChartBox',
         'area': 'areaChartBox',
-        'brush': 'brushChartBox',
+        // 'brush': 'brushChartBox',
         // 'mixed': 'mixedChartBox',
         'mixed': 'mixedTile',
         'box-whisker': 'boxChartBox',
@@ -4623,6 +4771,7 @@ function prepareDashboard() {
                     stop: function (event, ui) {
                         let positions = JSON.stringify(this.serialize());
                         localStorage.setItem('positions', positions);
+                        drawVideoArc();
                     }
                 },
                 serialize_params: function ($w, wgd) {
@@ -4639,6 +4788,7 @@ function prepareDashboard() {
                     stop: function (event, ui) {
                         let positions = JSON.stringify(this.serialize());
                         localStorage.setItem('positions', positions);
+                        drawVideoArc();
                     }
                 }
             }).data('gridster');

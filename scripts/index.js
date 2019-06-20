@@ -14,6 +14,7 @@ window.onload = function () {
     loadDashboard();
     prepareDashboard();
     drawVideoArc();
+    drawCycles();
 
     //// MULTI FILE SYSTEM  ///////////////////////////////////////////////////////////////////////////
     let  multiFileInput = document.getElementById('filesInput');
@@ -2757,7 +2758,7 @@ function drawCharts(graphElementMap, start, end) {
 }
 
 // TODO - REVIEW MIXED CHART AXES
-// TODO - VIDEO TRANSITION CHART: CHECK LINK PERCENTAGES OF PASSING VS NOT-PASSING
+// TODO - MODULE TRANSITION CHART
 
 function getGraphElementMap(callback, start, end) {
 
@@ -4079,6 +4080,7 @@ function videoTransitions() {
     let learnerStatus = {};
     let videoIds = {};
     let videoIdsP = {};
+    let videoIdsF = {};
     let unorderedVideos = [];
     let arcData = {};
     connection.runSql("SELECT * FROM metadata WHERE name = 'metadata_map' ").then(function(result) {
@@ -4123,12 +4125,16 @@ function videoTransitions() {
                     videoId = videoId.slice(videoId.lastIndexOf('@') + 1,);
                     videoIds[videoId] = [];
                     videoIdsP[videoId] = [];
+                    videoIdsF[videoId] = [];
                 }
 
                 let videoChains = {};
                 let passingChains = {};
-                // learnerIds = learnerIds.slice(0, 5000);
+                let failingChains = {};
+                // learnerIds = learnerIds.slice(0, 500);
                 let maxViewers = 0;
+                let passingViewers = 0;
+                let failingViewers = 0;
                 let counter = 0;
                 for (let learner of learnerIds) {
                     let learnerSessions = [];
@@ -4150,6 +4156,10 @@ function videoTransitions() {
                             videoChains[learner] = videoChain;
                             if (learnerStatus[learner] === 'downloadable'){
                                 passingChains[learner] = videoChain;
+                                passingViewers++;
+                            } else {
+                                failingChains[learner] = videoChain;
+                                failingViewers++;
                             }
                         }
                         counter++;
@@ -4166,7 +4176,8 @@ function videoTransitions() {
                                 let frequency = _.countBy(videoIds[video]);
                                 for (let nextVideo in videoIds) {
                                     if (frequency.hasOwnProperty(nextVideo)) {
-                                        frequency[nextVideo] = frequency[nextVideo] / videoIds[video].length;
+                                        // frequency[nextVideo] = frequency[nextVideo] / videoIds[video].length;
+                                        frequency[nextVideo] = frequency[nextVideo] / (failingViewers + passingViewers) // For normalized value
                                     }
                                 }
                                 let freqSorted = Object.keys(frequency).sort(function (a, b) {
@@ -4193,7 +4204,9 @@ function videoTransitions() {
                                 let frequency = _.countBy(videoIdsP[video]);
                                 for (let nextVideo in videoIdsP) {
                                     if (frequency.hasOwnProperty(nextVideo)) {
-                                        frequency[nextVideo] = frequency[nextVideo] / videoIds[video].length;
+                                        // frequency[nextVideo] = frequency[nextVideo] / videoIds[video].length; // For absolute percentage
+                                        frequency[nextVideo] = frequency[nextVideo] / passingViewers; //  For normalized value
+                                        // frequency[nextVideo] = frequency[nextVideo] / videoIdsP[video].length; // For passing-only percentage
                                     }
                                 }
                                 let freqSorted = Object.keys(frequency).sort(function (a, b) {
@@ -4206,6 +4219,35 @@ function videoTransitions() {
                                 frequenciesP[video] = top3;
                             }
                             // PASSING STUDENTS //////////////////////////////////////////////////////////
+
+                            // FAILING STUDENTS //////////////////////////////////////////////////////////
+                            for (let learner in failingChains) {
+                                for (let i = 0; i < failingChains[learner].length - 1; i++) {
+                                    let currentVideo = failingChains[learner][i];
+                                    let followingVideo = failingChains[learner][i + 1];
+                                    videoIdsF[currentVideo].push(followingVideo);
+                                }
+                            }
+                            let frequenciesF = {};
+                            for (let video in videoIdsF) {
+                                let frequency = _.countBy(videoIdsF[video]);
+                                for (let nextVideo in videoIdsF) {
+                                    if (frequency.hasOwnProperty(nextVideo)) {
+                                        // frequency[nextVideo] = frequency[nextVideo] / videoIds[video].length; // For absolute percentage
+                                        frequency[nextVideo] = frequency[nextVideo] / failingViewers; // For normalized value
+                                        // frequency[nextVideo] = frequency[nextVideo] / videoIdsF[video].length; // For failing-only percentage
+                                    }
+                                }
+                                let freqSorted = Object.keys(frequency).sort(function (a, b) {
+                                    return frequency[b] - frequency[a]
+                                });
+                                let top3 = {};
+                                for (let video of freqSorted.slice(0, 3)) {
+                                    top3[video] = frequency[video]
+                                }
+                                frequenciesF[video] = top3;
+                            }
+                            // FAILING STUDENTS //////////////////////////////////////////////////////////
 
                             let i = 0;
                             let nodes = [];
@@ -4240,6 +4282,17 @@ function videoTransitions() {
                                         links.push(link);
                                     }
                                 }
+                                for (let followingVideo in frequenciesF[currentVideo]) {
+                                    if (frequenciesF[currentVideo][followingVideo] > 0) {
+                                        let link = {
+                                            'source': currentVideo,
+                                            'target': followingVideo,
+                                            'value': frequenciesF[currentVideo][followingVideo],
+                                            'status': 'failing'
+                                        };
+                                        links.push(link);
+                                    }
+                                }
                                 i++;
                                 nodes.push({
                                     'name': 'Video ' + i,
@@ -4249,8 +4302,6 @@ function videoTransitions() {
                                     'id': currentVideo
                                 });
                             }
-                            console.log(frequencies);
-                            console.log(frequenciesP);
                             arcData['nodes'] = nodes;
                             arcData['links'] = links;
                             let arcElements = [{'name': 'arcElements', 'object': arcData}];
@@ -4362,7 +4413,9 @@ function drawVideoArc(linkNumber){ // https://www.d3-graph-gallery.com/graph/arc
                                 (start - end) / 2, 0, 0, ',',
                                 start < end ? 1 : 1, end, ',', height - 30]
                                 .join(' ');
-                        } else {
+                        }
+                    } else if (arcType === 'passing'){
+                        if (d.status === 'passing') {
                             let start = x(idToNode[d.source].name);
                             let end = x(idToNode[d.target].name);
                             return ['M', start, height - 30,
@@ -4373,7 +4426,7 @@ function drawVideoArc(linkNumber){ // https://www.d3-graph-gallery.com/graph/arc
                                 .join(' ');
                         }
                     } else {
-                        if (d.status === 'passing') {
+                        if (d.status === 'failing') {
                             let start = x(idToNode[d.source].name);
                             let end = x(idToNode[d.target].name);
                             return ['M', start, height - 30,
@@ -4446,14 +4499,14 @@ function drawVideoArc(linkNumber){ // https://www.d3-graph-gallery.com/graph/arc
                     d3.select(this)
                         .style('opacity', 0.7);
                     links
-                        // .style('stroke', function (link_d) {
-                        //     return link_d.source === d.id ? '#b83b00' : '#b8b8b8';
-                        // })
+
                         .style('stroke', function (link_d) {
                             if (link_d.status === 'general') {
-                                return link_d.source === d.id ? '#b83b00' : '#b8b8b8';
-                            } else {
+                                return link_d.source === d.id ? '#0006b8' : '#b8b8b8';
+                            } else if (link_d.status === 'passing') {
                                 return link_d.source === d.id ? '#138d00' : '#b8b8b8';
+                            } else if (link_d.status === 'failing') {
+                                return link_d.source === d.id ? '#fe1100' : '#b8b8b8';
                             }
                         })
                         .style('stroke-opacity', function (link_d) {
@@ -4493,37 +4546,148 @@ function drawVideoArc(linkNumber){ // https://www.d3-graph-gallery.com/graph/arc
                     tooltip
                         .style("visibility", "hidden");
                 })
-
-            // // Handler for dropdown value change
-            // let dropdownChange = function() {
-            //     let newCereal = d3.select(this).property('value'),
-            //         newData   = cerealMap[newCereal];
-            //     updateBars(newData);
-            // };
-
-
-            // let dropdown = d3.select("#videoArc")
-            //     .insert("select", "svg")
-            //     .on("change", drawVideoArc());
-            //
-            // dropdown.selectAll("option")
-            //     .data([{'name':'Passing Only', 'value': 'passing'},
-            //         {'name':'Everyone', 'value': 'general'}])
-            //     .enter().append("option")
-            //     .attr("value", function (d) { return d.value; })
-            //     .text(function (d) {return d.name; });
         }
     })
 }
 
-drawCycles()
+function moduleTransitions() {
+    let learnerIds = [];
+    let learnerStatus = {};
+    let elementIds = {};
+    let elementIdsP = {};
+    let elementIdsF = {};
+    let unorderedElements = [];
+    let arcData = {};
+    connection.runSql("SELECT * FROM metadata WHERE name = 'metadata_map' ").then(function (result) {
+        if (result.length !== 1) {
+            console.log('Metadata empty')
+        } else {
+            let course_metadata_map = result[0]['object'];
+            let courseId = course_metadata_map.course_id;
+            courseId = courseId.slice(courseId.indexOf(':') + 1,);
+            connection.runSql("SELECT * FROM course_learner").then(function (learners) {
+                learners.forEach(function (learner) {
+                    learnerIds.push(learner.course_learner_id);
+                    learnerStatus[learner.course_learner_id] = learner.certificate_status;
+                });
+
+                for (let elementId in course_metadata_map.child_parent_map) {
+                    if (elementId.includes('video') ||
+                        elementId.includes('problem')||
+                        elementId.includes('discussion')) {
+                        let parentId = course_metadata_map.child_parent_map[elementId];
+                        let parent2Id = course_metadata_map.child_parent_map[parentId];
+                        let parent3Id = course_metadata_map.child_parent_map[parent2Id];
+                        unorderedElements.push({
+                            'elementId': elementId,
+                            'chapter': course_metadata_map.order_map[parent3Id],
+                            'section': course_metadata_map.order_map[parent2Id],
+                            'block': course_metadata_map.order_map[parentId],
+                            'type': course_metadata_map.element_type_map[elementId],
+                            'name': course_metadata_map.element_name_map[elementId]
+                        })
+                    }
+                }
+                let orderedElements = unorderedElements.sort(function (a, b) {
+                    return a.block - b.block
+                });
+                orderedElements.sort(function (a, b) {
+                    return a.section - b.section
+                });
+                orderedElements.sort(function (a, b) {
+                    return a.chapter - b.chapter
+                });
+
+                for (let element of orderedElements) {
+                    let elementId = element.elementId;
+                    // elementId = elementId.slice(elementId.lastIndexOf('@') + 1,);
+                    elementIds[elementId] = [];
+                    elementIdsP[elementId] = [];
+                    elementIdsF[elementId] = [];
+                }
+
+                let learningPaths = {};
+                let passingPaths = {};
+                let failingPaths = {};
+                learnerIds = learnerIds.slice(0, 5);
+                let counter = 0;
+
+                let designedPath = [];
+                let currentElement = '';
+
+                for (let element of orderedElements){
+                    if (element.chapter === 7) {
+                        if (element.elementId !== currentElement) {
+                            currentElement = element.elementId;
+                            let elementId = element.elementId;
+                            // elementId = elementId.slice(elementId.lastIndexOf('@') + 1,);
+                            designedPath.push(elementId);
+                        }
+                    }
+                }
+                learningPaths['designed'] = designedPath;
+                for (let learner in learningPaths) {
+                    for (let i = 0; i < learningPaths[learner].length - 1; i++) {
+                        let currentElement = learningPaths[learner][i];
+                        let followingElement = learningPaths[learner][i + 1];
+                        elementIds[currentElement].push(followingElement);
+                    }
+                }
+                let frequencies = {};
+                for (let element in elementIds) {
+                    let frequency = _.countBy(elementIds[element]);
+                    for (let nextElement in elementIds) {
+                        if (frequency.hasOwnProperty(nextElement)) {
+                            frequency[nextElement] = 1;
+                        }
+                    }
+                    frequencies[element] = frequency
+                }
+                let links = [];
+                for (let currentElement in frequencies){
+                    for (let followingElement in frequencies[currentElement]){
+                        let nodeMap = {
+                            'discussion':'FORUM START',
+                            'problem':'QUIZ START',
+                            'video': 'VIDEO'};
+                        let sourceType = course_metadata_map.element_type_map[currentElement];
+                        let targetType = course_metadata_map.element_type_map[followingElement];
+                        let sourceNode = nodeMap[sourceType];
+                        let targetNode = nodeMap[targetType];
+
+                        let link = {
+                            'sourceElement': currentElement,
+                            'sourceType': sourceType,
+                            'sourceNode': sourceNode,
+                            'targetElement': followingElement,
+                            'targetType': targetType,
+                            'targetNode': targetNode,
+                            'value': frequencies[currentElement][followingElement],
+                            'status': 'designed'
+                        };
+                        links.push(link)
+                    }
+                }
+                let cycleData = {};
+                console.log(links);
+                cycleData['links'] = links;
+                let cycleElements = [{'name': 'cycleElements', 'object': cycleData}];
+                connection.runSql("DELETE FROM webdata WHERE name = 'cycleElements'").then(function (success) {
+                    sqlInsert('webdata', cycleElements);
+                    drawCycles();
+                });
+            });
+        }
+    })
+}
+
 
 function drawCycles(){
-    connection.runSql("SELECT * FROM webdata WHERE name = 'arcElements' ").then(function(result) {
+    connection.runSql("SELECT * FROM webdata WHERE name = 'cycleElements' ").then(function(result) {
         if (result.length !== 1) {
-            videoTransitions()
+            moduleTransitions()
         } else {
-            let nodeData = result[0]['object'];
+            let linkData = result[0]['object'];
 
             let cycleTileDiv = document.getElementById("cycleTile");
             cycleTileDiv.addEventListener("resize", drawCycles);
@@ -4553,13 +4717,13 @@ function drawCycles(){
 
             let xUnit = width/6;
             let yUnit = height/7;
-            let data = [{ "name": "VIDEO", 'cx': xUnit, 'cy':yUnit*2 },
+            let nodes = [{ "name": "PROGRESS", 'cx': xUnit, 'cy':yUnit*2 },
                 { "name": "FORUM START", 'cx': xUnit*3, 'cy':yUnit }, { "name": "FORUM SUBMIT", 'cx': xUnit*5, 'cy':yUnit*2 }, { "name": "FORUM END", 'cx': xUnit*5, 'cy':yUnit*5 },
-                { "name": "QUIZ START", 'cx': xUnit*2, 'cy':yUnit*2 }, { "name": "QUIZ SUBMIT", 'cx': xUnit*2, 'cy':yUnit*5 }, { "name": "QUIZ END", 'cx': xUnit, 'cy':yUnit*5 },
-                { "name": "PROGRESS", 'cx': xUnit*3, 'cy':yUnit*6 }];
+                { "name": "QUIZ START", 'cx': xUnit*3, 'cy':yUnit*6 }, { "name": "QUIZ SUBMIT", 'cx': xUnit*2, 'cy':yUnit*5 }, { "name": "QUIZ END", 'cx': xUnit, 'cy':yUnit*5 },
+                { "name": "VIDEO", 'cx': xUnit*2, 'cy':yUnit*2 }];
 
             let g = svg.selectAll(null)
-                .data(data)
+                .data(nodes)
                 .enter()
                 .append("g")
                 .attr("transform", function(d) {
@@ -4578,33 +4742,60 @@ function drawCycles(){
                 .attr("x", 10)
                 .attr("y", -10)
                 .style("font-size", "10px")
-                .style("font-family", "Helvetica")
+                .style("font-family", "Helvetica");
 
+            let allNodes = nodes.map(function (d) {
+                return d.name
+            });
 
+            // let allGroups = nodes.map(function (d) {
+            //     return d.grp
+            // });
+            // allGroups = [...new Set(allGroups)];
 
-            //
-            // let nodes = svg.append("g")
-            //     .selectAll("circle")
-            //     .data(data)
-            //     .enter()
-            //     .append("circle")
-            //     .attr("r", 25)
-            //     .attr("cx", function (d) {
-            //         return (d.cx)
-            //     })
-            //     .attr("cy", function (d) {
-            //         return (d.cy)
-            //     })
-            //     .style("fill", "#69b3a2")
-            //     .style("fill-opacity", 0.3)
-            //     .attr("stroke", "#69a2b2")
-            //     .style("stroke-width", 4)
-                // .enter()
-                // .append("text")
-                // .attr("dx", function(d){return -20})
-                // .text("hhh")
+            // let color = d3.scaleOrdinal()
+            //     .domain(allGroups)
+            //     .range(d3.schemeSet3);
 
+            // let size = d3.scaleLinear()
+            //     .domain([1, 10])
+            //     .range([2, 10]);
 
+            let x = d3.scalePoint()
+                .range([0, width])
+                .domain(allNodes);
+
+            let idToNode = {};
+            nodes.forEach(function (n) {
+                idToNode[n.name] = n;
+            });
+
+            let links = svg
+                .selectAll('mylinks')
+                .data(linkData['links'])
+                .enter()
+                .append('path')
+                .attr('d', function (d) {
+                    if (d.status === 'designed') {
+                        // let start = x(idToNode[d.sourceNode].name);
+                        // let end = x(idToNode[d.targetNode].name);
+                        let startX = idToNode[d.sourceNode].cx;
+                        let startY = idToNode[d.sourceNode].cy;
+                        let endX = idToNode[d.targetNode].cx;
+                        let endY = idToNode[d.targetNode].cy;
+                        return ['M', start, height - 30,
+                            'A',
+                            (start - end) / 1, ',',
+                            (start - end) / 1, 0, 0, ',',
+                            start < end ? 1 : 1, end, ',', height - 30]
+                            .join(' ');
+                    }
+                })
+                .style("fill", "none")
+                .attr("stroke", "purple")
+                .style("stroke-width", function (d) {
+                    return d.value*2
+                });
         }
     })
 }

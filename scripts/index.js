@@ -4772,23 +4772,23 @@ function drawCycles(){
 
             let links = svg
                 .selectAll('mylinks')
-                .data(linkData['links'])
+                .data(linkData['links'].slice(0,4))
                 .enter()
                 .append('path')
                 .attr('d', function (d) {
                     if (d.status === 'designed') {
-                        // let start = x(idToNode[d.sourceNode].name);
-                        // let end = x(idToNode[d.targetNode].name);
                         let startX = idToNode[d.sourceNode].cx;
                         let startY = idToNode[d.sourceNode].cy;
                         let endX = idToNode[d.targetNode].cx;
                         let endY = idToNode[d.targetNode].cy;
-                        return ['M', start, height - 30,
-                            'A',
-                            (start - end) / 1, ',',
-                            (start - end) / 1, 0, 0, ',',
-                            start < end ? 1 : 1, end, ',', height - 30]
+
+                        let dString = ['M', startX, startY,
+                            // 'A', (startX - endY) / 1.5, (startY - endX) / 1.5, 0, 0,
+                            'A', 200, 200, 0, 0,
+                            1, endX, endY]
                             .join(' ');
+                        console.log(dString);
+                        return dString;
                     }
                 })
                 .style("fill", "none")

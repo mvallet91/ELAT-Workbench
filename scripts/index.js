@@ -4644,6 +4644,7 @@ function moduleTransitions() {
                     frequencies[element] = frequency
                 }
                 let links = [];
+                let i = 0;
                 for (let currentElement in frequencies){
                     for (let followingElement in frequencies[currentElement]){
                         let nodeMap = {
@@ -4663,13 +4664,21 @@ function moduleTransitions() {
                             'targetType': targetType,
                             'targetNode': targetNode,
                             'value': frequencies[currentElement][followingElement],
-                            'status': 'designed'
+                            'status': 'designed',
+                            'id': ' ' + i
                         };
-                        links.push(link)
+                        links.push(link);
+                        i++;
                     }
                 }
+
+                for (let learnerId in learners){
+
+                }
+
+
+
                 let cycleData = {};
-                console.log(links);
                 cycleData['links'] = links;
                 let cycleElements = [{'name': 'cycleElements', 'object': cycleData}];
                 connection.runSql("DELETE FROM webdata WHERE name = 'cycleElements'").then(function (success) {
@@ -4681,6 +4690,120 @@ function moduleTransitions() {
     })
 }
 
+
+function drawCyclesTest(){
+    connection.runSql("SELECT * FROM webdata WHERE name = 'cycleElements' ").then(function(result) {
+        if (result.length !== 1) {
+            moduleTransitions()
+        } else {
+            let linkData = result[0]['object'];
+
+            let cycleTileDiv = document.getElementById("cycleTile");
+            cycleTileDiv.addEventListener("resize", drawCycles);
+
+            $("#cycleChart").empty();
+            let cycleDiv = document.getElementById("cycleChart");
+
+            let margin = {top: 20, right: 20, bottom: 20, left: 20},
+                width = cycleDiv.clientWidth - margin.left - margin.right,
+                height = cycleDiv.clientWidth / 2 - margin.top - margin.bottom;
+
+            let xUnit = width/6;
+            let yUnit = height/7;
+            let r = 10;
+            let nodes = [{ "name": "PROGRESS", 'cx': xUnit, 'cy':yUnit*2, 'r':r },
+                { "name": "FORUM START", 'cx': xUnit*3, 'cy':yUnit, 'r':r }, { "name": "FORUM SUBMIT", 'cx': xUnit*5, 'cy':yUnit*2, 'r':r }, { "name": "FORUM END", 'cx': xUnit*5, 'cy':yUnit*5, 'r':r },
+                { "name": "QUIZ START", 'cx': xUnit*3, 'cy':yUnit*6, 'r':r }, { "name": "QUIZ SUBMIT", 'cx': xUnit*2, 'cy':yUnit*5, 'r':r }, { "name": "QUIZ END", 'cx': xUnit, 'cy':yUnit*5, 'r':r },
+                { "name": "VIDEO", 'cx': xUnit*2, 'cy':yUnit*2, 'r':r }];
+
+            let svg = d3.select(cycleDiv)
+                .append("svg")
+                .attr("width", width + margin.left + margin.right)
+                .attr("height", height + margin.top + margin.bottom)
+                .append("g")
+                .attr("transform",
+                    "translate(" + margin.left + "," + margin.top + ")");
+
+            svg.append("text")
+                .attr("x", (width / 2))
+                .attr("y", 20 - (margin.top / 2))
+                .attr("text-anchor", "middle")
+                .style("font-size", "16px")
+                .style("font-family", "Helvetica")
+                .text("Learning Path");
+
+            svg.append("svg:defs").append("svg:marker")
+                .attr("id", "triangle")
+                .attr("refX", 6)
+                .attr("refY", 6)
+                .attr("markerWidth", 15)
+                .attr("markerHeight", 10)
+                .attr("markerUnits","userSpaceOnUse")
+                .attr("orient", "auto")
+                .append("path")
+                .attr("d", "M 0 0 12 6 0 12 3 6")
+                .style("fill", "purple");
+
+            let g = svg.selectAll(null)
+                .data(nodes)
+                .enter()
+                .append("g")
+                .attr("transform", function(d) {
+                    return "translate(" + d.cx +','+ d.cy + ")" ;
+                });
+
+            g.append("circle")
+                .attr("r", function(d) { return d.r; })
+                .style("fill", "#69b3a2")
+                .style("fill-opacity", 0.3)
+                .attr("stroke", "#69a2b2")
+                .style("stroke-width", 4);
+
+            g.append("text")
+                .text(function(d) { return d.name; })
+                .attr("x", 10)
+                .attr("y", -10)
+                .style("font-size", "10px")
+                .style("font-family", "Helvetica");
+
+            let allNodes = nodes.map(function (d) {
+                return d.name
+            });
+
+            let idToNode = {};
+            nodes.forEach(function (n) {
+                idToNode[n.name] = n;
+            });
+
+            let links = svg
+                .selectAll('mylinks')
+                .data(linkData['links'].slice(0,4))
+                .enter()
+                .append('path')
+                .attr('d', function (d) {
+                    if (d.status === 'designed') {
+                        let startX = idToNode[d.sourceNode].cx;
+                        let startY = idToNode[d.sourceNode].cy;
+                        let endX = idToNode[d.targetNode].cx;
+                        let endY = idToNode[d.targetNode].cy;
+                        let startRadius = idToNode[d.sourceNode].r;
+                        let endRadius = idToNode[d.targetNode].r;
+                        let dx = endX - startX,
+                            dy = endY - startY,
+                            dr = Math.sqrt(dx * dx + dy * dy);
+                        return "M" + startX + "," + startY + "A" + dr + "," + dr + " 0 0,1 " + endX + "," + endY;
+                    }
+                })
+                .style("fill", "none")
+                .attr("stroke", "purple")
+                .style("stroke-width", function (d) {
+                    return d.value*2
+                })
+                .attr("marker-end", "url(#triangle)");
+
+        }
+    })
+}
 
 function drawCycles(){
     connection.runSql("SELECT * FROM webdata WHERE name = 'cycleElements' ").then(function(result) {
@@ -4699,6 +4822,15 @@ function drawCycles(){
                 width = cycleDiv.clientWidth - margin.left - margin.right,
                 height = cycleDiv.clientWidth / 2 - margin.top - margin.bottom;
 
+            let xUnit = width/6;
+            let yUnit = height/7;
+            let r = 10;
+            linkData['nodes'] = [{ "name": "PROGRESS", 'cx': xUnit, 'cy':yUnit*2, 'r':r },
+                { "name": "FORUM START", 'cx': xUnit*3, 'cy':yUnit, 'r':r }, { "name": "FORUM SUBMIT", 'cx': xUnit*5, 'cy':yUnit*2, 'r':r }, { "name": "FORUM END", 'cx': xUnit*5, 'cy':yUnit*5, 'r':r },
+                { "name": "QUIZ START", 'cx': xUnit*3, 'cy':yUnit*6, 'r':r }, { "name": "QUIZ SUBMIT", 'cx': xUnit*2, 'cy':yUnit*5, 'r':r }, { "name": "QUIZ END", 'cx': xUnit, 'cy':yUnit*5, 'r':r },
+                { "name": "VIDEO", 'cx': xUnit*2, 'cy':yUnit*2, 'r':r }];
+
+            // https://www.d3-graph-gallery.com/graph/network_basic.html
             let svg = d3.select(cycleDiv)
                 .append("svg")
                 .attr("width", width + margin.left + margin.right)
@@ -4706,7 +4838,6 @@ function drawCycles(){
                 .append("g")
                 .attr("transform",
                     "translate(" + margin.left + "," + margin.top + ")");
-
             svg.append("text")
                 .attr("x", (width / 2))
                 .attr("y", 20 - (margin.top / 2))
@@ -4714,16 +4845,51 @@ function drawCycles(){
                 .style("font-size", "16px")
                 .style("font-family", "Helvetica")
                 .text("Learning Path");
+            svg.append("svg:defs").append("svg:marker")
+                .attr("id", "triangle")
+                .attr("refX", 6)
+                .attr("refY", 6)
+                .attr("markerWidth", 15)
+                .attr("markerHeight", 10)
+                .attr("markerUnits","userSpaceOnUse")
+                .attr("orient", "auto")
+                .append("path")
+                .attr("d", "M 0 0 12 6 0 12 3 6")
+                .style("fill", "purple");
 
-            let xUnit = width/6;
-            let yUnit = height/7;
-            let nodes = [{ "name": "PROGRESS", 'cx': xUnit, 'cy':yUnit*2 },
-                { "name": "FORUM START", 'cx': xUnit*3, 'cy':yUnit }, { "name": "FORUM SUBMIT", 'cx': xUnit*5, 'cy':yUnit*2 }, { "name": "FORUM END", 'cx': xUnit*5, 'cy':yUnit*5 },
-                { "name": "QUIZ START", 'cx': xUnit*3, 'cy':yUnit*6 }, { "name": "QUIZ SUBMIT", 'cx': xUnit*2, 'cy':yUnit*5 }, { "name": "QUIZ END", 'cx': xUnit, 'cy':yUnit*5 },
-                { "name": "VIDEO", 'cx': xUnit*2, 'cy':yUnit*2 }];
+            let idToNode = {};
+            linkData.nodes.forEach(function (n) {
+                idToNode[n.name] = n;
+            });
+
+            let link = svg.append("g")
+                .selectAll("links")
+                .data(linkData.links)
+                .enter()
+                .append("path")
+                .attr('id', function(d){return d.id});
+
+            let edgelabels = svg.append("g")
+                .selectAll(".edgelabel")
+                .data(linkData.links)
+                .enter()
+                .append('text')
+                .attr('class', 'edgelabel')
+                .attr('id', function(d){ return d.id})
+                .attr('dx', function (d, i) {
+                    return 15 + i*5
+                })
+                .attr('dy', -10)
+                .attr('font-size',12)
+                .attr('fill', '#fe1100');
+
+            edgelabels.append('textPath')
+                .attr('xlink:href',function(d) {return '#' + d.id})
+                .style("pointer-events", "none")
+                .text(function(d){return d.id});
 
             let g = svg.selectAll(null)
-                .data(nodes)
+                .data(linkData.nodes)
                 .enter()
                 .append("g")
                 .attr("transform", function(d) {
@@ -4731,9 +4897,9 @@ function drawCycles(){
                 });
 
             g.append("circle")
-                .attr("r", 10)
+                .attr("r", function(d) { return d.r; })
                 .style("fill", "#69b3a2")
-                .style("fill-opacity", 0.3)
+                .style("fill-opacity", 0.9)
                 .attr("stroke", "#69a2b2")
                 .style("stroke-width", 4);
 
@@ -4744,58 +4910,112 @@ function drawCycles(){
                 .style("font-size", "10px")
                 .style("font-family", "Helvetica");
 
-            let allNodes = nodes.map(function (d) {
-                return d.name
-            });
+            var simulation = d3.forceSimulation(linkData.nodes)
+                .force("link", d3.forceLink()
+                    .id(function(d) { return d.id; })
+                    .links(linkData.links)
+                )
+                .force("charge", d3.forceManyBody().strength(-400))
+                .force("center", d3.forceCenter(width / 2, height / 2))
+                .on("end", ticked);
 
-            // let allGroups = nodes.map(function (d) {
-            //     return d.grp
-            // });
-            // allGroups = [...new Set(allGroups)];
+            function ticked() {
+                link.attr("d", function(d) { // https://stackoverflow.com/a/17687907/8331561
+                    let startX = idToNode[d.sourceNode].cx;
+                    let startY = idToNode[d.sourceNode].cy;
+                    let endX = idToNode[d.targetNode].cx;
+                    let endY = idToNode[d.targetNode].cy;
+                    let dx = endX - startX,
+                        dy = endY - startY,
+                        drx = Math.sqrt(dx * dx + dy * dy),
+                        dry = Math.sqrt(dx * dx + dy * dy),
+                        xRotation = 0,
+                        largeArc = 0,
+                        sweep = 1;
 
-            // let color = d3.scaleOrdinal()
-            //     .domain(allGroups)
-            //     .range(d3.schemeSet3);
-
-            // let size = d3.scaleLinear()
-            //     .domain([1, 10])
-            //     .range([2, 10]);
-
-            let x = d3.scalePoint()
-                .range([0, width])
-                .domain(allNodes);
-
-            let idToNode = {};
-            nodes.forEach(function (n) {
-                idToNode[n.name] = n;
-            });
-
-            let links = svg
-                .selectAll('mylinks')
-                .data(linkData['links'].slice(0,4))
-                .enter()
-                .append('path')
-                .attr('d', function (d) {
-                    if (d.status === 'designed') {
-                        let startX = idToNode[d.sourceNode].cx;
-                        let startY = idToNode[d.sourceNode].cy;
-                        let endX = idToNode[d.targetNode].cx;
-                        let endY = idToNode[d.targetNode].cy;
-
-                        let dString = ['M', startX, startY,
-                            // 'A', (startX - endY) / 1.5, (startY - endX) / 1.5, 0, 0,
-                            'A', 200, 200, 0, 0,
-                            1, endX, endY]
-                            .join(' ');
-                        console.log(dString);
-                        return dString;
+                    if ( startX === endX && startY === endY ) {
+                        // Fiddle with this angle to get loop oriented.
+                        xRotation = -45;
+                        // Needs to be 1.
+                        largeArc = 1;
+                        // Change sweep to change orientation of loop.
+                        // sweep = 0;
+                        // Make drx and dry different to get an ellipse instead of a circle.
+                        drx = 30;
+                        dry = 20;
+                        // The arc collapses to a point if the beginning and ending points of the arc are the same, so kludge it.
+                        endX = endX + 0.1;
+                        endY = endY + 0.1;
                     }
+                    return "M" + startX + "," + startY + "A" + drx + "," + dry + " " +
+                        xRotation + " " +  largeArc + "," + sweep + " " + endX + "," + endY;
                 })
                 .style("fill", "none")
-                .attr("stroke", "purple")
+                .attr("stroke", function (d) {
+                    if (d.status === 'designed') {
+                        return  "purple"
+                    } else if (d.status === 'failing') {
+                        return  "red"
+                    } else {
+                        return "green"
+                    }
+                })
                 .style("stroke-width", function (d) {
                     return d.value*2
+                })
+                .attr("marker-end", "url(#triangle)");
+
+                link.attr("d", function(d) {
+                    let startX = idToNode[d.sourceNode].cx,
+                        startY = idToNode[d.sourceNode].cy,
+                        endX = idToNode[d.targetNode].cx,
+                        endY = idToNode[d.targetNode].cy;
+
+                    let pl = this.getTotalLength(),
+                        r = (idToNode[d.targetNode].r) + 8.5, // 8.5 is the "size" of the marker Math.sqrt(6**2 + 6**2)
+                        m = this.getPointAtLength(pl - r);
+
+                    let dx = m.x - idToNode[d.sourceNode].cx,
+                        dy = m.y - idToNode[d.sourceNode].cy,
+                        drx = Math.sqrt(dx * dx + dy * dy)*0.8,
+                        dry = Math.sqrt(dx * dx + dy * dy),
+                        xRotation = 0,
+                        largeArc = 0,
+                        sweep = 1;
+
+                    if ( startX === endX && startY === endY ) {
+                        xRotation = -45;
+                        largeArc = 1;
+                        sweep = 0;
+                        drx = 30;
+                        dry = 20;
+                        endX = m.x + 1;
+                        endY = m.y + 1;
+                    } else {
+                        endX = m.x;
+                        endY = m.y;
+                    }
+                    return "M" + startX + "," + startY + "A" + drx + "," + dry + " " +
+                        xRotation + " " +  largeArc + "," + sweep + " " + endX + "," + endY;
                 });
+
+                edgelabels.attr('transform',function(d){
+                    if (idToNode[d.targetNode].cx < idToNode[d.sourceNode].cx) {
+                        let bbox = this.getBBox(),
+                            rx = bbox.x + bbox.width / 2,
+                            ry = bbox.y + bbox.height / 2;
+                        return 'rotate(180 ' + rx + ' ' + ry + ')';
+                    } else {
+                        return 'rotate(0)';
+                    }})
+                    .attr('fill', function (d) {
+                        if (idToNode[d.targetNode].cx === idToNode[d.sourceNode].cx && idToNode[d.targetNode].cy === idToNode[d.sourceNode].cy){
+                            return "#00fff9"
+                        } else {
+                            return "#ee000e"
+                        }
+                    });
+            }
         }
     })
 }

@@ -4773,6 +4773,59 @@ function moduleTransitions() {
                 frequencies[element] = frequency
             }
 
+            /////  PASSING   ///////////////////////////////////////////////////////////////////////////////
+            let passingIds = {};
+            for (let learner in passingPaths) {
+                for (let i = 0; i < passingPaths[learner].length - 1; i++) {
+                    let currentElement = passingPaths[learner][i];
+                    let followingElement = passingPaths[learner][i + 1];
+                    if (currentElement === followingElement){continue}
+                    if (passingIds.hasOwnProperty(currentElement)){
+                        passingIds[currentElement].push(followingElement);
+                    } else {
+                        passingIds[currentElement] = [followingElement]
+                    }
+                }
+            }
+            let frequenciesP = {};
+            for (let element in passingIds) {
+                let frequency = _.countBy(passingIds[element]);
+                for (let nextElement in passingIds) {
+                    if (frequency.hasOwnProperty(nextElement)) {
+                        frequency[nextElement] = frequency[nextElement] / (passingLearners);
+                    }
+                }
+                frequenciesP[element] = frequency
+            }
+            /////  PASSING   ///////////////////////////////////////////////////////////////////////////////
+
+            /////  FAILING   ///////////////////////////////////////////////////////////////////////////////
+            let failingIds = {};
+            for (let learner in failingPaths) {
+                for (let i = 0; i < failingPaths[learner].length - 1; i++) {
+                    let currentElement = failingPaths[learner][i];
+                    let followingElement = failingPaths[learner][i + 1];
+                    if (currentElement === followingElement){continue}
+                    if (failingIds.hasOwnProperty(currentElement)){
+                        failingIds[currentElement].push(followingElement);
+                    } else {
+                        failingIds[currentElement] = [followingElement]
+                    }
+                }
+            }
+            let frequenciesF = {};
+            for (let element in failingIds) {
+                let frequency = _.countBy(failingIds[element]);
+                for (let nextElement in failingIds) {
+                    if (frequency.hasOwnProperty(nextElement)) {
+                        frequency[nextElement] = frequency[nextElement] / (failingLearners);
+                    }
+                }
+                frequenciesF[element] = frequency
+            }
+            /////  FAILING   ///////////////////////////////////////////////////////////////////////////////
+
+            i = 0;
             for (let currentElement in frequencies) {
                 for (let followingElement in frequencies[currentElement]) {
                     let nodeMap = {
@@ -4797,6 +4850,70 @@ function moduleTransitions() {
                         'targetNode': targetNode,
                         'value': frequencies[currentElement][followingElement],
                         'status': 'general',
+                        'id': ' ' + i
+                    };
+                    links.push(link);
+                    i++;
+                }
+            }
+
+            i = 0;
+            for (let currentElement in frequenciesP) {
+                for (let followingElement in frequenciesP[currentElement]) {
+                    let nodeMap = {
+                        'forum': 'FORUM START',
+                        'forum_post': 'FORUM SUBMIT',
+                        'quiz': 'QUIZ START',
+                        'submission': 'QUIZ SUBMIT',
+                        'video': 'VIDEO'
+                    };
+
+                    let sourceType = currentElement.slice(0, currentElement.indexOf('_'));
+                    let targetType = followingElement.slice(0, followingElement.indexOf('_'));
+                    let sourceNode = nodeMap[sourceType];
+                    let targetNode = nodeMap[targetType];
+
+                    let link = {
+                        'sourceElement': currentElement,
+                        'sourceType': sourceType,
+                        'sourceNode': sourceNode,
+                        'targetElement': followingElement,
+                        'targetType': targetType,
+                        'targetNode': targetNode,
+                        'value': frequenciesP[currentElement][followingElement],
+                        'status': 'passing',
+                        'id': ' ' + i
+                    };
+                    links.push(link);
+                    i++;
+                }
+            }
+
+            i = 0;
+            for (let currentElement in frequenciesF) {
+                for (let followingElement in frequenciesF[currentElement]) {
+                    let nodeMap = {
+                        'forum': 'FORUM START',
+                        'forum_post': 'FORUM SUBMIT',
+                        'quiz': 'QUIZ START',
+                        'submission': 'QUIZ SUBMIT',
+                        'video': 'VIDEO'
+                    };
+
+                    let sourceType = currentElement.slice(0, currentElement.indexOf('_'));
+                    let targetType = followingElement.slice(0, followingElement.indexOf('_'));
+                    let sourceNode = nodeMap[sourceType];
+                    let targetNode = nodeMap[targetType];
+
+                    let link = {
+                        'sourceElement': currentElement,
+                        'sourceType': sourceType,
+                        'sourceNode': sourceNode,
+                        'targetElement': followingElement,
+                        'targetType': targetType,
+                        'targetNode': targetNode,
+                        'value': frequenciesF[currentElement][followingElement],
+                        'status': 'failing',
                         'id': ' ' + i
                     };
                     links.push(link);
@@ -4950,28 +5067,34 @@ function drawCycles(){
                     let endY = idToNode[d.targetNode].cy;
                     let dx = endX - startX,
                         dy = endY - startY,
-                        drx = Math.sqrt(dx * dx + dy * dy) + 10 * i,
-                        dry = Math.sqrt(dx * dx + dy * dy) + 10 * i,
+                        drx = Math.sqrt(dx * dx + dy * dy),
+                        dry = Math.sqrt(dx * dx + dy * dy),
                         xRotation = 0,
                         largeArc = 0,
                         sweep = 1;
                     if ( startX === endX && startY === endY ) {
                         // Fiddle with this angle to get loop oriented.
-                        xRotation = -35;
+                        xRotation = -55;
                         // Needs to be 1.
                         largeArc = 1;
                         // Change sweep to change orientation of loop.
                         // sweep = 0;
                         // Make drx and dry different to get an ellipse instead of a circle.
-                        drx = 30 ;
-                        dry = 20 ;
+                        drx = 300 ;
+                        dry = 200 * i;
                         // The arc collapses to a point if the beginning and ending points of the arc are the same, so kludge it.
                         endX = endX + 0.1;
                         endY = endY + 0.1;
                     }
+                    console.log(startX, startY, endX, endY, drx, dry);
 
                     return "M" + startX + "," + startY + "A" + drx + "," + dry + " " +
                         xRotation + " " +  largeArc + "," + sweep + " " + endX + "," + endY;
+                    //
+                    // return "M" + startX + "," + startY + " " +
+                    //     "C" + drx + "," + dry + " " +
+                    //     xRotation + "," + largeArc + " "
+                    //     + endX + "," + endY;
                 })
                     .style("fill", "none")
                     .attr("stroke", function (d) {
@@ -4991,7 +5114,8 @@ function drawCycles(){
                     })
                     // .attr("marker-end", "url(#triangle)");
                     .attr("marker-end", function (d) {
-                        if (d.status === 'designed' && cycleType === 'designed' || cycleType === 'general') {
+                        if ((d.status === 'designed' && cycleType === 'designed') ||
+                            (d.status === 'designed' && cycleType === 'general')) {
                             return  marker('#purple')
                         } else if (d.status === 'failing' && cycleType === 'failing') {
                             return  marker('#red')

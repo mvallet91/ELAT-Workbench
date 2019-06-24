@@ -4554,253 +4554,263 @@ function moduleTransitions() {
     let learnerIds = [];
     let learnerStatus = {};
     let elementIds = {};
-    let elementIdsP = {};
-    let elementIdsF = {};
+    let elementIdsD = {};
     let unorderedElements = [];
     let arcData = {};
-    connection.runSql("SELECT * FROM metadata WHERE name = 'metadata_map' ").then(function (result) {
+    connection.runSql("SELECT * FROM metadata WHERE name = 'metadata_map' ").then(async function (result) {
         if (result.length !== 1) {
             console.log('Metadata empty')
         } else {
             let course_metadata_map = result[0]['object'];
             let courseId = course_metadata_map.course_id;
             courseId = courseId.slice(courseId.indexOf(':') + 1,);
-            connection.runSql("SELECT * FROM course_learner").then(function (learners) {
+            await connection.runSql("SELECT * FROM course_learner").then(function (learners) {
                 learners.forEach(function (learner) {
                     learnerIds.push(learner.course_learner_id);
                     learnerStatus[learner.course_learner_id] = learner.certificate_status;
                 });
+            });
+            for (let elementId in course_metadata_map.child_parent_map) {
+                if (elementId.includes('video') ||
+                    elementId.includes('problem') ||
+                    elementId.includes('discussion')) {
+                    let parentId = course_metadata_map.child_parent_map[elementId];
+                    let parent2Id = course_metadata_map.child_parent_map[parentId];
+                    let parent3Id = course_metadata_map.child_parent_map[parent2Id];
+                    unorderedElements.push({
+                        'elementId': elementId,
+                        'chapter': course_metadata_map.order_map[parent3Id],
+                        'section': course_metadata_map.order_map[parent2Id],
+                        'block': course_metadata_map.order_map[parentId],
+                        'type': course_metadata_map.element_type_map[elementId],
+                        'name': course_metadata_map.element_name_map[elementId]
+                    })
+                }
+            }
+            let orderedElements = unorderedElements.sort(function (a, b) {
+                return a.block - b.block
+            });
+            orderedElements.sort(function (a, b) {
+                return a.section - b.section
+            });
+            orderedElements.sort(function (a, b) {
+                return a.chapter - b.chapter
+            });
 
-                for (let elementId in course_metadata_map.child_parent_map) {
-                    if (elementId.includes('video') ||
-                        elementId.includes('problem')||
-                        elementId.includes('discussion')) {
-                        let parentId = course_metadata_map.child_parent_map[elementId];
-                        let parent2Id = course_metadata_map.child_parent_map[parentId];
-                        let parent3Id = course_metadata_map.child_parent_map[parent2Id];
-                        unorderedElements.push({
-                            'elementId': elementId,
-                            'chapter': course_metadata_map.order_map[parent3Id],
-                            'section': course_metadata_map.order_map[parent2Id],
-                            'block': course_metadata_map.order_map[parentId],
-                            'type': course_metadata_map.element_type_map[elementId],
-                            'name': course_metadata_map.element_name_map[elementId]
-                        })
+            for (let element of orderedElements) {
+                let elementId = element.elementId;
+                // elementId = elementId.slice(elementId.lastIndexOf('@') + 1,);
+                elementIdsD[elementId] = []; //Designed
+            }
+
+            let learningPaths = {};
+            let passingPaths = {};
+            let failingPaths = {};
+            let counter = 0;
+
+            let designedPath = [];
+            let currentElement = '';
+
+            for (let element of orderedElements) {
+                if (element.chapter === 1 || element.chapter === 2) {
+                    if (element.elementId !== currentElement) {
+                        currentElement = element.elementId;
+                        let elementId = element.elementId;
+                        // elementId = elementId.slice(elementId.lastIndexOf('@') + 1,);
+                        designedPath.push(elementId);
                     }
                 }
-                let orderedElements = unorderedElements.sort(function (a, b) {
-                    return a.block - b.block
-                });
-                orderedElements.sort(function (a, b) {
-                    return a.section - b.section
-                });
-                orderedElements.sort(function (a, b) {
-                    return a.chapter - b.chapter
-                });
-
-                for (let element of orderedElements) {
-                    let elementId = element.elementId;
-                    // elementId = elementId.slice(elementId.lastIndexOf('@') + 1,);
-                    elementIds[elementId] = [];
-                    elementIdsP[elementId] = [];
-                    elementIdsF[elementId] = [];
+            }
+            console.log(designedPath);
+            learningPaths['designed'] = designedPath;
+            for (let learner in learningPaths) {
+                for (let i = 0; i < learningPaths[learner].length - 1; i++) {
+                    let currentElement = learningPaths[learner][i];
+                    let followingElement = learningPaths[learner][i + 1];
+                    elementIdsD[currentElement].push(followingElement);
                 }
-
-                let learningPaths = {};
-                let passingPaths = {};
-                let failingPaths = {};
-                learnerIds = learnerIds.slice(0, 5);
-                let counter = 0;
-
-                let designedPath = [];
-                let currentElement = '';
-
-                for (let element of orderedElements){
-                    if (element.chapter === 7) {
-                        if (element.elementId !== currentElement) {
-                            currentElement = element.elementId;
-                            let elementId = element.elementId;
-                            // elementId = elementId.slice(elementId.lastIndexOf('@') + 1,);
-                            designedPath.push(elementId);
-                        }
+            }
+            let frequenciesDesigned = {};
+            for (let element in elementIdsD) {
+                let frequency = _.countBy(elementIdsD[element]);
+                for (let nextElement in elementIdsD) {
+                    if (frequency.hasOwnProperty(nextElement)) {
+                        frequency[nextElement] = 1;
                     }
                 }
-                learningPaths['designed'] = designedPath;
-                for (let learner in learningPaths) {
-                    for (let i = 0; i < learningPaths[learner].length - 1; i++) {
-                        let currentElement = learningPaths[learner][i];
-                        let followingElement = learningPaths[learner][i + 1];
+                frequenciesDesigned[element] = frequency
+            }
+            let links = [];
+            let i = 0;
+            for (let currentElement in frequenciesDesigned) {
+                for (let followingElement in frequenciesDesigned[currentElement]) {
+                    let nodeMap = {
+                        'discussion': 'FORUM START',
+                        'problem': 'QUIZ START',
+                        'video': 'VIDEO'
+                    };
+                    let sourceType = course_metadata_map.element_type_map[currentElement];
+                    let targetType = course_metadata_map.element_type_map[followingElement];
+                    let sourceNode = nodeMap[sourceType];
+                    let targetNode = nodeMap[targetType];
+
+                    let link = {
+                        'sourceElement': currentElement,
+                        'sourceType': sourceType,
+                        'sourceNode': sourceNode,
+                        'targetElement': followingElement,
+                        'targetType': targetType,
+                        'targetNode': targetNode,
+                        'value': frequenciesDesigned[currentElement][followingElement],
+                        'status': 'designed',
+                        'id': ' ' + i
+                    };
+                    links.push(link);
+                    i++;
+                }
+            }
+
+            learnerIds = learnerIds.slice(0, 30);
+            let allSessions = {};
+            for (let learnerId of learnerIds) {
+                allSessions[learnerId] = [];
+                await connection.runSql("SELECT * FROM forum_sessions WHERE course_learner_id = '" + learnerId + "' ").then(function (sessions) {
+                    sessions.forEach(function(session) {
+                        session['type'] = 'forum';
+                        session['time'] = session.start_time;
+                        let elementId = session.relevent_element_id;
+                        session['elementId'] = elementId.slice(elementId.lastIndexOf('@') + 1,);
+                        allSessions[learnerId].push(session)
+                    })
+                });
+                await connection.runSql("SELECT * FROM forum_interaction WHERE course_learner_id = '" + learnerId + "' ").then(function (sessions) {
+                    sessions.forEach(function(session) {
+                        session['type'] = 'forum_post';
+                        session['time'] = session.post_timestamp;
+                        session['elementId'] = session.post_id;
+                        session['postDetails'] = {'id': session.post_id, 'thread': session.post_thread_id, 'parent': session.post_parent_id};
+                        allSessions[learnerId].push(session)
+                    })
+                });
+                await connection.runSql("SELECT * FROM quiz_sessions WHERE course_learner_id = '" + learnerId + "' ").then(function (sessions) {
+                    sessions.forEach(function(session) {
+                        session['type'] = 'quiz';
+                        session['time'] = session.start_time;
+                        let elementId = session.session_id;
+                        session['elementId'] = elementId.slice(elementId.lastIndexOf('@') + 1, elementId.indexOf('_course'));
+                        allSessions[learnerId].push(session)
+                    })
+                });
+                await connection.runSql("SELECT * FROM submissions WHERE course_learner_id = '" + learnerId + "' ").then(function (sessions) {
+                    sessions.forEach(function(session) {
+                        session['type'] = 'submission';
+                        session['time'] = session.submission_timestamp;
+                        let elementId = session.question_id;
+                        session['elementId'] = elementId.slice(elementId.lastIndexOf('@') + 1,);
+                        allSessions[learnerId].push(session)
+                    })
+                });
+                await connection.runSql("SELECT * FROM video_interaction WHERE course_learner_id = '" + learnerId + "' ").then(function (sessions) {
+                    sessions.forEach(function(session) {
+                        session['type'] = 'video';
+                        session['time'] = session.start_time;
+                        let elementId = session.video_id;
+                        session['elementId'] = elementId.slice(elementId.lastIndexOf('@') + 1,);
+                        allSessions[learnerId].push(session)
+                    })
+                });
+                allSessions[learnerId].sort(function (a, b) {
+                    return new Date(a.time) - new Date(b.time)
+                });
+            }
+
+            learningPaths = {};
+            let totalLearners = 0,
+                passingLearners = 0,
+                failingLearners = 0;
+
+            for (let learnerId in allSessions) {
+                let learningPath = [];
+                for (let session of allSessions[learnerId]){ // ["course-v1:DelftX+FP101x+3T2015_1001841"]) {
+                    if (new Date(session.time) > new Date('Oct 15, 2015') &&
+                        new Date(session.time) < new Date('Oct 23, 2015') ){
+                        learningPath.push(session.type + '_' + session.elementId);
+                    }
+                }
+                if (learningPath.length > 1) {
+                    learningPaths[learnerId] = learningPath;
+                    totalLearners++;
+                    if (learnerStatus[learnerId] === 'downloadable'){
+                        passingPaths[learnerId] = learningPath;
+                        passingLearners++;
+                    } else {
+                        failingPaths[learnerId] = learningPath;
+                        failingLearners++;
+                    }
+                }
+            }
+
+            for (let learner in learningPaths) {
+                for (let i = 0; i < learningPaths[learner].length - 1; i++) {
+                    let currentElement = learningPaths[learner][i];
+                    let followingElement = learningPaths[learner][i + 1];
+                    if (currentElement === followingElement){continue}
+                    if (elementIds.hasOwnProperty(currentElement)){
                         elementIds[currentElement].push(followingElement);
+                    } else {
+                        elementIds[currentElement] = [followingElement]
                     }
                 }
-                let frequencies = {};
-                for (let element in elementIds) {
-                    let frequency = _.countBy(elementIds[element]);
-                    for (let nextElement in elementIds) {
-                        if (frequency.hasOwnProperty(nextElement)) {
-                            frequency[nextElement] = 1;
-                        }
-                    }
-                    frequencies[element] = frequency
-                }
-                let links = [];
-                let i = 0;
-                for (let currentElement in frequencies){
-                    for (let followingElement in frequencies[currentElement]){
-                        let nodeMap = {
-                            'discussion':'FORUM START',
-                            'problem':'QUIZ START',
-                            'video': 'VIDEO'};
-                        let sourceType = course_metadata_map.element_type_map[currentElement];
-                        let targetType = course_metadata_map.element_type_map[followingElement];
-                        let sourceNode = nodeMap[sourceType];
-                        let targetNode = nodeMap[targetType];
-
-                        let link = {
-                            'sourceElement': currentElement,
-                            'sourceType': sourceType,
-                            'sourceNode': sourceNode,
-                            'targetElement': followingElement,
-                            'targetType': targetType,
-                            'targetNode': targetNode,
-                            'value': frequencies[currentElement][followingElement],
-                            'status': 'designed',
-                            'id': ' ' + i
-                        };
-                        links.push(link);
-                        i++;
+            }
+            let frequencies = {};
+            for (let element in elementIds) {
+                let frequency = _.countBy(elementIds[element]);
+                for (let nextElement in elementIds) {
+                    if (frequency.hasOwnProperty(nextElement)) {
+                        frequency[nextElement] = frequency[nextElement] / (passingLearners + failingLearners);
                     }
                 }
+                frequencies[element] = frequency
+            }
 
-                for (let learnerId in learners){
+            for (let currentElement in frequencies) {
+                for (let followingElement in frequencies[currentElement]) {
+                    let nodeMap = {
+                        'forum': 'FORUM START',
+                        'forum_post': 'FORUM SUBMIT',
+                        'quiz': 'QUIZ START',
+                        'submission': 'QUIZ SUBMIT',
+                        'video': 'VIDEO'
+                    };
 
+                    let sourceType = currentElement.slice(0, currentElement.indexOf('_'));
+                    let targetType = followingElement.slice(0, followingElement.indexOf('_'));
+                    let sourceNode = nodeMap[sourceType];
+                    let targetNode = nodeMap[targetType];
+
+                    let link = {
+                        'sourceElement': currentElement,
+                        'sourceType': sourceType,
+                        'sourceNode': sourceNode,
+                        'targetElement': followingElement,
+                        'targetType': targetType,
+                        'targetNode': targetNode,
+                        'value': frequencies[currentElement][followingElement],
+                        'status': 'general',
+                        'id': ' ' + i
+                    };
+                    links.push(link);
+                    i++;
                 }
+            }
 
-
-
-                let cycleData = {};
-                cycleData['links'] = links;
-                let cycleElements = [{'name': 'cycleElements', 'object': cycleData}];
-                connection.runSql("DELETE FROM webdata WHERE name = 'cycleElements'").then(function (success) {
-                    sqlInsert('webdata', cycleElements);
-                    drawCycles();
-                });
+            let cycleData = {};
+            cycleData['links'] = links;
+            let cycleElements = [{'name': 'cycleElements', 'object': cycleData}];
+            connection.runSql("DELETE FROM webdata WHERE name = 'cycleElements'").then(function (success) {
+                sqlInsert('webdata', cycleElements);
+                drawCycles();
             });
-        }
-    })
-}
-
-
-function drawCyclesTest(){
-    connection.runSql("SELECT * FROM webdata WHERE name = 'cycleElements' ").then(function(result) {
-        if (result.length !== 1) {
-            moduleTransitions()
-        } else {
-            let linkData = result[0]['object'];
-
-            let cycleTileDiv = document.getElementById("cycleTile");
-            cycleTileDiv.addEventListener("resize", drawCycles);
-
-            $("#cycleChart").empty();
-            let cycleDiv = document.getElementById("cycleChart");
-
-            let margin = {top: 20, right: 20, bottom: 20, left: 20},
-                width = cycleDiv.clientWidth - margin.left - margin.right,
-                height = cycleDiv.clientWidth / 2 - margin.top - margin.bottom;
-
-            let xUnit = width/6;
-            let yUnit = height/7;
-            let r = 10;
-            let nodes = [{ "name": "PROGRESS", 'cx': xUnit, 'cy':yUnit*2, 'r':r },
-                { "name": "FORUM START", 'cx': xUnit*3, 'cy':yUnit, 'r':r }, { "name": "FORUM SUBMIT", 'cx': xUnit*5, 'cy':yUnit*2, 'r':r }, { "name": "FORUM END", 'cx': xUnit*5, 'cy':yUnit*5, 'r':r },
-                { "name": "QUIZ START", 'cx': xUnit*3, 'cy':yUnit*6, 'r':r }, { "name": "QUIZ SUBMIT", 'cx': xUnit*2, 'cy':yUnit*5, 'r':r }, { "name": "QUIZ END", 'cx': xUnit, 'cy':yUnit*5, 'r':r },
-                { "name": "VIDEO", 'cx': xUnit*2, 'cy':yUnit*2, 'r':r }];
-
-            let svg = d3.select(cycleDiv)
-                .append("svg")
-                .attr("width", width + margin.left + margin.right)
-                .attr("height", height + margin.top + margin.bottom)
-                .append("g")
-                .attr("transform",
-                    "translate(" + margin.left + "," + margin.top + ")");
-
-            svg.append("text")
-                .attr("x", (width / 2))
-                .attr("y", 20 - (margin.top / 2))
-                .attr("text-anchor", "middle")
-                .style("font-size", "16px")
-                .style("font-family", "Helvetica")
-                .text("Learning Path");
-
-            svg.append("svg:defs").append("svg:marker")
-                .attr("id", "triangle")
-                .attr("refX", 6)
-                .attr("refY", 6)
-                .attr("markerWidth", 15)
-                .attr("markerHeight", 10)
-                .attr("markerUnits","userSpaceOnUse")
-                .attr("orient", "auto")
-                .append("path")
-                .attr("d", "M 0 0 12 6 0 12 3 6")
-                .style("fill", "purple");
-
-            let g = svg.selectAll(null)
-                .data(nodes)
-                .enter()
-                .append("g")
-                .attr("transform", function(d) {
-                    return "translate(" + d.cx +','+ d.cy + ")" ;
-                });
-
-            g.append("circle")
-                .attr("r", function(d) { return d.r; })
-                .style("fill", "#69b3a2")
-                .style("fill-opacity", 0.3)
-                .attr("stroke", "#69a2b2")
-                .style("stroke-width", 4);
-
-            g.append("text")
-                .text(function(d) { return d.name; })
-                .attr("x", 10)
-                .attr("y", -10)
-                .style("font-size", "10px")
-                .style("font-family", "Helvetica");
-
-            let allNodes = nodes.map(function (d) {
-                return d.name
-            });
-
-            let idToNode = {};
-            nodes.forEach(function (n) {
-                idToNode[n.name] = n;
-            });
-
-            let links = svg
-                .selectAll('mylinks')
-                .data(linkData['links'].slice(0,4))
-                .enter()
-                .append('path')
-                .attr('d', function (d) {
-                    if (d.status === 'designed') {
-                        let startX = idToNode[d.sourceNode].cx;
-                        let startY = idToNode[d.sourceNode].cy;
-                        let endX = idToNode[d.targetNode].cx;
-                        let endY = idToNode[d.targetNode].cy;
-                        let startRadius = idToNode[d.sourceNode].r;
-                        let endRadius = idToNode[d.targetNode].r;
-                        let dx = endX - startX,
-                            dy = endY - startY,
-                            dr = Math.sqrt(dx * dx + dy * dy);
-                        return "M" + startX + "," + startY + "A" + dr + "," + dr + " 0 0,1 " + endX + "," + endY;
-                    }
-                })
-                .style("fill", "none")
-                .attr("stroke", "purple")
-                .style("stroke-width", function (d) {
-                    return d.value*2
-                })
-                .attr("marker-end", "url(#triangle)");
-
         }
     })
 }
@@ -4811,6 +4821,11 @@ function drawCycles(){
             moduleTransitions()
         } else {
             let linkData = result[0]['object'];
+
+            let typeDropdown = d3.select('#cycleType');
+            typeDropdown.on('change', function () {
+                drawCycles()
+            });
 
             let cycleTileDiv = document.getElementById("cycleTile");
             cycleTileDiv.addEventListener("resize", drawCycles);
@@ -4845,22 +4860,28 @@ function drawCycles(){
                 .style("font-size", "16px")
                 .style("font-family", "Helvetica")
                 .text("Learning Path");
-            svg.append("svg:defs").append("svg:marker")
-                .attr("id", "triangle")
-                .attr("refX", 6)
-                .attr("refY", 6)
-                .attr("markerWidth", 15)
-                .attr("markerHeight", 10)
-                .attr("markerUnits","userSpaceOnUse")
-                .attr("orient", "auto")
-                .append("path")
-                .attr("d", "M 0 0 12 6 0 12 3 6")
-                .style("fill", "purple");
 
+            let defs = svg.append("svg:defs");
+            function marker(color) {
+                defs.append("svg:marker")
+                    .attr("id", color.replace("#", ""))
+                    .attr("refX", 6)
+                    .attr("refY", 6)
+                    .attr("markerWidth", 15)
+                    .attr("markerHeight", 10)
+                    .attr("markerUnits","userSpaceOnUse")
+                    .attr("orient", "auto")
+                    .append("path")
+                    .attr("d", "M 0 0 12 6 0 12 3 6")
+                    .style("fill", color.replace("#", ""));
+                return "url(" + color + ")";
+            }
             let idToNode = {};
             linkData.nodes.forEach(function (n) {
                 idToNode[n.name] = n;
             });
+
+            let cycleType = typeDropdown.node().value;
 
             let link = svg.append("g")
                 .selectAll("links")
@@ -4885,8 +4906,8 @@ function drawCycles(){
 
             edgelabels.append('textPath')
                 .attr('xlink:href',function(d) {return '#' + d.id})
-                .style("pointer-events", "none")
-                .text(function(d){return d.id});
+                .style("pointer-events", "none");
+                // .text(function(d){return d.id});
 
             let g = svg.selectAll(null)
                 .data(linkData.nodes)
@@ -4910,7 +4931,7 @@ function drawCycles(){
                 .style("font-size", "10px")
                 .style("font-family", "Helvetica");
 
-            var simulation = d3.forceSimulation(linkData.nodes)
+            let simulation = d3.forceSimulation(linkData.nodes)
                 .force("link", d3.forceLink()
                     .id(function(d) { return d.id; })
                     .links(linkData.links)
@@ -4920,50 +4941,66 @@ function drawCycles(){
                 .on("end", ticked);
 
             function ticked() {
+                let i = 0;
                 link.attr("d", function(d) { // https://stackoverflow.com/a/17687907/8331561
+                    i++;
                     let startX = idToNode[d.sourceNode].cx;
                     let startY = idToNode[d.sourceNode].cy;
                     let endX = idToNode[d.targetNode].cx;
                     let endY = idToNode[d.targetNode].cy;
                     let dx = endX - startX,
                         dy = endY - startY,
-                        drx = Math.sqrt(dx * dx + dy * dy),
-                        dry = Math.sqrt(dx * dx + dy * dy),
+                        drx = Math.sqrt(dx * dx + dy * dy) + 10 * i,
+                        dry = Math.sqrt(dx * dx + dy * dy) + 10 * i,
                         xRotation = 0,
                         largeArc = 0,
                         sweep = 1;
-
                     if ( startX === endX && startY === endY ) {
                         // Fiddle with this angle to get loop oriented.
-                        xRotation = -45;
+                        xRotation = -35;
                         // Needs to be 1.
                         largeArc = 1;
                         // Change sweep to change orientation of loop.
                         // sweep = 0;
                         // Make drx and dry different to get an ellipse instead of a circle.
-                        drx = 30;
-                        dry = 20;
+                        drx = 30 ;
+                        dry = 20 ;
                         // The arc collapses to a point if the beginning and ending points of the arc are the same, so kludge it.
                         endX = endX + 0.1;
                         endY = endY + 0.1;
                     }
+
                     return "M" + startX + "," + startY + "A" + drx + "," + dry + " " +
                         xRotation + " " +  largeArc + "," + sweep + " " + endX + "," + endY;
                 })
-                .style("fill", "none")
-                .attr("stroke", function (d) {
-                    if (d.status === 'designed') {
-                        return  "purple"
-                    } else if (d.status === 'failing') {
-                        return  "red"
-                    } else {
-                        return "green"
-                    }
-                })
-                .style("stroke-width", function (d) {
-                    return d.value*2
-                })
-                .attr("marker-end", "url(#triangle)");
+                    .style("fill", "none")
+                    .attr("stroke", function (d) {
+                        if ((d.status === 'designed' && cycleType === 'designed') ||
+                            (d.status === 'designed' && cycleType === 'general')) {
+                            return  "purple"
+                        } else if (d.status === 'failing' && cycleType === 'failing') {
+                            return  "red"
+                        } else if (d.status === 'passing' && cycleType === 'passing') {
+                            return "green"
+                        } else if (d.status === 'general' && cycleType === 'general') {
+                            return "blue"
+                        }
+                    })
+                    .style("stroke-width", function (d) {
+                        return d.value
+                    })
+                    // .attr("marker-end", "url(#triangle)");
+                    .attr("marker-end", function (d) {
+                        if (d.status === 'designed' && cycleType === 'designed' || cycleType === 'general') {
+                            return  marker('#purple')
+                        } else if (d.status === 'failing' && cycleType === 'failing') {
+                            return  marker('#red')
+                        } else if (d.status === 'passing' && cycleType === 'passing') {
+                            return  marker('#green')
+                        } else if (d.status === 'general' && cycleType === 'general' ) {
+                            return marker("#blue")
+                        }
+                    });
 
                 link.attr("d", function(d) {
                     let startX = idToNode[d.sourceNode].cx,
@@ -4977,7 +5014,7 @@ function drawCycles(){
 
                     let dx = m.x - idToNode[d.sourceNode].cx,
                         dy = m.y - idToNode[d.sourceNode].cy,
-                        drx = Math.sqrt(dx * dx + dy * dy)*0.8,
+                        drx = Math.sqrt(dx * dx + dy * dy) * 0.8,
                         dry = Math.sqrt(dx * dx + dy * dy),
                         xRotation = 0,
                         largeArc = 0,
@@ -4987,8 +5024,8 @@ function drawCycles(){
                         xRotation = -45;
                         largeArc = 1;
                         sweep = 0;
-                        drx = 30;
-                        dry = 20;
+                        drx = 20;
+                        dry = 30;
                         endX = m.x + 1;
                         endY = m.y + 1;
                     } else {
@@ -5019,6 +5056,121 @@ function drawCycles(){
         }
     })
 }
+
+
+// function drawCyclesTest(){
+//     connection.runSql("SELECT * FROM webdata WHERE name = 'cycleElements' ").then(function(result) {
+//         if (result.length !== 1) {
+//             moduleTransitions()
+//         } else {
+//             let linkData = result[0]['object'];
+//
+//             let cycleTileDiv = document.getElementById("cycleTile");
+//             cycleTileDiv.addEventListener("resize", drawCycles);
+//
+//             $("#cycleChart").empty();
+//             let cycleDiv = document.getElementById("cycleChart");
+//
+//             let margin = {top: 20, right: 20, bottom: 20, left: 20},
+//                 width = cycleDiv.clientWidth - margin.left - margin.right,
+//                 height = cycleDiv.clientWidth / 2 - margin.top - margin.bottom;
+//
+//             let xUnit = width/6;
+//             let yUnit = height/7;
+//             let r = 10;
+//             let nodes = [{ "name": "PROGRESS", 'cx': xUnit, 'cy':yUnit*2, 'r':r },
+//                 { "name": "FORUM START", 'cx': xUnit*3, 'cy':yUnit, 'r':r }, { "name": "FORUM SUBMIT", 'cx': xUnit*5, 'cy':yUnit*2, 'r':r }, { "name": "FORUM END", 'cx': xUnit*5, 'cy':yUnit*5, 'r':r },
+//                 { "name": "QUIZ START", 'cx': xUnit*3, 'cy':yUnit*6, 'r':r }, { "name": "QUIZ SUBMIT", 'cx': xUnit*2, 'cy':yUnit*5, 'r':r }, { "name": "QUIZ END", 'cx': xUnit, 'cy':yUnit*5, 'r':r },
+//                 { "name": "VIDEO", 'cx': xUnit*2, 'cy':yUnit*2, 'r':r }];
+//
+//             let svg = d3.select(cycleDiv)
+//                 .append("svg")
+//                 .attr("width", width + margin.left + margin.right)
+//                 .attr("height", height + margin.top + margin.bottom)
+//                 .append("g")
+//                 .attr("transform",
+//                     "translate(" + margin.left + "," + margin.top + ")");
+//
+//             svg.append("text")
+//                 .attr("x", (width / 2))
+//                 .attr("y", 20 - (margin.top / 2))
+//                 .attr("text-anchor", "middle")
+//                 .style("font-size", "16px")
+//                 .style("font-family", "Helvetica")
+//                 .text("Learning Path");
+//
+//             svg.append("svg:defs").append("svg:marker")
+//                 .attr("id", "triangle")
+//                 .attr("refX", 6)
+//                 .attr("refY", 6)
+//                 .attr("markerWidth", 15)
+//                 .attr("markerHeight", 10)
+//                 .attr("markerUnits","userSpaceOnUse")
+//                 .attr("orient", "auto")
+//                 .append("path")
+//                 .attr("d", "M 0 0 12 6 0 12 3 6")
+//                 .style("fill", "purple");
+//
+//             let g = svg.selectAll(null)
+//                 .data(nodes)
+//                 .enter()
+//                 .append("g")
+//                 .attr("transform", function(d) {
+//                     return "translate(" + d.cx +','+ d.cy + ")" ;
+//                 });
+//
+//             g.append("circle")
+//                 .attr("r", function(d) { return d.r; })
+//                 .style("fill", "#69b3a2")
+//                 .style("fill-opacity", 0.3)
+//                 .attr("stroke", "#69a2b2")
+//                 .style("stroke-width", 4);
+//
+//             g.append("text")
+//                 .text(function(d) { return d.name; })
+//                 .attr("x", 10)
+//                 .attr("y", -10)
+//                 .style("font-size", "10px")
+//                 .style("font-family", "Helvetica");
+//
+//             let allNodes = nodes.map(function (d) {
+//                 return d.name
+//             });
+//
+//             let idToNode = {};
+//             nodes.forEach(function (n) {
+//                 idToNode[n.name] = n;
+//             });
+//
+//             let links = svg
+//                 .selectAll('mylinks')
+//                 .data(linkData['links'].slice(0,4))
+//                 .enter()
+//                 .append('path')
+//                 .attr('d', function (d) {
+//                     if (d.status === 'designed') {
+//                         let startX = idToNode[d.sourceNode].cx;
+//                         let startY = idToNode[d.sourceNode].cy;
+//                         let endX = idToNode[d.targetNode].cx;
+//                         let endY = idToNode[d.targetNode].cy;
+//                         let startRadius = idToNode[d.sourceNode].r;
+//                         let endRadius = idToNode[d.targetNode].r;
+//                         let dx = endX - startX,
+//                             dy = endY - startY,
+//                             dr = Math.sqrt(dx * dx + dy * dy);
+//                         return "M" + startX + "," + startY + "A" + dr + "," + dr + " 0 0,1 " + endX + "," + endY;
+//                     }
+//                 })
+//                 .style("fill", "none")
+//                 .attr("stroke", "purple")
+//                 .style("stroke-width", function (d) {
+//                     return d.value*2
+//                 })
+//                 .attr("marker-end", "url(#triangle)");
+//
+//         }
+//     })
+// }
 
 
 function webdataJSON(){

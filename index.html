@@ -371,13 +371,13 @@
                 <div class="container-fluid  " id="cycleChartBox">
                     <form>
                         <label for="linksCycle" style="float:right;"> - Number of Links</label>
-                        <input type="range" min=10 max=500 step=10 id="linksCycle" value=30 style="float:right;">
+                        <input type="range" min=10 max=200 step=10 id="linksCycle" value=50 style="float:right;">
                         <label style="float:left;" for="cycleType">Student Status - </label>
                         <select name="type" id="cycleType" style="float:left;">
-                            <option value="general">Everyone</option>
+                            <option value="downloadable">Passing Only</option>
+                            <option value="notpassing">Failing Only</option>
+                            <option value="general">Passing and Failing</option>
                             <option value="designed">Designed</option>
-                            <option value="passing">Passing Only</option>
-                            <option value="failing">Failing Only</option>
                         </select>
                     </form>
                     <div id="cycleChart" ></div>

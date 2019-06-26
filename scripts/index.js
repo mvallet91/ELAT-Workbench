@@ -4640,8 +4640,8 @@ function moduleTransitions() {
                 }
                 frequenciesDesigned[element] = frequency
             }
-            let links = [];
-            let i = 0;
+            let linksDesigned = [];
+            let l = 0;
             for (let currentElement in frequenciesDesigned) {
                 for (let followingElement in frequenciesDesigned[currentElement]) {
                     let nodeMap = {
@@ -4663,14 +4663,14 @@ function moduleTransitions() {
                         'targetNode': targetNode,
                         'value': frequenciesDesigned[currentElement][followingElement],
                         'status': 'designed',
-                        'id': ' ' + i
+                        'id': ' ' + l
                     };
-                    links.push(link);
-                    i++;
+                    linksDesigned.push(link);
+                    l++;
                 }
             }
 
-            learnerIds = learnerIds.slice(0, 1000);
+            // learnerIds = learnerIds.slice(0, 100);
             learningPaths = {};
             let totalLearners = 0,
                 passingLearners = 0,
@@ -4755,50 +4755,78 @@ function moduleTransitions() {
                 'downloadable': {},
                 'notpassing': {}
             };
-            for (let learnerId in allSessions) {
-                let learningPath = [];
-                for (let session of allSessions[learnerId]){
-                    if (new Date(session.time) > new Date('Oct 15, 2015') &&
-                        new Date(session.time) < new Date('Oct 22, 2015') ){
-                        learningPath.push(session.type + '_')// + session.elementId);
+
+            // for (let learnerId in allSessions) {
+            //     let learningPath = [];
+            //     for (let session of allSessions[learnerId]){
+            //         if (new Date(session.time) > new Date('Oct 15, 2015') &&
+            //             new Date(session.time) < new Date('Oct 22, 2015') ){
+            //             learningPath.push(session.type + '_')// + session.elementId);
+            //         }
+            //     }
+            //     if (learningPath.length > 1) {
+            //         learningPaths[learnerStatus[learnerId]][learnerId] = learningPath;
+            //     }
+            // }
+
+            let week = 0;
+            let weekStart = new Date(course_metadata_map.start_date.toDateString());
+            let weekEnd = new Date();
+            let weeklyData = {};
+            do {
+                weekEnd = new Date(weekStart.toDateString())
+                weekEnd = new Date(weekEnd.setDate(weekEnd.getDate() + 7))
+                for (let learnerId in allSessions) {
+                    let learningPath = [];
+                    for (let session of allSessions[learnerId]){
+                        if (new Date(session.time) > weekStart &&
+                            new Date(session.time) < weekEnd ){
+                            learningPath.push(session.type + '_')// + session.elementId);
+                        }
+                    }
+                    if (learningPath.length > 1) {
+                        learningPaths[learnerStatus[learnerId]][learnerId] = learningPath;
                     }
                 }
-                if (learningPath.length > 1) {
-                    learningPaths[learnerStatus[learnerId]][learnerId] = learningPath;
-                }
-            }
-            for (let status in learningPaths) {
-                elementIds[status] = {};
-                for (let learnerId in learningPaths[status]) {
-                    for (let i = 0; i < learningPaths[status][learnerId].length - 1; i++) {
-                        let currentElement = learningPaths[status][learnerId][i];
-                        let followingElement = learningPaths[status][learnerId][i + 1];
-                        // if (currentElement === followingElement) {
-                        //     continue
-                        // }
-                        if (elementIds[status].hasOwnProperty(currentElement)) {
-                            elementIds[status][currentElement].push(followingElement);
-                        } else {
-                            elementIds[status][currentElement] = [followingElement]
+                weekStart = new Date(weekEnd);
+                week++;
+
+                for (let status in learningPaths) {
+                    elementIds[status] = {};
+                    for (let learnerId in learningPaths[status]) {
+                        for (let i = 0; i < learningPaths[status][learnerId].length - 1; i++) {
+                            let currentElement = learningPaths[status][learnerId][i];
+                            let followingElement = learningPaths[status][learnerId][i + 1];
+                            // if (currentElement === followingElement) {
+                            //     continue
+                            // }
+                            if (elementIds[status].hasOwnProperty(currentElement)) {
+                                elementIds[status][currentElement].push(followingElement);
+                            } else {
+                                elementIds[status][currentElement] = [followingElement]
+                            }
                         }
                     }
                 }
-            }
-            let frequencies = {};
-            for (let status in elementIds) {
-                frequencies[status] = {};
-                let learners = passingLearners;
-                if (status === 'notpassing'){learners = failingLearners}
-                for (let element in elementIds[status]) {
-                    let frequency = _.countBy(elementIds[status][element]);
-                    for (let nextElement in elementIds[status]) {
-                        if (frequency.hasOwnProperty(nextElement)) {
-                            frequency[nextElement] = frequency[nextElement] / elementIds[status][element].length
+                let frequencies = {};
+                for (let status in elementIds) {
+                    frequencies[status] = {};
+                    let learners = passingLearners;
+                    if (status === 'notpassing'){learners = failingLearners}
+                    for (let element in elementIds[status]) {
+                        let frequency = _.countBy(elementIds[status][element]);
+                        for (let nextElement in elementIds[status]) {
+                            if (frequency.hasOwnProperty(nextElement)) {
+                                frequency[nextElement] = frequency[nextElement] / elementIds[status][element].length
+                            }
                         }
+                        frequencies[status][element] = frequency
                     }
-                    frequencies[status][element] = frequency
                 }
-            }
+                weeklyData[week] = frequencies;
+
+            } while (weekStart < new Date(course_metadata_map.end_date.toDateString()));
+
 
             let nodeMap = {
                 'forum': 'FORUM START',
@@ -4809,32 +4837,38 @@ function moduleTransitions() {
                 'submission': 'QUIZ SUBMIT',
                 'video': 'VIDEO'
             };
-            for (let status in frequencies) {
-                i = 0;
-                for (let currentElement in frequencies[status]) {
-                    for (let followingElement in frequencies[status][currentElement]) {
-                        let sourceType = currentElement.slice(0, currentElement.indexOf('_'));
-                        let targetType = followingElement.slice(0, followingElement.indexOf('_'));
-                        let sourceNode = nodeMap[sourceType];
-                        let targetNode = nodeMap[targetType];
-                        let link = {
-                            'sourceElement': currentElement,
-                            'sourceType': sourceType,
-                            'sourceNode': sourceNode,
-                            'targetElement': followingElement,
-                            'targetType': targetType,
-                            'targetNode': targetNode,
-                            'value': frequencies[status][currentElement][followingElement],
-                            'status': status,
-                            'id': ' ' + i
-                        };
-                        links.push(link);
-                        i++;
+
+            let weeklyLinks = {};
+            for (let week in weeklyData) {
+                let links = JSON.parse(JSON.stringify(linksDesigned));
+                let frequencies = weeklyData[week];
+                for (let status in frequencies) {
+                    for (let currentElement in frequencies[status]) {
+                        for (let followingElement in frequencies[status][currentElement]) {
+                            let sourceType = currentElement.slice(0, currentElement.indexOf('_'));
+                            let targetType = followingElement.slice(0, followingElement.indexOf('_'));
+                            let sourceNode = nodeMap[sourceType];
+                            let targetNode = nodeMap[targetType];
+                            let link = {
+                                'sourceElement': currentElement,
+                                'sourceType': sourceType,
+                                'sourceNode': sourceNode,
+                                'targetElement': followingElement,
+                                'targetType': targetType,
+                                'targetNode': targetNode,
+                                'value': frequencies[status][currentElement][followingElement],
+                                'status': status,
+                                'id': ' ' + l
+                            };
+                            links.push(link);
+                            l++;
+                        }
                     }
                 }
+                weeklyLinks[week] = links;
             }
             let cycleData = {};
-            cycleData['links'] = links;
+            cycleData['links'] = weeklyLinks;
             let cycleElements = [{'name': 'cycleElements', 'object': cycleData}];
             connection.runSql("DELETE FROM webdata WHERE name = 'cycleElements'").then(function (success) {
                 sqlInsert('webdata', cycleElements);
@@ -4869,16 +4903,27 @@ function drawCycles(linkNumber){
                 { "name": "QUIZ START", 'cx': xUnit*3, 'cy':yUnit*6, 'r':r }, { "name": "QUIZ SUBMIT", 'cx': xUnit*2, 'cy':yUnit*5, 'r':r }, { "name": "QUIZ END", 'cx': xUnit, 'cy':yUnit*5, 'r':r },
                 { "name": "VIDEO", 'cx': xUnit*2, 'cy':yUnit, 'r':r }];
 
-            linkData.links.sort(function(a, b) {
+            let linkWeek = d3.select('#cycleWeek');
+            linkWeek.on('change', function() {
+                drawCycles();
+            });
+            let week = linkWeek.node().value;
+            let weekLinks = linkData['links'][week]
+
+            weekLinks.sort(function(a, b) {
                 return b.value - a.value;
             });
+
             if (linkNumber == null){
-                linkNumber = 50
+                linkNumber = 30
             }
             let linkSlider = d3.select('#linksCycle');
             linkSlider.on('change', function() {
                 drawCycles(this.value);
             });
+
+            weekLinks = weekLinks.slice(0,linkNumber);
+
             let typeDropdown = d3.select('#cycleType');
             typeDropdown.on('change', function () {
                 drawCycles()
@@ -4923,26 +4968,24 @@ function drawCycles(linkNumber){
 
             let link = svg.append("g")
                 .selectAll("links")
-                // .data(linkData.links)
-                .data(linkData.links.slice(0,linkNumber))
+                .data(weekLinks)
                 .enter()
                 .append("path")
                 .attr('id', function(d){return d.id});
 
             let edgelabels = svg.append("g")
                 .selectAll(".edgelabel")
-                // .data(linkData.links)
-                .data(linkData.links.slice(0,linkNumber))
+                .data(weekLinks)
                 .enter()
                 .append('text')
                 .attr('class', 'edgelabel')
                 .attr('id', function(d){ return d.id})
-                .attr('dx', function (d, i) {
-                    return 30
-                })
+                .attr('dx', 60)
                 .attr('dy', 0)
-                .attr('font-size',12)
-                // .attr('fill', '#fe1100');
+                .attr('font-size',13)
+                .attr("fill", "blue")
+                .attr("stroke", "white")
+                .attr("stroke-width", ".5px").attr("vector-effect", "non-scaling-stroke") ;
 
             edgelabels.append('textPath')
                 .attr('xlink:href',function(d) {return '#' + d.id})
@@ -4975,126 +5018,121 @@ function drawCycles(linkNumber){
                 .style("font-size", "10px")
                 .style("font-family", "Helvetica");
 
-            let simulation = d3.forceSimulation(linkData.nodes)
-                .force("link", d3.forceLink()
-                    .id(function(d) { return d.id; })
-                    // .links(linkData.links)
-                    .links(linkData.links.slice(0,linkNumber))
-                )
-                .force("charge", d3.forceManyBody().strength(-400))
-                .force("center", d3.forceCenter(width / 2, height / 2))
-                .on("end", ticked);
+            // let simulation = d3.forceSimulation(linkData.nodes)
+            //     .force("link", d3.forceLink()
+            //         .id(function(d) { return d.id; })
+            //         .links(linkData.links.slice(0,linkNumber))
+            //     )
+            //     // .force("charge", d3.forceManyBody().strength(-400))
+            //     // .force("center", d3.forceCenter(width / 2, height / 2))
+            //     .on("end", ticked);
 
-            function ticked() {
-                let i = 0;
-                link.attr("d", function(d) { // https://stackoverflow.com/a/17687907/8331561
-                    i++;
-                    let startX = idToNode[d.sourceNode].cx;
-                    let startY = idToNode[d.sourceNode].cy;
-                    let endX = idToNode[d.targetNode].cx;
-                    let endY = idToNode[d.targetNode].cy;
-                    let dx = endX - startX,
-                        dy = endY - startY,
-                        drx = Math.sqrt(dx * dx + dy * dy),
-                        dry = Math.sqrt(dx * dx + dy * dy),
-                        xRotation = 0,
-                        largeArc = 0,
-                        sweep = 1;
-                    if ( startX === endX && startY === endY ) {
-                        xRotation = -55;// Fiddle with this angle to get loop oriented.
-                        largeArc = 1; // Needs to be 1.
-                        // sweep = 0; // Change sweep to change orientation of loop.
-                        drx = 10; // Make drx and dry different to get an ellipse instead of a circle.
-                        dry = 15;
-                        endX = endX + 0.1; // The arc collapses to a point if the beginning and ending points of the arc are the same, so kludge it.
-                        endY = endY + 0.1;
+
+
+            // function ticked() {
+            let i = 0;
+            link.attr("d", function(d) { // https://stackoverflow.com/a/17687907/8331561
+                i++;
+                let startX = idToNode[d.sourceNode].cx;
+                let startY = idToNode[d.sourceNode].cy;
+                let endX = idToNode[d.targetNode].cx;
+                let endY = idToNode[d.targetNode].cy;
+                let dx = endX - startX,
+                    dy = endY - startY,
+                    drx = Math.sqrt(dx * dx + dy * dy),
+                    dry = Math.sqrt(dx * dx + dy * dy),
+                    xRotation = 0,
+                    largeArc = 0,
+                    sweep = 1;
+                if ( startX === endX && startY === endY ) {
+                    xRotation = -55;// Fiddle with this angle to get loop oriented.
+                    largeArc = 1; // Needs to be 1.
+                    // sweep = 0; // Change sweep to change orientation of loop.
+                    drx = 10; // Make drx and dry different to get an ellipse instead of a circle.
+                    dry = 15;
+                    endX = endX + 0.1; // The arc collapses to a point if the beginning and ending points of the arc are the same, so kludge it.
+                    endY = endY + 0.1;
+                }
+                if (d.status === 'notpassing'){drx =drx*0.6}
+                return "M" + startX + "," + startY + "A" + drx + "," + dry + " " +
+                    xRotation + " " +  largeArc + "," + sweep + " " + endX + "," + endY;
+            })
+                .style("fill", "none")
+                .attr("stroke", function (d) {
+                    if ((d.status === 'designed' && cycleType === 'designed')) {
+                        return  "purple"
+                    } else if ((d.status === 'notpassing' && cycleType === 'notpassing') ||
+                        (d.status === 'notpassing' && cycleType === 'general')) {
+                        return  "red"
+                    } else if ((d.status === 'downloadable' && cycleType === 'downloadable') ||
+                        (d.status === 'downloadable' && cycleType === 'general')) {
+                        return "green"
+                    } else if (d.status === 'general' && cycleType === 'general') {
+                        return "blue"
                     }
-                    return "M" + startX + "," + startY + "A" + drx + "," + dry + " " +
-                        xRotation + " " +  largeArc + "," + sweep + " " + endX + "," + endY;
                 })
-                    .style("fill", "none")
-                    .attr("stroke", function (d) {
-                        if ((d.status === 'designed' && cycleType === 'designed')) {
-                            return  "purple"
-                        } else if ((d.status === 'notpassing' && cycleType === 'notpassing') ||
-                            (d.status === 'notpassing' && cycleType === 'general')) {
-                            return  "red"
-                        } else if ((d.status === 'downloadable' && cycleType === 'downloadable') ||
-                            (d.status === 'downloadable' && cycleType === 'general')) {
-                            return "green"
-                        } else if (d.status === 'general' && cycleType === 'general') {
-                            return "blue"
-                        }
-                    })
-                    .style("stroke-width", function (d) {
-                        return d.value
-                    })
-                    .attr("marker-end", function (d) {
-                        if ((d.status === 'designed' && cycleType === 'designed')) {
-                            return  marker('#purple')
-                        } else if ((d.status === 'notpassing' && cycleType === 'notpassing') ||
-                            (d.status === 'notpassing' && cycleType === 'general')) {
-                            return  marker('#red')
-                        } else if ((d.status === 'downloadable' && cycleType === 'downloadable') ||
-                            (d.status === 'downloadable' && cycleType === 'general')) {
-                            return  marker('#green')
-                        } else if (d.status === 'general' && cycleType === 'general' ) {
-                            return marker("#blue")
-                        }
-                    });
-                i = 0;
-                link.attr("d", function(d) {
-                    i++;
-                    let startX = idToNode[d.sourceNode].cx,
-                        startY = idToNode[d.sourceNode].cy,
-                        endX = idToNode[d.targetNode].cx,
-                        endY = idToNode[d.targetNode].cy;
-
-                    let pl = this.getTotalLength(),
-                        r = (idToNode[d.targetNode].r) + 8.5, // 8.5 is the "size" of the marker Math.sqrt(6**2 + 6**2)
-                        m = this.getPointAtLength(pl - r);
-
-                    let dx = m.x - idToNode[d.sourceNode].cx,
-                        dy = m.y - idToNode[d.sourceNode].cy,
-                        drx = Math.sqrt(dx * dx + dy * dy) * 0.8 + i,
-                        dry = Math.sqrt(dx * dx + dy * dy) + i,
-                        xRotation = 0,
-                        largeArc = 0,
-                        sweep = 1;
-
-                    if ( startX === endX && startY === endY ) {
-                        xRotation = -45;
-                        largeArc = 1;
-                        sweep = 0;
-                        drx = 20;
-                        dry = 30;
-                        endX = m.x + 1;
-                        endY = m.y + 1;
-                    } else {
-                        endX = m.x;
-                        endY = m.y;
+                .style("stroke-width", function (d) {
+                    return d.value * 5
+                })
+                .attr("marker-end", function (d) {
+                    if ((d.status === 'designed' && cycleType === 'designed')) {
+                        return  marker('#purple')
+                    } else if ((d.status === 'notpassing' && cycleType === 'notpassing') ||
+                        (d.status === 'notpassing' && cycleType === 'general')) {
+                        return  marker('#red')
+                    } else if ((d.status === 'downloadable' && cycleType === 'downloadable') ||
+                        (d.status === 'downloadable' && cycleType === 'general')) {
+                        return  marker('#green')
+                    } else if (d.status === 'general' && cycleType === 'general' ) {
+                        return marker("#blue")
                     }
-                    return "M" + startX + "," + startY + "A" + drx + "," + dry + " " +
-                        xRotation + " " +  largeArc + "," + sweep + " " + endX + "," + endY;
                 });
 
-                edgelabels.attr('transform',function(d){
-                    if (idToNode[d.targetNode].cx < idToNode[d.sourceNode].cx) {
-                        let bbox = this.getBBox(),
-                            rx = bbox.x + bbox.width / 2,
-                            ry = bbox.y + bbox.height / 2;
-                        return 'rotate(180 ' + rx + ' ' + ry + ')';
-                    } else {
-                        return 'rotate(0)';
-                    }})
-                    // .attr('fill', function (d) {
-                    //     if (idToNode[d.targetNode].cx === idToNode[d.sourceNode].cx && idToNode[d.targetNode].cy === idToNode[d.sourceNode].cy){
-                    //         return "#00fff9"
-                    //     } else {
-                    //         return "#ee000e"
-                    //     }
-                    // });
-            }
+            i = 0;
+            link.attr("d", function(d) {
+                i++;
+                let startX = idToNode[d.sourceNode].cx,
+                    startY = idToNode[d.sourceNode].cy,
+                    endX = idToNode[d.targetNode].cx,
+                    endY = idToNode[d.targetNode].cy;
+
+                let pl = this.getTotalLength(),
+                    r = (idToNode[d.targetNode].r) + 8.5, // 8.5 is the "size" of the marker Math.sqrt(6**2 + 6**2)
+                    m = this.getPointAtLength(pl - r);
+
+                let dx = m.x - idToNode[d.sourceNode].cx,
+                    dy = m.y - idToNode[d.sourceNode].cy,
+                    drx = Math.sqrt(dx * dx + dy * dy),// * 0.8 + i,
+                    dry = Math.sqrt(dx * dx + dy * dy),// + i,
+                    xRotation = 0,
+                    largeArc = 0,
+                    sweep = 1;
+
+                if ( startX === endX && startY === endY ) {
+                    xRotation = -45;
+                    largeArc = 1;
+                    sweep = 0;
+                    drx = 20;
+                    dry = 30;
+                    endX = m.x + 0.1;
+                    endY = m.y + 0.1;
+                } else {
+                    endX = m.x;
+                    endY = m.y;
+                }
+                return "M" + startX + "," + startY + "A" + drx + "," + dry + " " +
+                    xRotation + " " +  largeArc + "," + sweep + " " + endX + "," + endY;
+            });
+
+            edgelabels.attr('transform',function(d){
+                if (idToNode[d.targetNode].cx < idToNode[d.sourceNode].cx) {
+                    let bbox = this.getBBox(),
+                        rx = bbox.x + bbox.width / 2,
+                        ry = bbox.y + bbox.height / 2;
+                    return 'rotate(180 ' + rx + ' ' + ry + ')';
+                } else {
+                    return 'rotate(0)';
+                }})
         }
     })
 }

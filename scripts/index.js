@@ -4670,7 +4670,7 @@ function moduleTransitions() {
                 }
             }
 
-            // learnerIds = learnerIds.slice(0, 100);
+            learnerIds = learnerIds.slice(0, 10000);
             learningPaths = {};
             let totalLearners = 0,
                 passingLearners = 0,
@@ -4774,8 +4774,8 @@ function moduleTransitions() {
             let weekEnd = new Date();
             let weeklyData = {};
             do {
-                weekEnd = new Date(weekStart.toDateString())
-                weekEnd = new Date(weekEnd.setDate(weekEnd.getDate() + 7))
+                weekEnd = new Date(weekStart.toDateString());
+                weekEnd = new Date(weekEnd.setDate(weekEnd.getDate() + 7));
                 for (let learnerId in allSessions) {
                     let learningPath = [];
                     for (let session of allSessions[learnerId]){
@@ -4878,7 +4878,7 @@ function moduleTransitions() {
     })
 }
 
-function drawCycles(linkNumber){
+function drawCycles(){
     connection.runSql("SELECT * FROM webdata WHERE name = 'cycleElements' ").then(function(result) {
         if (result.length !== 1) {
             moduleTransitions()
@@ -4914,13 +4914,11 @@ function drawCycles(linkNumber){
                 return b.value - a.value;
             });
 
-            if (linkNumber == null){
-                linkNumber = 30
-            }
             let linkSlider = d3.select('#linksCycle');
             linkSlider.on('change', function() {
-                drawCycles(this.value);
+                drawCycles();
             });
+            let linkNumber = linkSlider.node().value;
 
             weekLinks = weekLinks.slice(0,linkNumber);
 

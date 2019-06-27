@@ -4670,7 +4670,7 @@ function moduleTransitions() {
                 }
             }
 
-            learnerIds = learnerIds.slice(0, 10000);
+            // learnerIds = learnerIds.slice(0, 1000);
             learningPaths = {};
             let totalLearners = 0,
                 passingLearners = 0,
@@ -4751,10 +4751,6 @@ function moduleTransitions() {
                     return new Date(a.time) - new Date(b.time)
                 });
             }
-            learningPaths = {
-                'downloadable': {},
-                'notpassing': {}
-            };
 
             // for (let learnerId in allSessions) {
             //     let learningPath = [];
@@ -4774,6 +4770,12 @@ function moduleTransitions() {
             let weekEnd = new Date();
             let weeklyData = {};
             do {
+                console.log(weekStart);
+
+                learningPaths = {
+                    'downloadable': {},
+                    'notpassing': {}
+                };
                 weekEnd = new Date(weekStart.toDateString());
                 weekEnd = new Date(weekEnd.setDate(weekEnd.getDate() + 7));
                 for (let learnerId in allSessions) {
@@ -4824,6 +4826,8 @@ function moduleTransitions() {
                     }
                 }
                 weeklyData[week] = frequencies;
+                console.log(frequencies['notpassing']);
+
 
             } while (weekStart < new Date(course_metadata_map.end_date.toDateString()));
 
@@ -5015,16 +5019,6 @@ function drawCycles(){
                 .attr("y", -10)
                 .style("font-size", "10px")
                 .style("font-family", "Helvetica");
-
-            // let simulation = d3.forceSimulation(linkData.nodes)
-            //     .force("link", d3.forceLink()
-            //         .id(function(d) { return d.id; })
-            //         .links(linkData.links.slice(0,linkNumber))
-            //     )
-            //     // .force("charge", d3.forceManyBody().strength(-400))
-            //     // .force("center", d3.forceCenter(width / 2, height / 2))
-            //     .on("end", ticked);
-
 
 
             // function ticked() {

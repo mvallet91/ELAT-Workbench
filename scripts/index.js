@@ -1332,6 +1332,8 @@ function session_mode(course_metadata_map, log_files, index, total, chunk){
                 connection.runSql("DELETE FROM webdata WHERE name = 'graphElements'");
                 connection.runSql("DELETE FROM webdata WHERE name = 'databaseDetails'");
                 connection.runSql("DELETE FROM webdata WHERE name = 'mainIndicators'");
+                connection.runSql("DELETE FROM webdata WHERE name = 'arcElements'");
+                connection.runSql("DELETE FROM webdata WHERE name = 'cycleElements'");
                 progress_display(data.length + ' sessions', index);
             } else {
                 console.log('no session info', index, total);
@@ -2758,7 +2760,6 @@ function drawCharts(graphElementMap, start, end) {
 }
 
 // TODO - REVIEW MIXED CHART AXES
-// TODO - MODULE TRANSITION CHART
 
 function getGraphElementMap(callback, start, end) {
 
@@ -3293,6 +3294,9 @@ function updateChart() {
     $('#loading').show();
     $.blockUI();
     connection.runSql("DELETE FROM webdata WHERE name = 'graphElements'");
+    connection.runSql("DELETE FROM webdata WHERE name = 'databaseDetails'");
+    connection.runSql("DELETE FROM webdata WHERE name = 'arcElements'");
+    connection.runSql("DELETE FROM webdata WHERE name = 'cycleElements'");
     connection.runSql("DELETE FROM webdata WHERE name = 'databaseDetails'");
     connection.runSql("DELETE FROM webdata WHERE name = 'mainIndicators'").then(function (e) {
         $('#loading').hide();
@@ -4322,7 +4326,6 @@ function drawVideoArc(linkNumber){ // https://www.d3-graph-gallery.com/graph/arc
         if (result.length !== 1) {
             videoTransitions()
         } else {
-
             let nodeData = result[0]['object'];
             nodeData.links.sort(function(a, b) {
                 return b.value - a.value;
@@ -4556,11 +4559,12 @@ function moduleTransitions() {
     let elementIds = {};
     let elementIdsD = {};
     let unorderedElements = [];
-    let arcData = {};
     connection.runSql("SELECT * FROM metadata WHERE name = 'metadata_map' ").then(async function (result) {
         if (result.length !== 1) {
             console.log('Metadata empty')
         } else {
+            $('#loading').show();
+            $.blockUI();
             let course_metadata_map = result[0]['object'];
             let courseId = course_metadata_map.course_id;
             courseId = courseId.slice(courseId.indexOf(':') + 1,);
@@ -4670,7 +4674,7 @@ function moduleTransitions() {
                 }
             }
 
-            // learnerIds = learnerIds.slice(0, 1000);
+            toastr.info('Calculating element transitions');
             learningPaths = {};
             let totalLearners = 0,
                 passingLearners = 0,
@@ -4750,6 +4754,9 @@ function moduleTransitions() {
                 allSessions[learnerId].sort(function (a, b) {
                     return new Date(a.time) - new Date(b.time)
                 });
+
+                if (learnerIds.length / totalLearners === 4 ){toastr.info('25% done');}
+                if (learnerIds.length / totalLearners === 2 ){toastr.info('Halfway there...');}
             }
 
             // for (let learnerId in allSessions) {
@@ -4877,6 +4884,8 @@ function moduleTransitions() {
             connection.runSql("DELETE FROM webdata WHERE name = 'cycleElements'").then(function (success) {
                 sqlInsert('webdata', cycleElements);
                 drawCycles();
+                $('#loading').hide();
+                $.unblockUI();
             });
         }
     })
@@ -4885,7 +4894,8 @@ function moduleTransitions() {
 function drawCycles(){
     connection.runSql("SELECT * FROM webdata WHERE name = 'cycleElements' ").then(function(result) {
         if (result.length !== 1) {
-            moduleTransitions()
+            console.log('Start transition calculation')
+            moduleTransitions();
         } else {
             let linkData = result[0]['object'];
 

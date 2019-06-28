@@ -197,8 +197,7 @@ function passLogFiles(result){
     let total = result[3];
     let chunk = result[4];
     let total_chunks = result[5];
-    // let list = document.getElementById('listLogs').innerHTML;
-    // document.getElementById('listLogs').innerHTML = list +'<ul>' + output.join('') + '</ul>';
+
     connection.runSql("SELECT * FROM metadata WHERE name = 'metadata_map' ").then(function(result) {
         if (result.length > 0) {
             let course_metadata_map = result[0]['object'];
@@ -209,8 +208,6 @@ function passLogFiles(result){
                 cell1.innerHTML = ('Processing file ' + (index + 1) + '/' + total +
                     '\n at ' + new Date().toLocaleString('en-GB'));
             }
-
-            // weirdDateFinder(course_metadata_map, files, index, total, chunk, total_chunks)
 
             session_mode(course_metadata_map, files, index, total, chunk);
             forum_sessions(course_metadata_map, files, index, total, chunk);
@@ -348,7 +345,6 @@ function initiateEdxDb() {
     });
 }
 
-
 function showCoursesTableDataExtra() {
     let HtmlString = "";
     connection.runSql("SELECT * FROM webdata WHERE name = 'courseDetails' ").then(function(result) {
@@ -361,46 +357,46 @@ function showCoursesTableDataExtra() {
                 let questionCounter = 0;
                 let forumInteractionCounter = 0;
                 let options = {weekday: 'short', year: 'numeric', month: 'long', day: 'numeric'};
-                courses.forEach(function (course) {
+                courses.forEach(async function (course) {
                     HtmlString += "<tr ItemId=" + course.course_id + "><td>" +
                         course.course_name + "</td><td>" +
                         course.start_time.toLocaleDateString('en-EN', options) + "</td><td>" +
                         course.end_time.toLocaleDateString('en-EN', options) + "</td><td>";
                     let query = "count from course_elements where course_id = '" + course.course_id + "'";
-                    connection.runSql(query).then(function (result) {
+                    await connection.runSql(query).then(function (result) {
                         HtmlString += result + "</td><td>";
-                        let query = "count from learner_index where course_id = '" + course.course_id + "'";
-                        connection.runSql(query).then(function (result) {
-                            HtmlString += result + "</td><td>";
-                            let query = "SELECT * FROM quiz_questions";
-                            connection.runSql(query).then(function (results) {
-                                results.forEach(function (result) {
-                                    if (result['question_id'].includes(course.course_id.slice(10,))) {
-                                        questionCounter++;
-                                    }
-                                });
-                                HtmlString += questionCounter + "</td><td>";
-                                query = "SELECT * FROM forum_interaction";
-                                connection.runSql(query).then(function (sessions) {
-                                    sessions.forEach(function (session) {
-                                        if (session['course_learner_id'].includes(course.course_id)) {
-                                            forumInteractionCounter++;
-                                        }
-                                    });
-                                    HtmlString += forumInteractionCounter;
-                                    $('#tblGrid tbody').html(HtmlString);
-                                    let courseDetails = [{'name': 'courseDetails', 'object': {'details': HtmlString}}];
-                                    sqlInsert('webdata', courseDetails);
-                                })
-                            })
-                        })
-                    })
-                });
+                    });
+                    query = "count from learner_index where course_id = '" + course.course_id + "'";
+                    await connection.runSql(query).then(function (result) {
+                        HtmlString += result + "</td><td>";
+                    });
+                    query = "SELECT * FROM quiz_questions";
+                    await connection.runSql(query).then(function (results) {
+                        results.forEach(function (result) {
+                            if (result['question_id'].includes(course.course_id.slice(10,))) {
+                                questionCounter++;
+                            }
+                        });
+                        HtmlString += questionCounter + "</td><td>";
+                    });
+                    query = "SELECT * FROM forum_interaction";
+                    await connection.runSql(query).then(function (sessions) {
+                        sessions.forEach(function (session) {
+                            if (session['course_learner_id'].includes(course.course_id)) {
+                                forumInteractionCounter++;
+                            }
+                        });
+                    });
+                    HtmlString += forumInteractionCounter;
+                    $('#tblGrid tbody').html(HtmlString);
+                    let courseDetails = [{'name': 'courseDetails', 'object': {'details': HtmlString}}];
+                    sqlInsert('webdata', courseDetails);
+                })
             }).catch(function (error) {
                 console.log(error);
                 $('#loading').hide();
                 $.unblockUI();
-            });
+            })
         }
     })
 }
@@ -416,7 +412,7 @@ function showSessionTable() {
             $('#dbGrid tbody').html(HtmlString);
         } else {
             connection.runSql('select * from courses').then(function (courses) {
-                courses.forEach(function (course) {
+                courses.forEach(async function (course) {
                     let tsessionCounter = 0;
                     let tforumSessionCounter = 0;
                     let tvideoInteractionCounter = 0;
@@ -434,75 +430,75 @@ function showSessionTable() {
                     HtmlString += "<tr ItemId=" + course.course_id + "><td>" +
                         course.course_name + "</td><td>";
                     let query = "SELECT * FROM sessions";
-                    connection.runSql(query).then(function (sessions) {
+                    await connection.runSql(query).then(function (sessions) {
                         sessions.forEach(function (session) {
                             tsessionCounter++;
                             if (session['course_learner_id'].includes(course.course_id)) {
                                 sessionCounter++;
                             }
                         });
-                        query = "SELECT * FROM forum_sessions";
-                        connection.runSql(query).then(function (sessions) {
-                            sessions.forEach(function (session) {
-                                tforumSessionCounter++;
-                                if (session['course_learner_id'].includes(course.course_id)) {
-                                    forumSessionCounter++;
-                                }
-                            });
-                            query = "SELECT * FROM video_interaction";
-                            connection.runSql(query).then(function (sessions) {
-                                sessions.forEach(function (session) {
-                                    tvideoInteractionCounter++;
-                                    if (session['course_learner_id'].includes(course.course_id)) {
-                                        videoInteractionCounter++;
-                                    }
-                                });
-                                query = "SELECT * FROM submissions";
-                                connection.runSql(query).then(function (sessions) {
-                                    sessions.forEach(function (session) {
-                                        tsubmissionCounter++;
-                                        if (session['course_learner_id'].includes(course.course_id)) {
-                                            submissionCounter++;
-                                        }
-                                    });
-                                    query = "SELECT * FROM assessments";
-                                    connection.runSql(query).then(function (sessions) {
-                                        sessions.forEach(function (session) {
-                                            tassessmentCounter++;
-                                            if (session['course_learner_id'].includes(course.course_id)) {
-                                                assessmentCounter++;
-                                            }
-                                        });
-                                        query = "SELECT * FROM quiz_sessions";
-                                        connection.runSql(query).then(function (sessions) {
-                                            sessions.forEach(function (session) {
-                                                tquizSessionCounter++;
-                                                if (session['course_learner_id'].includes(course.course_id)) {
-                                                    quizSessionCounter++;
-                                                }
-                                            });
-                                            totalHtmlString += tsessionCounter + "</td><td>" +
-                                                tforumSessionCounter + "</td><td>" +
-                                                tvideoInteractionCounter + "</td><td>" +
-                                                tsubmissionCounter + "</td><td>" +
-                                                tassessmentCounter + "</td><td>" +
-                                                tquizSessionCounter;
-                                            HtmlString += sessionCounter + "</td><td>" +
-                                                forumSessionCounter + "</td><td>" +
-                                                videoInteractionCounter + "</td><td>" +
-                                                submissionCounter + "</td><td>" +
-                                                assessmentCounter + "</td><td>" +
-                                                quizSessionCounter;
-                                            document.getElementById("loading").style.display = "none";
-                                            $('#dbGrid tbody').html(HtmlString);
-                                            let databaseDetails = [{'name': 'databaseDetails', 'object': {'details':HtmlString}}];
-                                            sqlInsert('webdata', databaseDetails);
-                                        });
-                                    });
-                                });
-                            });
+                    });
+                    query = "SELECT * FROM forum_sessions";
+                    await connection.runSql(query).then(function (sessions) {
+                        sessions.forEach(function (session) {
+                            tforumSessionCounter++;
+                            if (session['course_learner_id'].includes(course.course_id)) {
+                                forumSessionCounter++;
+                            }
                         });
-                    })
+                    });
+                    query = "SELECT * FROM video_interaction";
+                    await connection.runSql(query).then(function (sessions) {
+                        sessions.forEach(function (session) {
+                            tvideoInteractionCounter++;
+                            if (session['course_learner_id'].includes(course.course_id)) {
+                                videoInteractionCounter++;
+                            }
+                        });
+                    });
+                    query = "SELECT * FROM submissions";
+                    await connection.runSql(query).then(function (sessions) {
+                        sessions.forEach(function (session) {
+                            tsubmissionCounter++;
+                            if (session['course_learner_id'].includes(course.course_id)) {
+                                submissionCounter++;
+                            }
+                        });
+                    });
+                    query = "SELECT * FROM assessments";
+                    await connection.runSql(query).then(function (sessions) {
+                        sessions.forEach(function (session) {
+                            tassessmentCounter++;
+                            if (session['course_learner_id'].includes(course.course_id)) {
+                                assessmentCounter++;
+                            }
+                        });
+                    });
+                    query = "SELECT * FROM quiz_sessions";
+                    await connection.runSql(query).then(function (sessions) {
+                        sessions.forEach(function (session) {
+                            tquizSessionCounter++;
+                            if (session['course_learner_id'].includes(course.course_id)) {
+                                quizSessionCounter++;
+                            }
+                        });
+                    });
+                    totalHtmlString += tsessionCounter + "</td><td>" +
+                        tforumSessionCounter + "</td><td>" +
+                        tvideoInteractionCounter + "</td><td>" +
+                        tsubmissionCounter + "</td><td>" +
+                        tassessmentCounter + "</td><td>" +
+                        tquizSessionCounter;
+                    HtmlString += sessionCounter + "</td><td>" +
+                        forumSessionCounter + "</td><td>" +
+                        videoInteractionCounter + "</td><td>" +
+                        submissionCounter + "</td><td>" +
+                        assessmentCounter + "</td><td>" +
+                        quizSessionCounter;
+                    document.getElementById("loading").style.display = "none";
+                    $('#dbGrid tbody').html(HtmlString);
+                    let databaseDetails = [{'name': 'databaseDetails', 'object': {'details':HtmlString}}];
+                    sqlInsert('webdata', databaseDetails);
                 });
             }).catch(function (error) {
                 console.log(error);
@@ -520,88 +516,86 @@ function showMainIndicators() {
             $('#indicatorGrid tbody').html(HtmlString);
         } else {
             connection.runSql('select * from courses').then(function (courses) {
-                courses.forEach(function (course) {
-                    let course_id = course.course_id;
+                courses.forEach(async function (course) {
+                    let course_id = course.course_id,
+                        completed = 0,
+                        completionRate = 0,
+                        avgGrade = 0,
+                        verifiedLearners = 0,
+                        honorLearners = 0,
+                        auditLearners = 0,
+                        videoWatchers = 0,
+                        videoDuration = 0,
+                        avgGrades = {};
+
                     HtmlString += "<tr ItemId=" + course.course_id + "><td>";
-                    connection.runSql("COUNT * from course_learner WHERE certificate_status = 'downloadable' ").then(function (result) {
-                        let completed = result;
-
-                        connection.runSql("COUNT * from learner_index").then(function (result) {
-                            let completionRate = completed/result;
-
-                            connection.runSql("SELECT [avg(final_grade)] from course_learner WHERE certificate_status = 'downloadable' ").then(function (result) {
-                                let avgGrade = result[0]['avg(final_grade)'];
-
-                                connection.runSql("COUNT * from course_learner WHERE enrollment_mode = 'verified' ").then(function (result) {
-                                    let verifiedLearners = result;
-
-                                    connection.runSql("COUNT * from course_learner WHERE enrollment_mode = 'honor' ").then(function (result) {
-                                        let honorLearners = result;
-
-                                        connection.runSql("COUNT * from course_learner WHERE enrollment_mode = 'audit' ").then(function (result) {
-                                            let auditLearners = result;
-
-                                            connection.runSql("SELECT [avg(final_grade)] from course_learner WHERE certificate_status = 'downloadable' GROUP BY enrollment_mode").then(function (results) {
-                                                let avgGrades = {};
-                                                results.forEach(function (result) {
-                                                    avgGrades[result.enrollment_mode] =result.final_grade;
-                                                });
-
-                                                connection.runSql("SELECT [sum(duration)] from video_interaction GROUP BY course_learner_id").then(function (watchers) {
-                                                    let videoWatchers = watchers.length;
-                                                    let videoDuration = 0;
-                                                    watchers.forEach(function (watcher) {
-                                                        videoDuration += watcher['sum(duration)'];
-                                                    });
-
-                                                    let avgDuration = videoDuration / videoWatchers;
-
-                                                    HtmlString += completionRate.toFixed(2)  + "</td><td>" +
-                                                        avgGrade.toFixed(2)  + "</td><td>" +
-                                                            "Verified: " + verifiedLearners + "<br>" +
-                                                            "Honor: " + honorLearners + "<br>" +
-                                                            "Audit: " + auditLearners + "<br>" +
-                                                        "</td><td>" +
-                                                            "Verified: " + avgGrades['verified'] + "<br>" +
-                                                            "Honor: " + avgGrades['honor'] + "<br>" +
-                                                            "Audit: " + avgGrades['audit'] + "<br>" +
-                                                        "</td><td>" +
-                                                        (avgDuration/60).toFixed(2) + " minutes" + "</td><td>" +
-                                                        videoWatchers;
-
-                                                    $('#indicatorGrid tbody').html(HtmlString);
-                                                    let indicators = [{'name': 'mainIndicators', 'object': {'details': HtmlString}}];
-                                                    sqlInsert('webdata', indicators);
-                                                })
-
-                                                // let joinLogic = {
-                                                //     table1: {
-                                                //         table: 'quiz_questions',
-                                                //         column: 'question_id'
-                                                //     },
-                                                //     join: 'inner',
-                                                //     table2: {
-                                                //         table: 'submissions',
-                                                //         column: 'question_id'
-                                                //     }
-                                                // };
-                                                // connection.select({
-                                                //     from: joinLogic
-                                                // }).then(function (results) {
-                                                //     results.forEach(function (row) {
-                                                //         console.log(row)
-                                                //     })
-                                                // }).catch(function (error) {
-                                                //     alert(error.message);
-                                                // });
-
-                                            })
-                                        })
-                                    })
-                                })
-                            })
-                        })
+                    await connection.runSql("COUNT * from course_learner WHERE certificate_status = 'downloadable' ").then(function (result) {
+                        completed = result;
                     });
+                    await connection.runSql("COUNT * from learner_index").then(function (result) {
+                        completionRate = completed / result;
+                    });
+                    await connection.runSql("SELECT [avg(final_grade)] from course_learner WHERE certificate_status = 'downloadable' ").then(function (result) {
+                        avgGrade = result[0]['avg(final_grade)'];
+                    });
+                    await connection.runSql("COUNT * from course_learner WHERE enrollment_mode = 'verified' ").then(function (result) {
+                        verifiedLearners = result;
+                    });
+                    await connection.runSql("COUNT * from course_learner WHERE enrollment_mode = 'honor' ").then(function (result) {
+                        honorLearners = result;
+                    });
+                    await connection.runSql("COUNT * from course_learner WHERE enrollment_mode = 'audit' ").then(function (result) {
+                        auditLearners = result;
+                    });
+                    await connection.runSql("SELECT [avg(final_grade)] from course_learner WHERE certificate_status = 'downloadable' GROUP BY enrollment_mode").then(function (results) {
+                        results.forEach(function (result) {
+                            avgGrades[result.enrollment_mode] = result.final_grade;
+                        });
+                    });
+                    await connection.runSql("SELECT [sum(duration)] from video_interaction GROUP BY course_learner_id").then(function (watchers) {
+                        videoWatchers = watchers.length;
+                        videoDuration = 0;
+                        watchers.forEach(function (watcher) {
+                            videoDuration += watcher['sum(duration)'];
+                        });
+                    });
+                    let avgDuration = videoDuration / videoWatchers;
+                    HtmlString += completionRate.toFixed(2)  + "</td><td>" +
+                        avgGrade.toFixed(2)  + "</td><td>" +
+                        "Verified: " + verifiedLearners + "<br>" +
+                        "Honor: " + honorLearners + "<br>" +
+                        "Audit: " + auditLearners + "<br>" +
+                        "</td><td>" +
+                        "Verified: " + avgGrades['verified'] + "<br>" +
+                        "Honor: " + avgGrades['honor'] + "<br>" +
+                        "Audit: " + avgGrades['audit'] + "<br>" +
+                        "</td><td>" +
+                        (avgDuration/60).toFixed(2) + " minutes" + "</td><td>" +
+                        videoWatchers;
+                    $('#indicatorGrid tbody').html(HtmlString);
+                    let indicators = [{'name': 'mainIndicators', 'object': {'details': HtmlString}}];
+                    sqlInsert('webdata', indicators);
+
+                    // let joinLogic = {
+                    //     table1: {
+                    //         table: 'quiz_questions',
+                    //         column: 'question_id'
+                    //     },
+                    //     join: 'inner',
+                    //     table2: {
+                    //         table: 'submissions',
+                    //         column: 'question_id'
+                    //     }
+                    // };
+                    // connection.select({
+                    //     from: joinLogic
+                    // }).then(function (results) {
+                    //     results.forEach(function (row) {
+                    //         console.log(row)
+                    //     })
+                    // }).catch(function (error) {
+                    //     alert(error.message);
+                    // });
                 });
             }).catch(function (error) {
                 console.log(error);
@@ -2761,8 +2755,8 @@ function drawCharts(graphElementMap, start, end) {
 
 // TODO - REVIEW MIXED CHART AXES
 
-function getGraphElementMap(callback, start, end) {
 
+function getGraphElementMap(callback, start, end) {
     let graphElementMap = {};
     connection.runSql("SELECT * FROM webdata WHERE name = 'graphElements' ").then(function(result) {
         if (result.length === 1) {
@@ -2827,20 +2821,25 @@ function getGraphElementMap(callback, start, end) {
                     let end_date = '';
                     let course_name = '';
 
-                    connection.runSql("SELECT * FROM courses").then(function (courses) {
-                        courses.forEach(function (course) {
+                    connection.runSql("SELECT * FROM courses").then(function(courses) {
+                        courses.forEach(async function (course) {
                             $('#loading').show();
                             $.blockUI();
                             course_name = course['course_name'];
                             start_date = course['start_time'].toDateString();
                             end_date = course['end_time'].toDateString();
 
-                            query = "SELECT * FROM sessions";
-                            connection.runSql(query).then(function (sessions) {
-                                toastr.info('Processing indicators');
+                            let start = new Date(),
+                                start_str = '',
+                                gradeMap = {},
+                                idSet = new Set(),
+                                posterPostMap = {},
 
+                            query = "SELECT * FROM sessions";
+                            await connection.runSql(query).then(function (sessions) {
+                                toastr.info('Processing indicators');
                                 sessions.forEach(function (session) {
-                                    let start = session["start_time"].toDateString();
+                                    start = session["start_time"].toDateString();
                                     start = new Date(start);
                                     if (dailyDurations.hasOwnProperty(start)) {
                                         dailyDurations[start].push(session["duration"]);
@@ -2853,416 +2852,409 @@ function getGraphElementMap(callback, start, end) {
                                         dailySessions[start].push(session["course_learner_id"]);
                                     }
                                 });
-
-                                connection.runSql("SELECT * FROM course_learner").then(function(learners) {
-                                    let gradeMap = {};
-                                    let idSet = new Set();
-                                    learners.forEach(function(learner){
-                                        idSet.add(learner.course_learner_id);
-                                        gradeMap[learner.course_learner_id] = learner;
-                                    });
-
-                                    query = "SELECT * FROM quiz_sessions";
-                                    connection.runSql(query).then(function (q_sessions) {
-                                        q_sessions.forEach(function (session) {
-                                            let start = session["start_time"].toDateString();
-                                            start = new Date(start);
-                                            if (quizDurations.hasOwnProperty(start)) {
-                                                quizDurations[start].push(session["duration"]);
-                                                quizSessions[start].push(session["course_learner_id"]);
-                                            } else {
-                                                quizDurations[start] = [];
-                                                quizDurations[start].push(session["duration"]);
-
-                                                quizSessions[start] = [];
-                                                quizSessions[start].push(session["course_learner_id"]);
-                                            }
-                                        });
-
-                                        toastr.info('Crunching quiz data');
-
-                                        query = "SELECT * FROM video_interaction";
-                                        connection.runSql(query).then(function (v_sessions) {
-                                            v_sessions.forEach(function (session) {
-                                                let start = session["start_time"].toDateString();
-                                                start = new Date(start);
-                                                if (videoDurations.hasOwnProperty(start)) {
-                                                    videoDurations[start].push(session["duration"]);
-                                                    videoSessions[start].push(session["course_learner_id"]);
-                                                } else {
-                                                    videoDurations[start] = [];
-                                                    videoDurations[start].push(session["duration"]);
-
-                                                    videoSessions[start] = [];
-                                                    videoSessions[start].push(session["course_learner_id"]);
-                                                }
-                                            });
-                                            toastr.info('Working on video sessions...');
-
-                                            let dueDates = [];
-                                            query = "SELECT * FROM quiz_questions";
-                                            connection.runSql(query).then(function (questions) {
-                                                questions.forEach(function (question) {
-                                                    dueDates.push(question['question_due'].toDateString())
-                                                });
-
-                                                let quizDates = Array.from(new Set(dueDates));
-                                                let annotationsDue = quizDates.map(function (date, index) {
-                                                    return {
-                                                        type: 'line',
-                                                        id: 'line' + index,
-                                                        mode: 'vertical',
-                                                        scaleID: 'x-axis-0',
-                                                        value: new Date(date),
-                                                        borderColor: 'red',
-                                                        borderWidth: 1,
-                                                        label: {
-                                                            enabled: true,
-                                                            position: "top",
-                                                            content: 'Quiz Due'
-                                                        }
-                                                    }
-                                                });
-
-                                                let startDates = [];
-                                                for (let el in course_metadata_map.element_time_map) {
-                                                    if (el.includes('problem')) {
-                                                        startDates.push(course_metadata_map.element_time_map[el].toDateString())
-                                                    }
-                                                }
-                                                let quizReleaseDates = Array.from(new Set(startDates));
-                                                let annotationStart = quizReleaseDates.map(function (date, index) {
-                                                    return {
-                                                        type: 'line',
-                                                        id: 'line' + index,
-                                                        mode: 'vertical',
-                                                        scaleID: 'x-axis-0',
-                                                        value: new Date(date),
-                                                        borderColor: 'green',
-                                                        borderWidth: 1,
-                                                        label: {
-                                                            enabled: true,
-                                                            position: "center",
-                                                            content: 'Quiz Start'
-                                                        }
-                                                    }
-                                                });
-                                                let annotations = annotationsDue.concat(annotationStart);
-
-                                                query = "SELECT * FROM forum_sessions";
-                                                connection.runSql(query).then(function (f_sessions) {
-                                                    f_sessions.forEach(function (session) {
-                                                        let start = session["start_time"].toDateString();
-                                                        start = new Date(start);
-
-                                                        if (forumDurations.hasOwnProperty(start)) {
-                                                            forumDurations[start].push(session["duration"]);
-                                                            forumSessions[start].push(session["course_learner_id"]);
-                                                        } else {
-                                                            forumDurations[start] = [];
-                                                            forumDurations[start].push(session["duration"]);
-
-                                                            forumSessions[start] = [];
-                                                            forumSessions[start].push(session["course_learner_id"]);
-                                                        }
-                                                    });
-
-                                                    query = "SELECT * FROM forum_interaction";
-                                                    connection.runSql(query).then(function (f_interactions) {
-                                                        let posterPostMap = {};
-                                                        f_interactions.forEach(function (interaction) {
-                                                            let timestamp = interaction["post_timestamp"].toDateString();
-                                                            timestamp = new Date(timestamp);
-                                                            posterPostMap[interaction["post_content"]] = interaction["course_learner_id"];
-                                                            if (forumPosts.hasOwnProperty(timestamp)) {
-
-                                                                forumPosts[timestamp].push(interaction["post_content"]);
-                                                                forumPosters[timestamp].push(interaction["course_learner_id"]);
-
-                                                            } else {
-                                                                forumPosts[timestamp] = [];
-                                                                forumPosts[timestamp].push(interaction["post_content"]);
-
-                                                                forumPosters[timestamp] = [];
-                                                                forumPosters[timestamp].push(interaction["course_learner_id"]);
-                                                            }
-                                                        });
-                                                        toastr.info('Almost there!');
-
-                                                        // FORUM SEGMENTATION /////////////////////////////////////////
-                                                        let weeklyPosters = groupWeekly(forumPosters);
-                                                        let posters = {};
-                                                        let regularPosters = [];
-                                                        let occasionalPosters = [];
-                                                        for (let week in weeklyPosters) {
-                                                            let weekPosters = new Set(weeklyPosters[week]);
-                                                            for (let poster of weekPosters) {
-                                                                if (posters.hasOwnProperty(poster)) {
-                                                                    posters[poster] = posters[poster] + 1
-                                                                } else {
-                                                                    posters[poster] = 1
-                                                                }
-                                                            }
-                                                        }
-                                                        for (let p in posters) {
-                                                            if (posters[p] > 2) {
-                                                                regularPosters.push(p)
-                                                            } else {
-                                                                occasionalPosters.push(p)
-                                                            }
-                                                        }
-
-                                                        let weeklyFViewers = groupWeekly(forumSessions);
-                                                        let fViewers = {};
-                                                        let regularFViewers = [];
-                                                        let occasionalFViewers = [];
-                                                        for (let week in weeklyFViewers) {
-                                                            let weekViewers = new Set(weeklyFViewers[week]);
-                                                            for (let viewer of weekViewers) {
-                                                                if (fViewers.hasOwnProperty(viewer)) {
-                                                                    fViewers[viewer] = fViewers[viewer] + 1
-                                                                } else {
-                                                                    fViewers[viewer] = 1
-                                                                }
-                                                            }
-                                                        }
-                                                        for (let p in fViewers) {
-                                                            if (fViewers[p] > 2) {
-                                                                regularFViewers.push(p)
-                                                            } else {
-                                                                occasionalFViewers.push(p)
-                                                            }
-                                                        }
-                                                        let forumSegmentation = {
-                                                            'regularPosters': new Set(regularPosters).size,
-                                                            'regularViewers': new Set(regularFViewers).size,
-                                                            'occasionalPosters': new Set(occasionalPosters).size,
-                                                            'occasionalViewers': new Set(occasionalFViewers).size
-                                                        };
-
-                                                        let regPostersRegViewers = intersection(new Set(regularPosters), new Set(regularFViewers)),
-                                                            regPostersOccViewers = intersection(new Set(regularPosters), new Set(occasionalFViewers)),
-                                                            regPostersNonViewers = difference(new Set(regularPosters), new Set([...regularFViewers, ...occasionalFViewers])),
-                                                            occPostersRegViewers = intersection(new Set(occasionalPosters), new Set(regularFViewers)),
-                                                            occPostersOccViewers = intersection(new Set(occasionalPosters), new Set(occasionalFViewers)),
-                                                            occPostersNonViewers = difference(new Set(occasionalPosters), new Set([...regularFViewers, ...occasionalFViewers])),
-                                                            nonPostersRegViewers = difference(new Set([...regularPosters, ...occasionalPosters]), new Set(regularFViewers)),
-                                                            nonPostersOccViewers = difference(new Set([...regularPosters, ...occasionalPosters]), new Set(occasionalFViewers)),
-                                                            nonPostersNonViewers = difference(idSet, new Set([...regularPosters, ...occasionalPosters, ...regularFViewers, ...occasionalFViewers]));
-
-                                                        let forumMatrixGroups = {
-                                                            'regPostersRegViewers': regPostersRegViewers,
-                                                            'regPostersOccViewers': regPostersOccViewers,
-                                                            'regPostersNonViewers': regPostersNonViewers,
-                                                            'occPostersRegViewers': occPostersRegViewers,
-                                                            'occPostersOccViewers': occPostersOccViewers,
-                                                            'occPostersNonViewers': occPostersNonViewers,
-                                                            'nonPostersRegViewers': nonPostersRegViewers,
-                                                            'nonPostersOccViewers': nonPostersOccViewers,
-                                                            'nonPostersNonViewers': nonPostersNonViewers,
-                                                        };
-
-                                                        let gradeLists = {};
-                                                        let counterLists = {};
-
-                                                        for (let group in forumMatrixGroups) {
-                                                            gradeLists[group] = [];
-                                                            let passing = 0;
-                                                            let notPassing = 0;
-                                                            for (let student of forumMatrixGroups[group]){
-                                                                if (gradeMap.hasOwnProperty(student)) {
-                                                                    if (gradeMap[student]["certificate_status"] === "downloadable") {
-                                                                        gradeLists[group].push(gradeMap[student]["final_grade"])
-                                                                        passing++
-                                                                    } else {
-                                                                        notPassing++;
-                                                                    }
-                                                                } else {
-                                                                    notPassing++;
-                                                                }
-                                                            }
-                                                            counterLists[group] = {'passing': passing, 'notPassing': notPassing}
-                                                        }
-                                                        // FORUM SEGMENTATION /////////////////////////////////////////
-
-                                                        let dateList = Object.keys(dailySessions);
-                                                        dateList.sort(function (a, b) {
-                                                            return new Date(a) - new Date(b);
-                                                        });
-
-                                                        for (let date of dateList) {
-                                                            orderedSessions[date] = dailySessions[date].length;
-                                                            orderedStudents[date] = new Set(dailySessions[date]).size;
-                                                            orderedDurations[date] = dailyDurations[date];
-
-                                                            orderedForumStudents[date] = new Set(forumSessions[date]).size;
-
-                                                            if (quizSessions.hasOwnProperty(date)) {
-                                                                orderedQuizSessions[date] = quizSessions[date].length;
-                                                            } else {
-                                                                orderedQuizSessions[date] = 0
-                                                            }
-
-                                                            if (videoSessions.hasOwnProperty(date)) {
-                                                                orderedVideoSessions[date] = videoSessions[date].length;
-                                                            } else {
-                                                                orderedVideoSessions[date] = 0
-                                                            }
-
-                                                            let regulars = [];
-                                                            let occasionals = [];
-                                                            if (forumSessions.hasOwnProperty(date)) {
-                                                                orderedForumSessions[date] = forumSessions[date].length;
-                                                                for (let student of forumSessions[date]) {
-                                                                    if (regularFViewers.includes(student)) {
-                                                                        regulars.push(student)
-                                                                    } else {
-                                                                        occasionals.push(student)
-                                                                    }
-                                                                }
-                                                            } else {
-                                                                orderedForumSessions[date] = 0
-                                                            }
-                                                            orderedForumSessionRegulars[date] = regulars.length;
-                                                            orderedForumRegulars[date] = new Set(regulars).size;
-                                                            orderedForumSessionOccasionals[date] = occasionals.length;
-                                                            orderedForumOccasionals[date] = new Set(occasionals).size;
-
-                                                            orderedForumPostsByOccasionals[date] = 0;
-                                                            orderedForumPostsByRegulars[date] = 0;
-                                                            orderedForumPostersRegulars[date] = [];
-                                                            orderedForumPostersOccasionals[date] = [];
-
-                                                            if (forumPosters.hasOwnProperty(date)) {
-                                                                orderedForumPosters[date] = Math.round(forumPosters[date].length);
-                                                                for (let poster of forumPosters[date]) {
-                                                                    if (regularPosters.includes(poster)) {
-                                                                        orderedForumPostsByRegulars[date] = orderedForumPostsByRegulars[date] + 1
-                                                                        orderedForumPostersRegulars[date].push(poster)
-                                                                    } else {
-                                                                        orderedForumPostsByOccasionals[date] = orderedForumPostsByOccasionals[date] + 1
-                                                                        orderedForumPostersOccasionals[date].push(poster);
-                                                                    }
-                                                                }
-                                                            } else {
-                                                                orderedForumPosters[date] = 0;
-                                                            }
-
-                                                            orderedForumPostersRegulars[date] = new Set(orderedForumPostersRegulars[date]).size;
-                                                            orderedForumPostersOccasionals[date] = new Set(orderedForumPostersOccasionals[date]).size;
-
-                                                            if (forumPosts.hasOwnProperty(date)) {
-                                                                orderedForumPosts[date] = Math.round(forumPosts[date].length);
-                                                                let dailyContent = [];
-                                                                let dailyContentReg = [];
-                                                                let dailyContentOcc = [];
-                                                                for (let post of forumPosts[date]) {
-                                                                    dailyContent.push(post.length);
-                                                                    if (regularPosters.includes(posterPostMap[post])) {
-                                                                        dailyContentReg.push(post.length)
-                                                                    } else {
-                                                                        dailyContentOcc.push(post.length)
-                                                                    }
-                                                                }
-                                                                orderedForumPostContent[date] = dailyContent;
-                                                                orderedForumPostContentRegulars[date] = dailyContentReg;
-                                                                orderedForumPostContentOccasionals[date] = dailyContentOcc
-                                                            } else {
-                                                                orderedForumPosts[date] = 0;
-                                                                orderedForumPostContent[date] = [];
-                                                                orderedForumPostContentRegulars[date] = [];
-                                                                orderedForumPostContentOccasionals[date] = [];
-                                                            }
-
-                                                            let total = 0;
-                                                            for (let i = 0; i < dailyDurations[date].length; i++) {
-                                                                total += dailyDurations[date][i];
-                                                            }
-                                                            orderedAvgDurations[date] = (total / dailyDurations[date].length).toFixed(2);
-
-                                                            let quizTotal = 0;
-                                                            for (let i = 0; i < orderedQuizSessions[date].length; i++) {
-                                                                quizTotal += quizDurations[date][i];
-                                                            }
-                                                            orderedQuizDurations[date] = quizTotal / orderedQuizSessions[date];
-
-                                                            let vidTotal = 0;
-                                                            for (let i = 0; i < orderedVideoSessions[date].length; i++) {
-                                                                vidTotal += videoDurations[date][i];
-                                                            }
-                                                            orderedVideoDurations[date] = vidTotal / orderedVideoSessions[date].length;
-
-                                                            let forumTotal = 0;
-                                                            if (forumDurations.hasOwnProperty(date)) {
-                                                                for (let i = 0; i < forumDurations[date].length; i++) {
-                                                                    forumTotal += forumDurations[date][i];
-                                                                }
-                                                                orderedForumDurations[date] = Math.round(forumTotal);
-                                                                orderedForumAvgDurations[date] = Math.round(forumTotal / forumDurations[date].length);
-                                                            } else {
-                                                                orderedForumDurations[date] = 0;
-                                                                orderedForumAvgDurations[date] = 0;
-                                                            }
-
-                                                            dateListChart.push(new Date(date));
-                                                        }
-
-                                                        graphElementMap = {
-                                                            'course_name': course_name,
-                                                            'start_date': start_date,
-                                                            'end_date': end_date,
-                                                            'dateListChart': dateListChart,
-
-                                                            'orderedSessions': orderedSessions,
-                                                            'orderedStudents': orderedStudents,
-                                                            'orderedDurations': orderedDurations,
-                                                            'orderedAvgDurations': orderedAvgDurations,
-
-                                                            'orderedQuizSessions': orderedQuizSessions,
-                                                            'orderedQuizDurations': orderedQuizDurations,
-
-                                                            'orderedVideoSessions': orderedVideoSessions,
-                                                            'orderedVideoDurations': orderedVideoDurations,
-
-                                                            'orderedForumSessions': orderedForumSessions,
-                                                            'orderedForumSessionRegulars': orderedForumSessionRegulars,
-                                                            'orderedForumSessionOccasionals': orderedForumSessionOccasionals,
-                                                            'orderedForumDurations': orderedForumDurations,
-                                                            'orderedForumAvgDurations': orderedForumAvgDurations,
-
-                                                            'forumSegmentation': forumSegmentation,
-                                                            'orderedForumPosts': orderedForumPosts,
-                                                            'orderedForumPostContent': orderedForumPostContent,
-                                                            'orderedForumPostContentRegulars': orderedForumPostContentRegulars,
-                                                            'orderedForumPostContentOccasionals': orderedForumPostContentOccasionals,
-                                                            'orderedForumPosters': orderedForumPosters,
-                                                            'orderedForumPostersRegulars': orderedForumPostersRegulars,
-                                                            'orderedForumPostersOccasionals': orderedForumPostersOccasionals,
-                                                            'orderedForumPostsByRegulars': orderedForumPostsByRegulars,
-                                                            'orderedForumPostsByOccasionals': orderedForumPostsByOccasionals,
-
-                                                            'gradeLists': gradeLists,
-                                                            'counterLists': counterLists,
-
-                                                            'orderedForumStudents': orderedForumStudents,
-                                                            'orderedForumRegulars': orderedForumRegulars,
-                                                            'orderedForumOccasionals': orderedForumOccasionals,
-                                                            'annotations': annotations
-                                                        };
-                                                        let graphElements = [{
-                                                            'name': 'graphElements',
-                                                            'object': graphElementMap
-                                                        }];
-                                                        toastr.info('Processing graph data');
-                                                        sqlInsert('webdata', graphElements);
-                                                        callback(graphElementMap, start, end);
-                                                    })
-                                                })
-                                            });
-                                        })
-                                    })
-                                })
                             });
+                            await connection.runSql("SELECT * FROM course_learner").then(function(learners) {
+                                learners.forEach(function (learner) {
+                                    idSet.add(learner.course_learner_id);
+                                    gradeMap[learner.course_learner_id] = learner;
+                                });
+                            });
+
+                            query = "SELECT * FROM quiz_sessions";
+                            await connection.runSql(query).then(function (q_sessions) {
+                                q_sessions.forEach(function (session) {
+                                    let start = session["start_time"].toDateString();
+                                    start = new Date(start);
+                                    if (quizDurations.hasOwnProperty(start)) {
+                                        quizDurations[start].push(session["duration"]);
+                                        quizSessions[start].push(session["course_learner_id"]);
+                                    } else {
+                                        quizDurations[start] = [];
+                                        quizDurations[start].push(session["duration"]);
+
+                                        quizSessions[start] = [];
+                                        quizSessions[start].push(session["course_learner_id"]);
+                                    }
+                                });
+                            });
+                            toastr.info('Crunching quiz data');
+                            query = "SELECT * FROM video_interaction";
+                            await connection.runSql(query).then(function (v_sessions) {
+                                v_sessions.forEach(function (session) {
+                                    start_str = session["start_time"].toDateString();
+                                    start = new Date(start_str);
+                                    if (videoDurations.hasOwnProperty(start)) {
+                                        videoDurations[start].push(session["duration"]);
+                                        videoSessions[start].push(session["course_learner_id"]);
+                                    } else {
+                                        videoDurations[start] = [];
+                                        videoDurations[start].push(session["duration"]);
+
+                                        videoSessions[start] = [];
+                                        videoSessions[start].push(session["course_learner_id"]);
+                                    }
+                                });
+                                toastr.info('Working on video sessions...');
+                            });
+                            let dueDates = [];
+                            query = "SELECT * FROM quiz_questions";
+                            await connection.runSql(query).then(function (questions) {
+                                questions.forEach(function (question) {
+                                    dueDates.push(question['question_due'].toDateString())
+                                });
+                            });
+
+                            let quizDates = Array.from(new Set(dueDates));
+                            let annotationsDue = quizDates.map(function (date, index) {
+                                return {
+                                    type: 'line',
+                                    id: 'line' + index,
+                                    mode: 'vertical',
+                                    scaleID: 'x-axis-0',
+                                    value: new Date(date),
+                                    borderColor: 'red',
+                                    borderWidth: 1,
+                                    label: {
+                                        enabled: true,
+                                        position: "top",
+                                        content: 'Quiz Due'
+                                    }
+                                }
+                            });
+
+                            let startDates = [];
+                            for (let el in course_metadata_map.element_time_map) {
+                                if (el.includes('problem')) {
+                                    startDates.push(course_metadata_map.element_time_map[el].toDateString())
+                                }
+                            }
+                            let quizReleaseDates = Array.from(new Set(startDates));
+                            let annotationStart = quizReleaseDates.map(function (date, index) {
+                                return {
+                                    type: 'line',
+                                    id: 'line' + index,
+                                    mode: 'vertical',
+                                    scaleID: 'x-axis-0',
+                                    value: new Date(date),
+                                    borderColor: 'green',
+                                    borderWidth: 1,
+                                    label: {
+                                        enabled: true,
+                                        position: "center",
+                                        content: 'Quiz Start'
+                                    }
+                                }
+                            });
+                            let annotations = annotationsDue.concat(annotationStart);
+
+                            query = "SELECT * FROM forum_sessions";
+                            await connection.runSql(query).then(function (f_sessions) {
+                                f_sessions.forEach(function (session) {
+                                    let start = session["start_time"].toDateString();
+                                    start = new Date(start);
+
+                                    if (forumDurations.hasOwnProperty(start)) {
+                                        forumDurations[start].push(session["duration"]);
+                                        forumSessions[start].push(session["course_learner_id"]);
+                                    } else {
+                                        forumDurations[start] = [];
+                                        forumDurations[start].push(session["duration"]);
+
+                                        forumSessions[start] = [];
+                                        forumSessions[start].push(session["course_learner_id"]);
+                                    }
+                                });
+                            });
+
+                            query = "SELECT * FROM forum_interaction";
+                            await connection.runSql(query).then(function (f_interactions) {
+                                f_interactions.forEach(function (interaction) {
+                                    let timestamp = interaction["post_timestamp"].toDateString();
+                                    timestamp = new Date(timestamp);
+                                    posterPostMap[interaction["post_content"]] = interaction["course_learner_id"];
+                                    if (forumPosts.hasOwnProperty(timestamp)) {
+
+                                        forumPosts[timestamp].push(interaction["post_content"]);
+                                        forumPosters[timestamp].push(interaction["course_learner_id"]);
+
+                                    } else {
+                                        forumPosts[timestamp] = [];
+                                        forumPosts[timestamp].push(interaction["post_content"]);
+
+                                        forumPosters[timestamp] = [];
+                                        forumPosters[timestamp].push(interaction["course_learner_id"]);
+                                    }
+                                });
+                            });
+                            toastr.info('Almost there!');
+
+                            // FORUM SEGMENTATION /////////////////////////////////////////
+                            let weeklyPosters = groupWeekly(forumPosters);
+                            let posters = {};
+                            let regularPosters = [];
+                            let occasionalPosters = [];
+                            for (let week in weeklyPosters) {
+                                let weekPosters = new Set(weeklyPosters[week]);
+                                for (let poster of weekPosters) {
+                                    if (posters.hasOwnProperty(poster)) {
+                                        posters[poster] = posters[poster] + 1
+                                    } else {
+                                        posters[poster] = 1
+                                    }
+                                }
+                            }
+                            for (let p in posters) {
+                                if (posters[p] > 2) {
+                                    regularPosters.push(p)
+                                } else {
+                                    occasionalPosters.push(p)
+                                }
+                            }
+
+                            let weeklyFViewers = groupWeekly(forumSessions);
+                            let fViewers = {};
+                            let regularFViewers = [];
+                            let occasionalFViewers = [];
+                            for (let week in weeklyFViewers) {
+                                let weekViewers = new Set(weeklyFViewers[week]);
+                                for (let viewer of weekViewers) {
+                                    if (fViewers.hasOwnProperty(viewer)) {
+                                        fViewers[viewer] = fViewers[viewer] + 1
+                                    } else {
+                                        fViewers[viewer] = 1
+                                    }
+                                }
+                            }
+                            for (let p in fViewers) {
+                                if (fViewers[p] > 2) {
+                                    regularFViewers.push(p)
+                                } else {
+                                    occasionalFViewers.push(p)
+                                }
+                            }
+                            let forumSegmentation = {
+                                'regularPosters': new Set(regularPosters).size,
+                                'regularViewers': new Set(regularFViewers).size,
+                                'occasionalPosters': new Set(occasionalPosters).size,
+                                'occasionalViewers': new Set(occasionalFViewers).size
+                            };
+
+                            let regPostersRegViewers = intersection(new Set(regularPosters), new Set(regularFViewers)),
+                                regPostersOccViewers = intersection(new Set(regularPosters), new Set(occasionalFViewers)),
+                                regPostersNonViewers = difference(new Set(regularPosters), new Set([...regularFViewers, ...occasionalFViewers])),
+                                occPostersRegViewers = intersection(new Set(occasionalPosters), new Set(regularFViewers)),
+                                occPostersOccViewers = intersection(new Set(occasionalPosters), new Set(occasionalFViewers)),
+                                occPostersNonViewers = difference(new Set(occasionalPosters), new Set([...regularFViewers, ...occasionalFViewers])),
+                                nonPostersRegViewers = difference(new Set([...regularPosters, ...occasionalPosters]), new Set(regularFViewers)),
+                                nonPostersOccViewers = difference(new Set([...regularPosters, ...occasionalPosters]), new Set(occasionalFViewers)),
+                                nonPostersNonViewers = difference(idSet, new Set([...regularPosters, ...occasionalPosters, ...regularFViewers, ...occasionalFViewers]));
+
+                            let forumMatrixGroups = {
+                                'regPostersRegViewers': regPostersRegViewers,
+                                'regPostersOccViewers': regPostersOccViewers,
+                                'regPostersNonViewers': regPostersNonViewers,
+                                'occPostersRegViewers': occPostersRegViewers,
+                                'occPostersOccViewers': occPostersOccViewers,
+                                'occPostersNonViewers': occPostersNonViewers,
+                                'nonPostersRegViewers': nonPostersRegViewers,
+                                'nonPostersOccViewers': nonPostersOccViewers,
+                                'nonPostersNonViewers': nonPostersNonViewers,
+                            };
+
+                            let gradeLists = {};
+                            let counterLists = {};
+
+                            for (let group in forumMatrixGroups) {
+                                gradeLists[group] = [];
+                                let passing = 0;
+                                let notPassing = 0;
+                                for (let student of forumMatrixGroups[group]){
+                                    if (gradeMap.hasOwnProperty(student)) {
+                                        if (gradeMap[student]["certificate_status"] === "downloadable") {
+                                            gradeLists[group].push(gradeMap[student]["final_grade"])
+                                            passing++
+                                        } else {
+                                            notPassing++;
+                                        }
+                                    } else {
+                                        notPassing++;
+                                    }
+                                }
+                                counterLists[group] = {'passing': passing, 'notPassing': notPassing}
+                            }
+                            // FORUM SEGMENTATION /////////////////////////////////////////
+
+                            let dateList = Object.keys(dailySessions);
+                            dateList.sort(function (a, b) {
+                                return new Date(a) - new Date(b);
+                            });
+
+                            for (let date of dateList) {
+                                orderedSessions[date] = dailySessions[date].length;
+                                orderedStudents[date] = new Set(dailySessions[date]).size;
+                                orderedDurations[date] = dailyDurations[date];
+
+                                orderedForumStudents[date] = new Set(forumSessions[date]).size;
+
+                                if (quizSessions.hasOwnProperty(date)) {
+                                    orderedQuizSessions[date] = quizSessions[date].length;
+                                } else {
+                                    orderedQuizSessions[date] = 0
+                                }
+
+                                if (videoSessions.hasOwnProperty(date)) {
+                                    orderedVideoSessions[date] = videoSessions[date].length;
+                                } else {
+                                    orderedVideoSessions[date] = 0
+                                }
+
+                                let regulars = [];
+                                let occasionals = [];
+                                if (forumSessions.hasOwnProperty(date)) {
+                                    orderedForumSessions[date] = forumSessions[date].length;
+                                    for (let student of forumSessions[date]) {
+                                        if (regularFViewers.includes(student)) {
+                                            regulars.push(student)
+                                        } else {
+                                            occasionals.push(student)
+                                        }
+                                    }
+                                } else {
+                                    orderedForumSessions[date] = 0
+                                }
+                                orderedForumSessionRegulars[date] = regulars.length;
+                                orderedForumRegulars[date] = new Set(regulars).size;
+                                orderedForumSessionOccasionals[date] = occasionals.length;
+                                orderedForumOccasionals[date] = new Set(occasionals).size;
+
+                                orderedForumPostsByOccasionals[date] = 0;
+                                orderedForumPostsByRegulars[date] = 0;
+                                orderedForumPostersRegulars[date] = [];
+                                orderedForumPostersOccasionals[date] = [];
+
+                                if (forumPosters.hasOwnProperty(date)) {
+                                    orderedForumPosters[date] = Math.round(forumPosters[date].length);
+                                    for (let poster of forumPosters[date]) {
+                                        if (regularPosters.includes(poster)) {
+                                            orderedForumPostsByRegulars[date] = orderedForumPostsByRegulars[date] + 1
+                                            orderedForumPostersRegulars[date].push(poster)
+                                        } else {
+                                            orderedForumPostsByOccasionals[date] = orderedForumPostsByOccasionals[date] + 1
+                                            orderedForumPostersOccasionals[date].push(poster);
+                                        }
+                                    }
+                                } else {
+                                    orderedForumPosters[date] = 0;
+                                }
+
+                                orderedForumPostersRegulars[date] = new Set(orderedForumPostersRegulars[date]).size;
+                                orderedForumPostersOccasionals[date] = new Set(orderedForumPostersOccasionals[date]).size;
+
+                                if (forumPosts.hasOwnProperty(date)) {
+                                    orderedForumPosts[date] = Math.round(forumPosts[date].length);
+                                    let dailyContent = [];
+                                    let dailyContentReg = [];
+                                    let dailyContentOcc = [];
+                                    for (let post of forumPosts[date]) {
+                                        dailyContent.push(post.length);
+                                        if (regularPosters.includes(posterPostMap[post])) {
+                                            dailyContentReg.push(post.length)
+                                        } else {
+                                            dailyContentOcc.push(post.length)
+                                        }
+                                    }
+                                    orderedForumPostContent[date] = dailyContent;
+                                    orderedForumPostContentRegulars[date] = dailyContentReg;
+                                    orderedForumPostContentOccasionals[date] = dailyContentOcc
+                                } else {
+                                    orderedForumPosts[date] = 0;
+                                    orderedForumPostContent[date] = [];
+                                    orderedForumPostContentRegulars[date] = [];
+                                    orderedForumPostContentOccasionals[date] = [];
+                                }
+
+                                let total = 0;
+                                for (let i = 0; i < dailyDurations[date].length; i++) {
+                                    total += dailyDurations[date][i];
+                                }
+                                orderedAvgDurations[date] = (total / dailyDurations[date].length).toFixed(2);
+
+                                let quizTotal = 0;
+                                for (let i = 0; i < orderedQuizSessions[date].length; i++) {
+                                    quizTotal += quizDurations[date][i];
+                                }
+                                orderedQuizDurations[date] = quizTotal / orderedQuizSessions[date];
+
+                                let vidTotal = 0;
+                                for (let i = 0; i < orderedVideoSessions[date].length; i++) {
+                                    vidTotal += videoDurations[date][i];
+                                }
+                                orderedVideoDurations[date] = vidTotal / orderedVideoSessions[date].length;
+
+                                let forumTotal = 0;
+                                if (forumDurations.hasOwnProperty(date)) {
+                                    for (let i = 0; i < forumDurations[date].length; i++) {
+                                        forumTotal += forumDurations[date][i];
+                                    }
+                                    orderedForumDurations[date] = Math.round(forumTotal);
+                                    orderedForumAvgDurations[date] = Math.round(forumTotal / forumDurations[date].length);
+                                } else {
+                                    orderedForumDurations[date] = 0;
+                                    orderedForumAvgDurations[date] = 0;
+                                }
+
+                                dateListChart.push(new Date(date));
+                            }
+
+                            graphElementMap = {
+                                'course_name': course_name,
+                                'start_date': start_date,
+                                'end_date': end_date,
+                                'dateListChart': dateListChart,
+
+                                'orderedSessions': orderedSessions,
+                                'orderedStudents': orderedStudents,
+                                'orderedDurations': orderedDurations,
+                                'orderedAvgDurations': orderedAvgDurations,
+
+                                'orderedQuizSessions': orderedQuizSessions,
+                                'orderedQuizDurations': orderedQuizDurations,
+
+                                'orderedVideoSessions': orderedVideoSessions,
+                                'orderedVideoDurations': orderedVideoDurations,
+
+                                'orderedForumSessions': orderedForumSessions,
+                                'orderedForumSessionRegulars': orderedForumSessionRegulars,
+                                'orderedForumSessionOccasionals': orderedForumSessionOccasionals,
+                                'orderedForumDurations': orderedForumDurations,
+                                'orderedForumAvgDurations': orderedForumAvgDurations,
+
+                                'forumSegmentation': forumSegmentation,
+                                'orderedForumPosts': orderedForumPosts,
+                                'orderedForumPostContent': orderedForumPostContent,
+                                'orderedForumPostContentRegulars': orderedForumPostContentRegulars,
+                                'orderedForumPostContentOccasionals': orderedForumPostContentOccasionals,
+                                'orderedForumPosters': orderedForumPosters,
+                                'orderedForumPostersRegulars': orderedForumPostersRegulars,
+                                'orderedForumPostersOccasionals': orderedForumPostersOccasionals,
+                                'orderedForumPostsByRegulars': orderedForumPostsByRegulars,
+                                'orderedForumPostsByOccasionals': orderedForumPostsByOccasionals,
+
+                                'gradeLists': gradeLists,
+                                'counterLists': counterLists,
+
+                                'orderedForumStudents': orderedForumStudents,
+                                'orderedForumRegulars': orderedForumRegulars,
+                                'orderedForumOccasionals': orderedForumOccasionals,
+                                'annotations': annotations
+                            };
+                            let graphElements = [{
+                                'name': 'graphElements',
+                                'object': graphElementMap
+                            }];
+                            toastr.info('Processing graph data');
+                            sqlInsert('webdata', graphElements);
+                            callback(graphElementMap, start, end);
                         });
                     });
                 }
@@ -3779,54 +3771,57 @@ function drawApex(graphElementMap, start, end, weekly){
 }
 
 
-function deleteEverything() {
+async function deleteEverything() {
     let query = 'DELETE FROM sessions';
     let r = confirm("WARNING!\nTHIS WILL DELETE EVERYTHING IN THE DATABASE");
     if (r === true) {
         $('#loading').show();
         $.blockUI();
-        connection.clear('sessions').then(function () {
+        await connection.clear('sessions').then(function () {
             console.log('Cleared sessions table');
-            connection.clear('video_interaction').then(function () {
-                console.log('Cleared video_interaction table');
-                connection.clear('submissions').then(function () {
-                    console.log('Cleared submissions ');
-                    connection.runSql(query).then(function () {
-                        console.log('Cleared quiz_sessions ');
-                        connection.clear('course_learner').then(function () {
-                            console.log('Cleared course_learner ');
-                            connection.clear('forum_sessions').then(function () {
-                                console.log('Cleared forum_sessions ');
-                                connection.dropDb().then(function(result){
-                                    if (result === 1){
-                                        $('#loading').hide();
-                                        $.unblockUI();
-                                        toastr.success('Database has been deleted!')
-                                    }
-                                });
-                            }).catch(function (err) {
-                                console.log(err);
-                                alert('The deletion process started but did not finish,\n please refresh and try again');
-                            });
-                        }).catch(function (err) {
-                            console.log(err);
-                            alert('The deletion process started but did not finish,\n please refresh and try again');
-                        });
-                    }).catch(function (err) {
-                        console.log(err);
-                        alert('The deletion process started but did not finish,\n please refresh and try again');
-                    });
-                }).catch(function (err) {
-                    console.log(err);
-                    alert('The deletion process started but did not finish,\n please refresh and try again');
-                });
-            }).catch(function (err) {
-                console.log(err);
-                alert('The deletion process started but did not finish,\n please refresh and try again');
-            });
         }).catch(function (err) {
             console.log(err);
-            alert('Could not delete database, please try again');
+            alert('The deletion process started but did not finish,\n please refresh and try again');
+        });
+        await connection.clear('video_interaction').then(function () {
+            console.log('Cleared video_interaction table');
+        }).catch(function (err) {
+            console.log(err);
+            alert('The deletion process started but did not finish,\n please refresh and try again');
+        });
+        await connection.clear('submissions').then(function () {
+            console.log('Cleared submissions ');
+        }).catch(function (err) {
+            console.log(err);
+            alert('The deletion process started but did not finish,\n please refresh and try again');
+        });
+        await connection.runSql(query).then(function () {
+            console.log('Cleared quiz_sessions ');
+        }).catch(function (err) {
+            console.log(err);
+            alert('The deletion process started but did not finish,\n please refresh and try again');
+        });
+        await connection.clear('course_learner').then(function () {
+            console.log('Cleared course_learner ');
+        }).catch(function (err) {
+            console.log(err);
+            alert('The deletion process started but did not finish,\n please refresh and try again');
+        });
+        await connection.clear('forum_sessions').then(function () {
+            console.log('Cleared forum_sessions ');
+        }).catch(function (err) {
+            console.log(err);
+            alert('The deletion process started but did not finish,\n please refresh and try again');
+        });
+        await connection.dropDb().then(function (result) {
+            if (result === 1) {
+                $('#loading').hide();
+                $.unblockUI();
+                toastr.success('Database has been deleted!')
+            }
+        }).catch(function (err) {
+            console.log(err);
+            alert('The deletion process started but did not finish,\n please refresh and try again');
         });
     } else {
         alert('Nothing was deleted')
@@ -4087,239 +4082,240 @@ function videoTransitions() {
     let videoIdsF = {};
     let unorderedVideos = [];
     let arcData = {};
-    connection.runSql("SELECT * FROM metadata WHERE name = 'metadata_map' ").then(function(result) {
+    connection.runSql("SELECT * FROM metadata WHERE name = 'metadata_map' ").then(async function (result) {
         if (result.length !== 1) {
             console.log('Metadata empty')
         } else {
             let course_metadata_map = result[0]['object'];
             let courseId = course_metadata_map.course_id;
             courseId = courseId.slice(courseId.indexOf(':') + 1,);
-            connection.runSql("SELECT * FROM course_learner").then(function (learners) {
+            await connection.runSql("SELECT * FROM course_learner").then(function (learners) {
                 learners.forEach(function (learner) {
                     learnerIds.push(learner.course_learner_id);
                     learnerStatus[learner.course_learner_id] = learner.certificate_status;
                 });
+            });
 
-                for (let elementId in course_metadata_map.child_parent_map) {
-                    if (elementId.includes('video')) {
-                        let parentId = course_metadata_map.child_parent_map[elementId];
-                        let parent2Id = course_metadata_map.child_parent_map[parentId];
-                        let parent3Id = course_metadata_map.child_parent_map[parent2Id];
-                        unorderedVideos.push({
-                            'elementId': elementId,
-                            'chapter': course_metadata_map.order_map[parent3Id],
-                            'section': course_metadata_map.order_map[parent2Id],
-                            'block': course_metadata_map.order_map[parentId]
-                        })
+            for (let elementId in course_metadata_map.child_parent_map) {
+                if (elementId.includes('video')) {
+                    let parentId = course_metadata_map.child_parent_map[elementId];
+                    let parent2Id = course_metadata_map.child_parent_map[parentId];
+                    let parent3Id = course_metadata_map.child_parent_map[parent2Id];
+                    unorderedVideos.push({
+                        'elementId': elementId,
+                        'chapter': course_metadata_map.order_map[parent3Id],
+                        'section': course_metadata_map.order_map[parent2Id],
+                        'block': course_metadata_map.order_map[parentId]
+                    })
+                }
+            }
+
+            let orderedVideos = unorderedVideos.sort(function (a, b) {
+                return a.block - b.block
+            });
+            orderedVideos.sort(function (a, b) {
+                return a.section - b.section
+            });
+            orderedVideos.sort(function (a, b) {
+                return a.chapter - b.chapter
+            });
+
+            for (let video of orderedVideos) {
+                let videoId = video.elementId;
+                videoId = videoId.slice(videoId.lastIndexOf('@') + 1,);
+                videoIds[videoId] = [];
+                videoIdsP[videoId] = [];
+                videoIdsF[videoId] = [];
+            }
+
+            let videoChains = {};
+            let passingChains = {};
+            let failingChains = {};
+            // learnerIds = learnerIds.slice(0, 500);
+            let maxViewers = 0;
+            let passingViewers = 0;
+            let failingViewers = 0;
+            let counter = 0;
+            for (let learner of learnerIds) {
+                let learnerSessions = [];
+                let query = "SELECT * FROM video_interaction WHERE course_learner_id = '" + learner + "'";
+                await connection.runSql(query).then(function (sessions) {
+                    learnerSessions = sessions;
+                    learnerSessions.sort(function (a, b) {
+                        return new Date(a.start_time) - new Date(b.start_time)
+                    });
+                    let videoChain = [];
+                    let currentVideo = '';
+                    for (let session of learnerSessions) {
+                        if (session.video_id !== currentVideo) {
+                            currentVideo = session.video_id;
+                            videoChain.push(currentVideo);
+                        }
                     }
-                }
-
-                let orderedVideos = unorderedVideos.sort(function (a, b) {
-                    return a.block - b.block
-                });
-                orderedVideos.sort(function (a, b) {
-                    return a.section - b.section
-                });
-                orderedVideos.sort(function (a, b) {
-                    return a.chapter - b.chapter
-                });
-
-                for (let video of orderedVideos) {
-                    let videoId = video.elementId;
-                    videoId = videoId.slice(videoId.lastIndexOf('@') + 1,);
-                    videoIds[videoId] = [];
-                    videoIdsP[videoId] = [];
-                    videoIdsF[videoId] = [];
-                }
-
-                let videoChains = {};
-                let passingChains = {};
-                let failingChains = {};
-                // learnerIds = learnerIds.slice(0, 500);
-                let maxViewers = 0;
-                let passingViewers = 0;
-                let failingViewers = 0;
-                let counter = 0;
-                for (let learner of learnerIds) {
-                    let learnerSessions = [];
-                    let query = "SELECT * FROM video_interaction WHERE course_learner_id = '" + learner + "'";
-                    connection.runSql(query).then(function (sessions) {
-                        learnerSessions = sessions;
-                        learnerSessions.sort(function (a, b) {
-                            return new Date(a.start_time) - new Date(b.start_time)
-                        });
-                        let videoChain = [];
-                        let currentVideo = '';
-                        for (let session of learnerSessions) {
-                            if (session.video_id !== currentVideo) {
-                                currentVideo = session.video_id;
-                                videoChain.push(currentVideo);
+                    if (videoChain.length > 1) {
+                        videoChains[learner] = videoChain;
+                        if (learnerStatus[learner] === 'downloadable') {
+                            passingChains[learner] = videoChain;
+                            passingViewers++;
+                        } else {
+                            failingChains[learner] = videoChain;
+                            failingViewers++;
+                        }
+                    }
+                    counter++;
+                    if (counter === learnerIds.length) {
+                        for (let learner in videoChains) {
+                            for (let i = 0; i < videoChains[learner].length - 1; i++) {
+                                let currentVideo = videoChains[learner][i];
+                                let followingVideo = videoChains[learner][i + 1];
+                                videoIds[currentVideo].push(followingVideo);
                             }
                         }
-                        if (videoChain.length > 1) {
-                            videoChains[learner] = videoChain;
-                            if (learnerStatus[learner] === 'downloadable'){
-                                passingChains[learner] = videoChain;
-                                passingViewers++;
-                            } else {
-                                failingChains[learner] = videoChain;
-                                failingViewers++;
+                        let frequencies = {};
+                        for (let video in videoIds) {
+                            let frequency = _.countBy(videoIds[video]);
+                            for (let nextVideo in videoIds) {
+                                if (frequency.hasOwnProperty(nextVideo)) {
+                                    // frequency[nextVideo] = frequency[nextVideo] / videoIds[video].length;
+                                    frequency[nextVideo] = frequency[nextVideo] / (failingViewers + passingViewers) // For normalized value
+                                }
+                            }
+                            let freqSorted = Object.keys(frequency).sort(function (a, b) {
+                                return frequency[b] - frequency[a]
+                            });
+                            let top3 = {};
+                            for (let video of freqSorted.slice(0, 3)) {
+                                top3[video] = frequency[video]
+                            }
+                            frequencies[video] = top3;
+                            maxViewers = Math.max(maxViewers, videoIds[video].length)
+                        }
+
+                        // PASSING STUDENTS //////////////////////////////////////////////////////////
+                        for (let learner in passingChains) {
+                            for (let i = 0; i < passingChains[learner].length - 1; i++) {
+                                let currentVideo = passingChains[learner][i];
+                                let followingVideo = passingChains[learner][i + 1];
+                                videoIdsP[currentVideo].push(followingVideo);
                             }
                         }
-                        counter++;
-                        if (counter === learnerIds.length) {
-                            for (let learner in videoChains) {
-                                for (let i = 0; i < videoChains[learner].length - 1; i++) {
-                                    let currentVideo = videoChains[learner][i];
-                                    let followingVideo = videoChains[learner][i + 1];
-                                    videoIds[currentVideo].push(followingVideo);
+                        let frequenciesP = {};
+                        for (let video in videoIdsP) {
+                            let frequency = _.countBy(videoIdsP[video]);
+                            for (let nextVideo in videoIdsP) {
+                                if (frequency.hasOwnProperty(nextVideo)) {
+                                    // frequency[nextVideo] = frequency[nextVideo] / videoIds[video].length; // For absolute percentage
+                                    frequency[nextVideo] = frequency[nextVideo] / passingViewers; //  For normalized value
+                                    // frequency[nextVideo] = frequency[nextVideo] / videoIdsP[video].length; // For passing-only percentage
                                 }
                             }
-                            let frequencies = {};
-                            for (let video in videoIds) {
-                                let frequency = _.countBy(videoIds[video]);
-                                for (let nextVideo in videoIds) {
-                                    if (frequency.hasOwnProperty(nextVideo)) {
-                                        // frequency[nextVideo] = frequency[nextVideo] / videoIds[video].length;
-                                        frequency[nextVideo] = frequency[nextVideo] / (failingViewers + passingViewers) // For normalized value
-                                    }
-                                }
-                                let freqSorted = Object.keys(frequency).sort(function (a, b) {
-                                    return frequency[b] - frequency[a]
-                                });
-                                let top3 = {};
-                                for (let video of freqSorted.slice(0, 3)) {
-                                    top3[video] = frequency[video]
-                                }
-                                frequencies[video] = top3;
-                                maxViewers = Math.max(maxViewers, videoIds[video].length)
+                            let freqSorted = Object.keys(frequency).sort(function (a, b) {
+                                return frequency[b] - frequency[a]
+                            });
+                            let top3 = {};
+                            for (let video of freqSorted.slice(0, 3)) {
+                                top3[video] = frequency[video]
                             }
+                            frequenciesP[video] = top3;
+                        }
+                        // PASSING STUDENTS //////////////////////////////////////////////////////////
 
-                            // PASSING STUDENTS //////////////////////////////////////////////////////////
-                            for (let learner in passingChains) {
-                                for (let i = 0; i < passingChains[learner].length - 1; i++) {
-                                    let currentVideo = passingChains[learner][i];
-                                    let followingVideo = passingChains[learner][i + 1];
-                                    videoIdsP[currentVideo].push(followingVideo);
+                        // FAILING STUDENTS //////////////////////////////////////////////////////////
+                        for (let learner in failingChains) {
+                            for (let i = 0; i < failingChains[learner].length - 1; i++) {
+                                let currentVideo = failingChains[learner][i];
+                                let followingVideo = failingChains[learner][i + 1];
+                                videoIdsF[currentVideo].push(followingVideo);
+                            }
+                        }
+                        let frequenciesF = {};
+                        for (let video in videoIdsF) {
+                            let frequency = _.countBy(videoIdsF[video]);
+                            for (let nextVideo in videoIdsF) {
+                                if (frequency.hasOwnProperty(nextVideo)) {
+                                    // frequency[nextVideo] = frequency[nextVideo] / videoIds[video].length; // For absolute percentage
+                                    frequency[nextVideo] = frequency[nextVideo] / failingViewers; // For normalized value
+                                    // frequency[nextVideo] = frequency[nextVideo] / videoIdsF[video].length; // For failing-only percentage
                                 }
                             }
-                            let frequenciesP = {};
-                            for (let video in videoIdsP) {
-                                let frequency = _.countBy(videoIdsP[video]);
-                                for (let nextVideo in videoIdsP) {
-                                    if (frequency.hasOwnProperty(nextVideo)) {
-                                        // frequency[nextVideo] = frequency[nextVideo] / videoIds[video].length; // For absolute percentage
-                                        frequency[nextVideo] = frequency[nextVideo] / passingViewers; //  For normalized value
-                                        // frequency[nextVideo] = frequency[nextVideo] / videoIdsP[video].length; // For passing-only percentage
-                                    }
-                                }
-                                let freqSorted = Object.keys(frequency).sort(function (a, b) {
-                                    return frequency[b] - frequency[a]
-                                });
-                                let top3 = {};
-                                for (let video of freqSorted.slice(0, 3)) {
-                                    top3[video] = frequency[video]
-                                }
-                                frequenciesP[video] = top3;
+                            let freqSorted = Object.keys(frequency).sort(function (a, b) {
+                                return frequency[b] - frequency[a]
+                            });
+                            let top3 = {};
+                            for (let video of freqSorted.slice(0, 3)) {
+                                top3[video] = frequency[video]
                             }
-                            // PASSING STUDENTS //////////////////////////////////////////////////////////
+                            frequenciesF[video] = top3;
+                        }
+                        // FAILING STUDENTS //////////////////////////////////////////////////////////
 
-                            // FAILING STUDENTS //////////////////////////////////////////////////////////
-                            for (let learner in failingChains) {
-                                for (let i = 0; i < failingChains[learner].length - 1; i++) {
-                                    let currentVideo = failingChains[learner][i];
-                                    let followingVideo = failingChains[learner][i + 1];
-                                    videoIdsF[currentVideo].push(followingVideo);
+                        let i = 0;
+                        let nodes = [];
+                        let links = [];
+                        for (let currentVideo in frequencies) {
+                            let percentages = "<span style='font-size: 14px;'>" +
+                                course_metadata_map['element_name_map']["block-v1:" + courseId + "+type@video+block@" + currentVideo] +
+                                "</span><br>";
+                            for (let followingVideo in frequencies[currentVideo]) {
+                                if (frequencies[currentVideo][followingVideo] > 0) {
+                                    let link = {
+                                        'source': currentVideo,
+                                        'target': followingVideo,
+                                        'value': frequencies[currentVideo][followingVideo],
+                                        'status': 'general'
+                                    };
+                                    links.push(link);
+                                    percentages += "<span style='font-size: 12px;'>" +
+                                        course_metadata_map['element_name_map']["block-v1:" + courseId + "+type@video+block@" + followingVideo] +
+                                        ": " + (frequencies[currentVideo][followingVideo] * 100).toFixed(0) +
+                                        "%</span><br>"
                                 }
                             }
-                            let frequenciesF = {};
-                            for (let video in videoIdsF) {
-                                let frequency = _.countBy(videoIdsF[video]);
-                                for (let nextVideo in videoIdsF) {
-                                    if (frequency.hasOwnProperty(nextVideo)) {
-                                        // frequency[nextVideo] = frequency[nextVideo] / videoIds[video].length; // For absolute percentage
-                                        frequency[nextVideo] = frequency[nextVideo] / failingViewers; // For normalized value
-                                        // frequency[nextVideo] = frequency[nextVideo] / videoIdsF[video].length; // For failing-only percentage
-                                    }
+                            for (let followingVideo in frequenciesP[currentVideo]) {
+                                if (frequenciesP[currentVideo][followingVideo] > 0) {
+                                    let link = {
+                                        'source': currentVideo,
+                                        'target': followingVideo,
+                                        'value': frequenciesP[currentVideo][followingVideo],
+                                        'status': 'passing'
+                                    };
+                                    links.push(link);
                                 }
-                                let freqSorted = Object.keys(frequency).sort(function (a, b) {
-                                    return frequency[b] - frequency[a]
-                                });
-                                let top3 = {};
-                                for (let video of freqSorted.slice(0, 3)) {
-                                    top3[video] = frequency[video]
-                                }
-                                frequenciesF[video] = top3;
                             }
-                            // FAILING STUDENTS //////////////////////////////////////////////////////////
-
-                            let i = 0;
-                            let nodes = [];
-                            let links = [];
-                            for (let currentVideo in frequencies) {
-                                let percentages = "<span style='font-size: 14px;'>" +
-                                    course_metadata_map['element_name_map']["block-v1:" + courseId + "+type@video+block@" + currentVideo] +
-                                    "</span><br>";
-                                for (let followingVideo in frequencies[currentVideo]) {
-                                    if (frequencies[currentVideo][followingVideo] > 0) {
-                                        let link = {
-                                            'source': currentVideo,
-                                            'target': followingVideo,
-                                            'value': frequencies[currentVideo][followingVideo],
-                                            'status': 'general'
-                                        };
-                                        links.push(link);
-                                        percentages += "<span style='font-size: 12px;'>" +
-                                            course_metadata_map['element_name_map']["block-v1:" + courseId + "+type@video+block@" + followingVideo] +
-                                            ": " + (frequencies[currentVideo][followingVideo] * 100).toFixed(0) +
-                                            "%</span><br>"
-                                    }
+                            for (let followingVideo in frequenciesF[currentVideo]) {
+                                if (frequenciesF[currentVideo][followingVideo] > 0) {
+                                    let link = {
+                                        'source': currentVideo,
+                                        'target': followingVideo,
+                                        'value': frequenciesF[currentVideo][followingVideo],
+                                        'status': 'failing'
+                                    };
+                                    links.push(link);
                                 }
-                                for (let followingVideo in frequenciesP[currentVideo]) {
-                                    if (frequenciesP[currentVideo][followingVideo] > 0) {
-                                        let link = {
-                                            'source': currentVideo,
-                                            'target': followingVideo,
-                                            'value': frequenciesP[currentVideo][followingVideo],
-                                            'status': 'passing'
-                                        };
-                                        links.push(link);
-                                    }
-                                }
-                                for (let followingVideo in frequenciesF[currentVideo]) {
-                                    if (frequenciesF[currentVideo][followingVideo] > 0) {
-                                        let link = {
-                                            'source': currentVideo,
-                                            'target': followingVideo,
-                                            'value': frequenciesF[currentVideo][followingVideo],
-                                            'status': 'failing'
-                                        };
-                                        links.push(link);
-                                    }
-                                }
-                                i++;
-                                nodes.push({
-                                    'name': 'Video ' + i,
-                                    'info': percentages,
-                                    'n': (videoIds[currentVideo].length / maxViewers) * 20,
-                                    'grp': 1,
-                                    'id': currentVideo
-                                });
                             }
-                            arcData['nodes'] = nodes;
-                            arcData['links'] = links;
-                            let arcElements = [{'name': 'arcElements', 'object': arcData}];
-                            connection.runSql("DELETE FROM webdata WHERE name = 'arcElements'").then(function (success) {
-                                sqlInsert('webdata', arcElements);
-                                drawVideoArc();
+                            i++;
+                            nodes.push({
+                                'name': 'Video ' + i,
+                                'info': percentages,
+                                'n': (videoIds[currentVideo].length / maxViewers) * 20,
+                                'grp': 1,
+                                'id': currentVideo
                             });
                         }
-                    });
-                }
-            })
+                        arcData['nodes'] = nodes;
+                        arcData['links'] = links;
+                        let arcElements = [{'name': 'arcElements', 'object': arcData}];
+                        connection.runSql("DELETE FROM webdata WHERE name = 'arcElements'").then(function (success) {
+                            sqlInsert('webdata', arcElements);
+                            drawVideoArc();
+                        });
+                    }
+                });
+            }
         }
     });
 }
+
 
 function drawVideoArc(linkNumber){ // https://www.d3-graph-gallery.com/graph/arc_template.html
     connection.runSql("SELECT * FROM webdata WHERE name = 'arcElements' ").then(function(result) {

@@ -5261,6 +5261,7 @@ function prepareDashboard() {
     $(function () {
         let localData = JSON.parse(localStorage.getItem('positions'));
         if (localData != null) {
+            console.log('Loading dashboard position');
             $.each(localData, function (i, value) {
                 let id_name = "#";
                 id_name = id_name + value.id;
@@ -5272,7 +5273,7 @@ function prepareDashboard() {
                 });
             });
         } else {
-            console.log('No data returned by the server');
+            console.log('Dashboard is in default state');
         }
 
         let gridster;

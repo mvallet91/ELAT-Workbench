@@ -247,10 +247,10 @@ function sqlInsert(table, data) {
                 $.unblockUI();
                 toastr.success('Please reload the page now', 'Metadata ready', {timeOut: 0})
             }
-            if (table === 'webdata'){
-                $('#loading').hide();
-                $.unblockUI();
-            }
+            // if (table === 'webdata'){
+            //     $('#loading').hide();
+            //     $.unblockUI();
+            // }
         }
     }).catch(function (err) {
         console.log(err);
@@ -364,11 +364,11 @@ function showCoursesTableDataExtra() {
                         course.end_time.toLocaleDateString('en-EN', options) + "</td><td>";
                     let query = "count from course_elements where course_id = '" + course.course_id + "'";
                     await connection.runSql(query).then(function (result) {
-                        HtmlString += result + "</td><td>";
+                        HtmlString += result.toLocaleString('en-US') + "</td><td>";
                     });
                     query = "count from learner_index where course_id = '" + course.course_id + "'";
                     await connection.runSql(query).then(function (result) {
-                        HtmlString += result + "</td><td>";
+                        HtmlString += result.toLocaleString('en-US') + "</td><td>";
                     });
                     query = "SELECT * FROM quiz_questions";
                     await connection.runSql(query).then(function (results) {
@@ -377,7 +377,7 @@ function showCoursesTableDataExtra() {
                                 questionCounter++;
                             }
                         });
-                        HtmlString += questionCounter + "</td><td>";
+                        HtmlString += questionCounter.toLocaleString('en-US') + "</td><td>";
                     });
                     query = "SELECT * FROM forum_interaction";
                     await connection.runSql(query).then(function (sessions) {
@@ -387,7 +387,7 @@ function showCoursesTableDataExtra() {
                             }
                         });
                     });
-                    HtmlString += forumInteractionCounter;
+                    HtmlString += forumInteractionCounter.toLocaleString('en-US');
                     $('#tblGrid tbody').html(HtmlString);
                     let courseDetails = [{'name': 'courseDetails', 'object': {'details': HtmlString}}];
                     sqlInsert('webdata', courseDetails);
@@ -483,18 +483,18 @@ function showSessionTable() {
                             }
                         });
                     });
-                    totalHtmlString += tsessionCounter + "</td><td>" +
-                        tforumSessionCounter + "</td><td>" +
-                        tvideoInteractionCounter + "</td><td>" +
-                        tsubmissionCounter + "</td><td>" +
-                        tassessmentCounter + "</td><td>" +
-                        tquizSessionCounter;
-                    HtmlString += sessionCounter + "</td><td>" +
-                        forumSessionCounter + "</td><td>" +
-                        videoInteractionCounter + "</td><td>" +
-                        submissionCounter + "</td><td>" +
-                        assessmentCounter + "</td><td>" +
-                        quizSessionCounter;
+                    totalHtmlString += tsessionCounter.toLocaleString('en-US') + "</td><td>" +
+                        tforumSessionCounter.toLocaleString('en-US') + "</td><td>" +
+                        tvideoInteractionCounter.toLocaleString('en-US') + "</td><td>" +
+                        tsubmissionCounter.toLocaleString('en-US') + "</td><td>" +
+                        tassessmentCounter.toLocaleString('en-US') + "</td><td>" +
+                        tquizSessionCounter.toLocaleString('en-US');
+                    HtmlString += sessionCounter.toLocaleString('en-US') + "</td><td>" +
+                        forumSessionCounter.toLocaleString('en-US') + "</td><td>" +
+                        videoInteractionCounter.toLocaleString('en-US') + "</td><td>" +
+                        submissionCounter.toLocaleString('en-US') + "</td><td>" +
+                        assessmentCounter.toLocaleString('en-US') + "</td><td>" +
+                        quizSessionCounter.toLocaleString('en-US');
                     document.getElementById("loading").style.display = "none";
                     $('#dbGrid tbody').html(HtmlString);
                     let databaseDetails = [{'name': 'databaseDetails', 'object': {'details':HtmlString}}];
@@ -560,18 +560,18 @@ function showMainIndicators() {
                         });
                     });
                     let avgDuration = videoDuration / videoWatchers;
-                    HtmlString += completionRate.toFixed(2)  + "</td><td>" +
-                        avgGrade.toFixed(2)  + "</td><td>" +
-                        "Verified: " + verifiedLearners + "<br>" +
-                        "Honor: " + honorLearners + "<br>" +
-                        "Audit: " + auditLearners + "<br>" +
+                    HtmlString += completionRate.toFixed(2).toLocaleString('en-US')  + "</td><td>" +
+                        avgGrade.toFixed(2).toLocaleString('en-US')  + "</td><td>" +
+                        "Verified: " + verifiedLearners.toLocaleString('en-US') + "<br>" +
+                        "Honor: " + honorLearners.toLocaleString('en-US') + "<br>" +
+                        "Audit: " + auditLearners.toLocaleString('en-US') + "<br>" +
                         "</td><td>" +
                         "Verified: " + avgGrades['verified'] + "<br>" +
                         "Honor: " + avgGrades['honor'] + "<br>" +
                         "Audit: " + avgGrades['audit'] + "<br>" +
                         "</td><td>" +
-                        (avgDuration/60).toFixed(2) + " minutes" + "</td><td>" +
-                        videoWatchers;
+                        (avgDuration/60).toFixed(2).toLocaleString('en-US') + " minutes" + "</td><td>" +
+                        videoWatchers.toLocaleString('en-US');
                     $('#indicatorGrid tbody').html(HtmlString);
                     let indicators = [{'name': 'mainIndicators', 'object': {'details': HtmlString}}];
                     sqlInsert('webdata', indicators);
@@ -2456,6 +2456,16 @@ function drawCharts(graphElementMap, start, end) {
             legend: {
                 position: 'top',
             },
+            // tooltips: {
+            //     callbacks: {
+            //         // value: function(value, index, values) {
+            //         //     return value.toLocaleString("en-US");
+            //         // },
+            //         label: function(tooltipItem, data) {
+            //             return (tooltipItem.value).toLocaleString("en-US");
+            //         },
+            //     }
+            // },
             title: {
                 display: true,
                 text: 'Session and Student Count',
@@ -2471,37 +2481,49 @@ function drawCharts(graphElementMap, start, end) {
                     type: 'time',
                     display: true,
                     time: {
-                        unit: 'day',
+                        unit: 'week',
                         min: startDate,
                         max: endDate
                     },
                     scaleLabel: {
                         display: true,
-                        labelString: "Date",
+                        // labelString: "Date",
                     }
                 }],
                 yAxes: [{
                     id: 'A',
                     ticks: {
                         beginAtZero: true,
+                        callback: function(value, index, values) {
+                            return value.toLocaleString("en-US");
+                        },
+                        fontColor: '#FAB930',
                     },
                     position: 'left',
                     display: true,
                     scaleLabel: {
                         display: true,
                         labelString: "Total Students",
+                        fontColor: '#FAB930',
+                        fontStyle: 'bold'
                     }
                 }, {
                     id: 'B',
                     ticks: {
                         beginAtZero: true,
+                        callback: function(value, index, values) {
+                            return value.toLocaleString("en-US");
+                        },
+                        fontColor: '#12B1C7',
                     },
                     position: 'right',
                     display: true,
                     scaleLabel: {
                         display: true,
                         labelString: "Total Sessions",
-                    }
+                        fontColor: '#12B1C7',
+                        fontStyle: 'bold'
+                    },
                 }]
             }
         }
@@ -2576,7 +2598,7 @@ function drawCharts(graphElementMap, start, end) {
                     type: 'time',
                     display: true,
                     time: {
-                        unit: 'day',
+                        unit: 'week',
                         min: startDate,
                         max: endDate
                     },
@@ -2589,24 +2611,34 @@ function drawCharts(graphElementMap, start, end) {
                     id: 'A',
                     ticks: {
                         beginAtZero: true,
+                        callback: function(value, index, values) {
+                            return value.toLocaleString("en-US");
+                        },
+                        fontColor: '#6EC5FB',
                     },
                     position: 'left',
                     display: true,
                     scaleLabel: {
                         display: true,
                         labelString: "Duration in Seconds",
+                        fontColor: '#6EC5FB',
+                        fontStyle: 'bold'
                     }
                 }, {
                     id: 'B',
                     stacked: true,
                     ticks: {
                         beginAtZero: true,
+                        callback: function(value, index, values) {
+                            return value.toLocaleString("en-US");
+                        },
                     },
                     position: 'right',
                     display: true,
                     scaleLabel: {
                         display: true,
                         labelString: "Number of Sessions",
+                        fontStyle: 'bold'
                     }
                 }]
             }
@@ -2688,7 +2720,7 @@ function drawCharts(graphElementMap, start, end) {
         },
         title: {
             display: true,
-            text: 'Size of Posting (character count)',
+            text: ['Size of Forum Posting','(character count)'],
             position: 'top',
             fontSize:  16,
             color:  '#263238',
@@ -2699,20 +2731,25 @@ function drawCharts(graphElementMap, start, end) {
                 type: 'time',
                 display: true,
                 time: {
-                    unit: 'day',
+                    unit: 'week',
                     min: startDate.setDate(startDate.getDate() - 5),
                     max: endDate.setDate(endDate.getDate() + 3),
+                    tooltipFormat: 'll'
                 },
                 scaleLabel: {
                     display: true,
                     labelString: "Date",
-                }
+                },
             }],
             yAxes: [{
                 ticks: {
                     beginAtZero: true,
                     minStats: 'min',
-                    maxStats: 'whiskerMax'
+                    maxStats: 'whiskerMax',
+                    callback: function(value, index, values) {
+                        return value.toLocaleString("en-US");
+                    },
+
                 },
                 position: 'left',
                 display: true,
@@ -2914,11 +2951,12 @@ function getGraphElementMap(callback, start, end) {
                                     value: new Date(date),
                                     borderColor: 'red',
                                     borderWidth: 1,
-                                    label: {
-                                        enabled: true,
-                                        position: "top",
-                                        content: 'Quiz Due'
-                                    }
+                                    borderDash: [2, 2],
+                                    // label: {
+                                    //     enabled: true,
+                                    //     position: "top",
+                                    //     content: 'Quiz Due'
+                                    // }
                                 }
                             });
 
@@ -2929,23 +2967,27 @@ function getGraphElementMap(callback, start, end) {
                                 }
                             }
                             let quizReleaseDates = Array.from(new Set(startDates));
+                            let offset = quizReleaseDates.length;
                             let annotationStart = quizReleaseDates.map(function (date, index) {
                                 return {
                                     type: 'line',
-                                    id: 'line' + index,
+                                    id: 'line' + (offset + index),
                                     mode: 'vertical',
                                     scaleID: 'x-axis-0',
                                     value: new Date(date),
                                     borderColor: 'green',
                                     borderWidth: 1,
-                                    label: {
-                                        enabled: true,
-                                        position: "center",
-                                        content: 'Quiz Start'
-                                    }
+                                    borderDash: [5, 10],
+                                    // label: {
+                                    //     enabled: true,
+                                    //     position: "center",
+                                    //     content: 'Quiz Start'
+                                    // }
                                 }
                             });
+
                             let annotations = annotationsDue.concat(annotationStart);
+                            console.log(annotations);
 
                             query = "SELECT * FROM forum_sessions";
                             await connection.runSql(query).then(function (f_sessions) {
@@ -3544,7 +3586,7 @@ function drawApex(graphElementMap, start, end, weekly){
                 style: {
                     color: '#138d00',
                 },
-                formatter: v => v.toFixed(0)
+                formatter: v => (v.toFixed(0)).toLocaleString()
             },
             title: {
                 text: "New Posts Added (bars)",
@@ -3557,6 +3599,7 @@ function drawApex(graphElementMap, start, end, weekly){
             opposite: true,
             axisTicks: {
                 show: true,
+                formatter: v => (v.toFixed(0))
             },
             axisBorder: {
                 show: true,
@@ -3566,7 +3609,12 @@ function drawApex(graphElementMap, start, end, weekly){
                 style: {
                     color: '#913bff',
                 },
-                formatter: v => v.toFixed(0)
+                // formatter: v => (( v.toFixed(0) ).toLocaleString('en-US') + typeof v)
+                formatter: function(v) {
+                    let label = new Number(v.toFixed(0));
+                    label = label.toLocaleString('en-US');
+                    return  label;
+                }
             },
             title: {
                 text: "Students visiting Forums (continuous line)",
@@ -4557,7 +4605,9 @@ function moduleTransitions() {
     let unorderedElements = [];
     connection.runSql("SELECT * FROM metadata WHERE name = 'metadata_map' ").then(async function (result) {
         if (result.length !== 1) {
-            console.log('Metadata empty')
+            console.log('Metadata empty');
+            $('#loading').hide();
+            $.unblockUI();
         } else {
             $('#loading').show();
             $.blockUI();

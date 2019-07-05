@@ -2455,6 +2455,9 @@ function drawCharts(graphElementMap, start, end) {
         options: {
             legend: {
                 position: 'top',
+                labels: {
+                    usePointStyle: true
+                }
             },
             // tooltips: {
             //     callbacks: {
@@ -2548,7 +2551,7 @@ function drawCharts(graphElementMap, start, end) {
             lineTension: 0,
         }, {
             fill: true,
-            label: 'Video Session Count',
+            label: 'Video Sessions',
             yAxisID: 'B',
             data: Object.values(graphElementMap['orderedVideoSessions']),
             borderColor: '#753599',
@@ -2556,7 +2559,7 @@ function drawCharts(graphElementMap, start, end) {
             lineTension: 0,
         }, {
             fill: true,
-            label: 'Quiz Session Count',
+            label: 'Quiz Sessions',
             yAxisID: 'B',
             data: Object.values(graphElementMap['orderedQuizSessions']),
             borderColor: '#13c70e',
@@ -2564,11 +2567,27 @@ function drawCharts(graphElementMap, start, end) {
             lineTension: 0,
         }, {
             fill: true,
-            label: 'Forum Session Count',
+            label: 'Forum Sessions',
             yAxisID: 'B',
             data: Object.values(graphElementMap['orderedForumSessions']),
             borderColor: '#992425',
             backgroundColor: '#992425',
+            lineTension: 0,
+        }, {
+            fill: true,
+            label: 'Quiz Due',
+            yAxisID: 'B',
+            // data: Object.values(graphElementMap['orderedForumSessions']),
+            borderColor: 'red',
+            backgroundColor: 'red',
+            lineTension: 0,
+        }, {
+            fill: true,
+            label: 'Quiz Start',
+            yAxisID: 'B',
+            // data: Object.values(graphElementMap['orderedForumSessions']),
+            borderColor: 'green',
+            backgroundColor: 'green',
             lineTension: 0,
         }]
     };
@@ -2579,6 +2598,9 @@ function drawCharts(graphElementMap, start, end) {
         options: {
             legend: {
                 position: 'top',
+                labels: {
+                    usePointStyle: true
+                }
             },
             title: {
                 display: true,
@@ -2637,7 +2659,7 @@ function drawCharts(graphElementMap, start, end) {
                     display: true,
                     scaleLabel: {
                         display: true,
-                        labelString: "Number of Sessions",
+                        labelString: "Total Number of Sessions",
                         fontStyle: 'bold'
                     }
                 }]
@@ -2717,6 +2739,9 @@ function drawCharts(graphElementMap, start, end) {
         responsive: true,
         legend: {
             position: 'top',
+            labels: {
+                usePointStyle: true
+            }
         },
         title: {
             display: true,
@@ -2950,7 +2975,7 @@ function getGraphElementMap(callback, start, end) {
                                     scaleID: 'x-axis-0',
                                     value: new Date(date),
                                     borderColor: 'red',
-                                    borderWidth: 1,
+                                    borderWidth: 2,
                                     borderDash: [2, 2],
                                     // label: {
                                     //     enabled: true,
@@ -2976,8 +3001,9 @@ function getGraphElementMap(callback, start, end) {
                                     scaleID: 'x-axis-0',
                                     value: new Date(date),
                                     borderColor: 'green',
-                                    borderWidth: 1,
-                                    borderDash: [5, 10],
+                                    borderWidth: 2,
+                                    borderDash: [2, 2],
+                                    borderDashOffset: 2
                                     // label: {
                                     //     enabled: true,
                                     //     position: "center",
@@ -3609,7 +3635,6 @@ function drawApex(graphElementMap, start, end, weekly){
                 style: {
                     color: '#913bff',
                 },
-                // formatter: v => (( v.toFixed(0) ).toLocaleString('en-US') + typeof v)
                 formatter: function(v) {
                     let label = new Number(v.toFixed(0));
                     label = label.toLocaleString('en-US');
@@ -3740,44 +3765,44 @@ function drawApex(graphElementMap, start, end, weekly){
                 for (let group in graphElementMap['gradeLists']){
                     let grades = graphElementMap['gradeLists'][group];
                     let gradeAvg = arr => arr.reduce((a,b) => a + b, 0) / arr.length;
-                    if (gradeAvg(grades) == value) {
+                    if (gradeAvg(grades) === value) {
                         return (value + JSON.stringify(graphElementMap['counterLists'][group]))
                     } else {
-                        return value
+                        return value * 100
                     }
                 }
             }
         },
         tooltip: {
             enabled: false,
-            x: {
-                show: false,
-                formatter:  function (value) {
-                    return (value + ' this')
-                }
-            },
-            y: {
-                show: true,
-                formatter: function (value) {
-                    return (value + ' here ')
-                },
-                title: {
-                    formatter: function (value) {
-                        return (value + ' here y')
-                    }
-                }
-            },
-            z: {
-                show: true,
-                formatter: function (value) {
-                    return (value + ' z ')
-                },
-                title: {
-                    formatter: function (value) {
-                        return (value + ' z 2 ')
-                    }
-                }
-            },
+            // x: {
+            //     show: false,
+            //     formatter:  function (value) {
+            //         return (value + ' this')
+            //     }
+            // },
+            // y: {
+            //     show: false,
+            //     formatter: function (value) {
+            //         return (value + ' here x')
+            //     },
+            //     title: {
+            //         formatter: function (value) {
+            //             return (value + ' here y')
+            //         }
+            //     }
+            // },
+            // z: {
+            //     show: false,
+            //     formatter: function (value) {
+            //         return (value + ' z ')
+            //     },
+            //     title: {
+            //         formatter: function (value) {
+            //             return (value + ' z 2 ')
+            //         }
+            //     }
+            // },
         },
         colors: ['#008FFB'],
         series: [{
@@ -3806,7 +3831,7 @@ function drawApex(graphElementMap, start, end, weekly){
             }
         ],
         title: {
-            text: 'Average Grades (completed course)'
+            text: 'Average Grades \n(students with completed course)'
         },
     };
 
@@ -4389,16 +4414,18 @@ function drawVideoArc(linkNumber){ // https://www.d3-graph-gallery.com/graph/arc
                 drawVideoArc()
             });
 
-            let arcTileDiv = document.getElementById("arcTile");
-            arcTileDiv.addEventListener("resize", drawVideoArc);
+            // let arcTileDiv = document.getElementById("arcTile");
+            // arcTileDiv.addEventListener("resize", drawVideoArc);
 
             $("#videoArc").empty();
             let arcDiv = document.getElementById("videoArc");
 
             let margin = {top: 50, right: 50, bottom: 80, left: 50},
-                width = arcDiv.clientWidth - margin.left - margin.right,
-                height = arcDiv.clientWidth/3 - margin.top - margin.bottom;
+                // width = arcDiv.clientWidth - margin.left - margin.right,
+                width = '1200',
+                height = '200';
                 // height = arcDiv.clientWidth/3 - margin.top - margin.bottom;
+            // console.log(width, height)
 
             let svg = d3.select(arcDiv)
                 .append("svg")

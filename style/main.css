@@ -47,3 +47,7 @@ tr td {
     z-index: 9999999;
 }
 
+
+.apexcharts-menu-item.exportSVG {
+    display: none;
+}

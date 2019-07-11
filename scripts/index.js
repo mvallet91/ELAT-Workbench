@@ -3340,14 +3340,19 @@ function difference(set1, set2){
     return new Set([...set1].filter(x => !set2.has(x)));
 }
 
-function exportChart(chartId) {
-    document.getElementById(chartId).toBlob(function(blob) {
-        let a = document.createElement('a');
-        let filename = chartId;
-        a.href = URL.createObjectURL(blob);
-        a.download = filename;
-        a.click();
-    });
+function exportChartPNG(chartId) {
+    let filename = chartId;
+    let element = document.getElementById(chartId);
+    if (element.className === "chartjs-render-monitor") {
+        element.toBlob(function (blob) {
+            let a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = filename;
+            a.click();
+        });
+    } else {
+        saveSvgAsPng(element, filename + ".png");
+    }
 }
 
 function updateChart() {
@@ -3524,7 +3529,8 @@ function drawApex(graphElementMap, start, end, weekly){
             toolbar: {
                 show: true,
                 tools: {
-                    download: true,
+                    // download: true,
+                    download: '<i class="fas fa-download"></i>',
                     selection: false,
                     zoom: false,
                     zoomin: false,
@@ -3758,6 +3764,13 @@ function drawApex(graphElementMap, start, end, weekly){
         chart: {
             height: 350,
             type: 'heatmap',
+            toolbar: {
+                show: true,
+                tools: {
+                    // download: true,
+                    download: '<i class="fas fa-download"></i>',
+                }
+            }
         },
         dataLabels: {
             enabled: true,
@@ -4417,15 +4430,14 @@ function drawVideoArc(linkNumber){ // https://www.d3-graph-gallery.com/graph/arc
             // let arcTileDiv = document.getElementById("arcTile");
             // arcTileDiv.addEventListener("resize", drawVideoArc);
 
-            $("#videoArc").empty();
-            let arcDiv = document.getElementById("videoArc");
+            $("#arcChart").empty();
+            let arcDiv = document.getElementById("arcChart");
 
-            let margin = {top: 50, right: 50, bottom: 80, left: 50},
+            let margin = {top: 100, right: 50, bottom: 80, left: 50},
                 // width = arcDiv.clientWidth - margin.left - margin.right,
-                width = '1200',
-                height = '200';
+                width = 1300,
+                height = 200;
                 // height = arcDiv.clientWidth/3 - margin.top - margin.bottom;
-            // console.log(width, height)
 
             let svg = d3.select(arcDiv)
                 .append("svg")
@@ -5407,3 +5419,96 @@ function prepareDashboard() {
 // g <- graph_from_adjacency_matrix(video.t, weighted = "prob")
 // E(g)$prob <- ifelse(is.nan(E(g)$prob), NA, E(g)$prob)
 // plot(g, edge.label = round(E(g)$prob, 2), edge.arrow.size = .25, edge.label.cex = .5)
+
+
+// d3.select('#saveButton').on('click', function(){
+//     let svgString = getSVGString(svg.node());
+//     svgString2Image( svgString, 2*width, 2*height, 'png', save ); // passes Blob and filesize String to the callback
+//     function save( dataBlob, filesize ){
+//         saveAs( dataBlob, 'D3 vis exported to PNG.png' ); // FileSaver.js function
+//     }
+// });
+
+// getSVGString ( svgNode ) and svgString2Image( svgString, width, height, format, callback )
+// function getSVGString( svgNode ) {
+//     svgNode.setAttribute('xlink', 'http://www.w3.org/1999/xlink');
+//     let cssStyleText = getCSSStyles( svgNode );
+//     appendCSS( cssStyleText, svgNode );
+//
+//     let serializer = new XMLSerializer();
+//     let svgString = serializer.serializeToString(svgNode);
+//     svgString = svgString.replace(/(\w+)?:?xlink=/g, 'xmlns:xlink='); // Fix root xlink without namespace
+//     svgString = svgString.replace(/NS\d+:href/g, 'xlink:href'); // Safari NS namespace fix
+//     return svgString;
+//
+//     function getCSSStyles( parentElement ) {
+//         let selectorTextArr = [];
+//         // Add Parent element Id and Classes to the list
+//         selectorTextArr.push( '#'+parentElement.id );
+//         for (let c = 0; c < parentElement.classList.length; c++)
+//             if ( !contains('.'+parentElement.classList[c], selectorTextArr) )
+//                 selectorTextArr.push( '.'+parentElement.classList[c] );
+//         // Add Children element Ids and Classes to the list
+//         let nodes = parentElement.getElementsByTagName("*");
+//         for (let i = 0; i < nodes.length; i++) {
+//             let id = nodes[i].id;
+//             if ( !contains('#'+id, selectorTextArr) )
+//                 selectorTextArr.push( '#'+id );
+//             let classes = nodes[i].classList;
+//             for (let c = 0; c < classes.length; c++)
+//                 if ( !contains('.'+classes[c], selectorTextArr) )
+//                     selectorTextArr.push( '.'+classes[c] );
+//         }
+//         // Extract CSS Rules
+//         let extractedCSSText = "";
+//         for (let i = 0; i < document.styleSheets.length; i++) {
+//             let s = document.styleSheets[i];
+//             try {
+//                 if (!s.cssRules) continue;
+//             } catch( e ) {
+//                 if (e.name !== 'SecurityError') throw e; // for Firefox
+//                 continue;
+//             }
+//
+//             let cssRules = s.cssRules;
+//             for (let r = 0; r < cssRules.length; r++) {
+//                 if ( contains( cssRules[r].selectorText, selectorTextArr ) )
+//                     extractedCSSText += cssRules[r].cssText;
+//             }
+//         }
+//         return extractedCSSText;
+//         function contains(str,arr) {
+//             return arr.indexOf(str) !== -1;
+//         }
+//     }
+//
+//     function appendCSS( cssText, element ) {
+//         let styleElement = document.createElement("style");
+//         styleElement.setAttribute("type","text/css");
+//         styleElement.innerHTML = cssText;
+//         let refNode = element.hasChildNodes() ? element.children[0] : null;
+//         element.insertBefore( styleElement, refNode );
+//     }
+// }
+//
+//
+// function svgString2Image( svgString, width, height, format, callback ) {
+//     let imgsrc = 'data:image/svg+xml;base64,'+ btoa( unescape( encodeURIComponent( svgString ) ) ); // Convert SVG string to data URL
+//
+//     let canvas = document.createElement("canvas");
+//     let context = canvas.getContext("2d");
+//
+//     canvas.width = width;
+//     canvas.height = height;
+//
+//     let image = new Image();
+//     image.onload = function() {
+//         context.clearRect ( 0, 0, width, height );
+//         context.drawImage(image, 0, 0, width, height);
+//         canvas.toBlob( function(blob) {
+//             let filesize = Math.round( blob.length/1024 ) + ' KB';
+//             if ( callback ) callback( blob, filesize );
+//         });
+//     };
+//     image.src = imgsrc;
+// }

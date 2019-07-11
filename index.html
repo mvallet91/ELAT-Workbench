@@ -32,8 +32,9 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.8.0/Chart.bundle.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-annotation/0.5.7/chartjs-plugin-annotation.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.11/lodash.min.js"></script>
-    <script src="https://d3js.org/d3.v4.js"></script>
+    <script src="https://d3js.org/d3.v5.min.js"></script>
     <script src="https://d3js.org/d3-scale-chromatic.v1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/save-svg-as-png@1.4.14/lib/saveSvgAsPng.min.js"></script>
 
     <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery.gridster/0.5.6/jquery.gridster.min.js" charset="utf-8"></script>
 
@@ -317,6 +318,11 @@
         </div>
     </div>
 
+    <!--<div style="width: 100%; overflow-x:auto; overflow-y:hidden" >-->
+        <!--<div style="height: 40px; width: 100px; border: 4px solid red">-->
+            <!--<div id="test" style="height: 30px; width: 170px; border: 4px solid blue"></div>-->
+        <!--</div>-->
+    <!--</div>-->
 
     <div class="gridster">
         <ul>
@@ -335,25 +341,57 @@
             <li id="lineTile" data-row="5" data-col="1" data-sizex="8" data-sizey="4">
                 <header>|||</header>
                 <div class="container-fluid" id="lineChartBox" >
+                    <div class="dropdown">
+                        <button type="button" class="btn btn-sm dropdown-toggle" data-toggle="dropdown" style="float:right;">
+                            <i class="fas fa-download"></i>
+                        </button>
+                        <div class="dropdown-menu">
+                            <a class="dropdown-item" onclick="exportChartPNG('lineChart')">Download PNG</a>
+                        </div>
+                    </div>
                     <canvas id="lineChart"></canvas>
                 </div>
             </li>
             <li id="boxTile" data-row="5" data-col="9" data-sizex="8" data-sizey="4">
                 <header>|||</header>
                 <div class="container-fluid " id="boxChartBox">
+                    <div class="dropdown">
+                        <button type="button" class="btn btn-sm dropdown-toggle" data-toggle="dropdown" style="float:right;">
+                            <i class="fas fa-download"></i>
+                        </button>
+                        <div class="dropdown-menu">
+                            <a class="dropdown-item" onclick="exportChartPNG('boxChart')">Download PNG</a>
+                        </div>
+                    </div>
                     <canvas id="boxChart"></canvas>
                 </div>
             </li>
             <li id="areaTile" data-row="9" data-col="1" data-sizex="8" data-sizey="4">
                 <header>|||</header>
                 <div class="container-fluid " id="areaChartBox">
+                    <div class="dropdown">
+                        <button type="button" class="btn btn-sm dropdown-toggle" data-toggle="dropdown" style="float:right;">
+                            <i class="fas fa-download"></i>
+                        </button>
+                        <div class="dropdown-menu">
+                            <a class="dropdown-item" onclick="exportChartPNG('areaChart')">Download PNG</a>
+                        </div>
+                    </div>
                     <canvas id="areaChart"></canvas>
                 </div>
             </li>
             <li id="arcTile" data-row="9" data-col="9" data-sizex="8" data-sizey="4">
                 <header>|||</header>
-                <div class="container-fluid  " id="arcChartBox">
+                <div class="container-fluid " id="arcChartBox">
                     <form>
+                        <div class="dropdown">
+                            <button type="button" class="btn btn-sm dropdown-toggle" data-toggle="dropdown" style="float:right;">
+                                <i class="fas fa-download"></i>
+                            </button>
+                            <div class="dropdown-menu">
+                                <a class="dropdown-item" onclick="exportChartPNG('arcChart')">Download PNG</a>
+                            </div>
+                        </div>
                         <label for="links" style="float:right;"> - Number of Links</label>
                         <input  type="range" min=10 max=500 step=10 id="links" value=30 style="float:right;">
                         <label style="float:left;" for="arcType">Student Status - </label>
@@ -363,12 +401,11 @@
                             <option value="failing">Failing Only</option>
                         </select>
                     </form>
-                    <div style="width: 100%; overflow-x: auto;overflow-y:hidden">
-                        <div style="width: 3000px, height: 300px">
-                            <div id="videoArc"></div>
+                    <div style="width: 100%; overflow-x:auto; overflow-y:hidden" >
+                        <div style="height: 400px">
+                            <div id="arcChart"></div>
                         </div>
                     </div>
-                    <!--<div id="videoArc" ></div>-->
                 </div>
             </li>
             <li id="cycleTile" data-row="13" data-col="1" data-sizex="9" data-sizey="4">

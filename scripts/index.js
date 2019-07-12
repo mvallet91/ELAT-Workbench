@@ -2575,19 +2575,19 @@ function drawCharts(graphElementMap, start, end) {
             lineTension: 0,
         }, {
             fill: true,
-            label: 'Quiz Due',
-            yAxisID: 'B',
-            // data: Object.values(graphElementMap['orderedForumSessions']),
-            borderColor: 'red',
-            backgroundColor: 'red',
-            lineTension: 0,
-        }, {
-            fill: true,
             label: 'Quiz Start',
             yAxisID: 'B',
             // data: Object.values(graphElementMap['orderedForumSessions']),
             borderColor: 'green',
             backgroundColor: 'green',
+            lineTension: 0,
+        }, {
+            fill: true,
+            label: 'Quiz Due',
+            yAxisID: 'B',
+            // data: Object.values(graphElementMap['orderedForumSessions']),
+            borderColor: 'red',
+            backgroundColor: 'red',
             lineTension: 0,
         }]
     };
@@ -3351,8 +3351,27 @@ function exportChartPNG(chartId) {
             a.click();
         });
     } else {
-        saveSvgAsPng(element, filename + ".png");
+        SVG2PNG(element.firstElementChild, function(canvas) { // Arguments: SVG element, callback function.
+            let base64 = canvas.toDataURL("image/png"); // toDataURL return DataURI as Base64 format.
+            generateLink(filename + '.png', base64).click(); // Trigger the Link is made by Link Generator and download.
+        });
     }
+}
+
+function SVG2PNG(svg, callback) {
+    let canvas = document.createElement('canvas'); // Create a Canvas element.
+    let ctx = canvas.getContext('2d'); // For Canvas returns 2D graphic.
+    let data = svg.outerHTML; // Get SVG element as HTML code.
+    canvg(canvas, data); // Render SVG on Canvas.
+    callback(canvas); // Execute callback function.
+}
+
+
+function generateLink(fileName, data) {
+    let link = document.createElement('a');
+    link.download = fileName;
+    link.href = data;
+    return link;
 }
 
 function updateChart() {
@@ -3587,9 +3606,10 @@ function drawApex(graphElementMap, start, end, weekly){
         }],
         stroke: {
             width: [1, 3, 3, 1, 3, 3],
-            dashArray: [0, 0, 3, 0, 0, 3]
+            dashArray: [0, 0, 0, 0, 0, 0]
         },
-        colors: ['#C41E3D', '#7D1128', '#FF2C55', '#5EB1BF', '#54F2F2', '#042A2B'],
+        // colors: ['#C41E3D', '#7D1128', '#FF2C55', '#5EB1BF', '#54F2F2', '#042A2B'],
+        colors: ['#c44f7e', '#5EB1BF','#1cef33', '#7D1128','#54F2F2','#138d00'],
         title: {
             text: 'Weekly Forum Analysis',
             align: 'center',
@@ -3607,27 +3627,29 @@ function drawApex(graphElementMap, start, end, weekly){
         },
         yaxis: [{
             seriesName: 'Posts by Regulars',
+            showAlways: true,
             axisTicks: {
                 show: true,
             },
             axisBorder: {
                 show: true,
-                color: '#138d00'
+                color: '#ee000e'
             },
             labels: {
                 style: {
-                    color: '#138d00',
+                    color: '#ee000e',
                 },
                 formatter: v => (v.toFixed(0)).toLocaleString()
             },
             title: {
-                text: "New Posts Added (bars)",
+                text: "New Posts Added",
                 style: {
-                    color: '#138d00',
+                    color: '#ee000e',
                 }
             }
         }, {
             seriesName: 'Regular Viewers',
+            showAlways: true,
             opposite: true,
             axisTicks: {
                 show: true,
@@ -3635,11 +3657,11 @@ function drawApex(graphElementMap, start, end, weekly){
             },
             axisBorder: {
                 show: true,
-                color: '#913bff'
+                color: '#2c46b8'
             },
             labels: {
                 style: {
-                    color: '#913bff',
+                    color: '#2c46b8',
                 },
                 formatter: function(v) {
                     let label = new Number(v.toFixed(0));
@@ -3648,31 +3670,32 @@ function drawApex(graphElementMap, start, end, weekly){
                 }
             },
             title: {
-                text: "Students visiting Forums (continuous line)",
+                text: "Students visiting Forums",
                 style: {
-                    color: '#913bff',
+                    color: '#2c46b8',
                 }
             }
         }, {
             seriesName: 'Regular Posters',
+            showAlways: true,
             axisTicks: {
                 show: true,
             },
             axisBorder: {
                 show: true,
-                color: '#000000'
+                color: '#138d00'
             },
             labels: {
                 show: true,
                 style: {
-                    color: '#000000',
+                    color: '#138d00',
                 },
                 formatter: v => v.toFixed(0)
             },
             title: {
-                text: "Students Posting (dotted line)",
+                text: "Students Posting",
                 style: {
-                    color: '#000000',
+                    color: '#138d00',
                 }
             }
         }, {
@@ -3844,7 +3867,7 @@ function drawApex(graphElementMap, start, end, weekly){
             }
         ],
         title: {
-            text: 'Average Grades \n(students with completed course)'
+            text: 'Average Grades per Group by Forum Behavior\n(students with completed course)'
         },
     };
 
@@ -4979,7 +5002,7 @@ function moduleTransitions() {
 function drawCycles(){
     connection.runSql("SELECT * FROM webdata WHERE name = 'cycleElements' ").then(function(result) {
         if (result.length !== 1) {
-            console.log('Start transition calculation')
+            console.log('Start transition calculation');
             moduleTransitions();
         } else {
             let linkData = result[0]['object'];
@@ -5007,7 +5030,7 @@ function drawCycles(){
                 drawCycles();
             });
             let week = linkWeek.node().value;
-            let weekLinks = linkData['links'][week]
+            let weekLinks = linkData['links'][week];
 
             weekLinks.sort(function(a, b) {
                 return b.value - a.value;
@@ -5419,96 +5442,3 @@ function prepareDashboard() {
 // g <- graph_from_adjacency_matrix(video.t, weighted = "prob")
 // E(g)$prob <- ifelse(is.nan(E(g)$prob), NA, E(g)$prob)
 // plot(g, edge.label = round(E(g)$prob, 2), edge.arrow.size = .25, edge.label.cex = .5)
-
-
-// d3.select('#saveButton').on('click', function(){
-//     let svgString = getSVGString(svg.node());
-//     svgString2Image( svgString, 2*width, 2*height, 'png', save ); // passes Blob and filesize String to the callback
-//     function save( dataBlob, filesize ){
-//         saveAs( dataBlob, 'D3 vis exported to PNG.png' ); // FileSaver.js function
-//     }
-// });
-
-// getSVGString ( svgNode ) and svgString2Image( svgString, width, height, format, callback )
-// function getSVGString( svgNode ) {
-//     svgNode.setAttribute('xlink', 'http://www.w3.org/1999/xlink');
-//     let cssStyleText = getCSSStyles( svgNode );
-//     appendCSS( cssStyleText, svgNode );
-//
-//     let serializer = new XMLSerializer();
-//     let svgString = serializer.serializeToString(svgNode);
-//     svgString = svgString.replace(/(\w+)?:?xlink=/g, 'xmlns:xlink='); // Fix root xlink without namespace
-//     svgString = svgString.replace(/NS\d+:href/g, 'xlink:href'); // Safari NS namespace fix
-//     return svgString;
-//
-//     function getCSSStyles( parentElement ) {
-//         let selectorTextArr = [];
-//         // Add Parent element Id and Classes to the list
-//         selectorTextArr.push( '#'+parentElement.id );
-//         for (let c = 0; c < parentElement.classList.length; c++)
-//             if ( !contains('.'+parentElement.classList[c], selectorTextArr) )
-//                 selectorTextArr.push( '.'+parentElement.classList[c] );
-//         // Add Children element Ids and Classes to the list
-//         let nodes = parentElement.getElementsByTagName("*");
-//         for (let i = 0; i < nodes.length; i++) {
-//             let id = nodes[i].id;
-//             if ( !contains('#'+id, selectorTextArr) )
-//                 selectorTextArr.push( '#'+id );
-//             let classes = nodes[i].classList;
-//             for (let c = 0; c < classes.length; c++)
-//                 if ( !contains('.'+classes[c], selectorTextArr) )
-//                     selectorTextArr.push( '.'+classes[c] );
-//         }
-//         // Extract CSS Rules
-//         let extractedCSSText = "";
-//         for (let i = 0; i < document.styleSheets.length; i++) {
-//             let s = document.styleSheets[i];
-//             try {
-//                 if (!s.cssRules) continue;
-//             } catch( e ) {
-//                 if (e.name !== 'SecurityError') throw e; // for Firefox
-//                 continue;
-//             }
-//
-//             let cssRules = s.cssRules;
-//             for (let r = 0; r < cssRules.length; r++) {
-//                 if ( contains( cssRules[r].selectorText, selectorTextArr ) )
-//                     extractedCSSText += cssRules[r].cssText;
-//             }
-//         }
-//         return extractedCSSText;
-//         function contains(str,arr) {
-//             return arr.indexOf(str) !== -1;
-//         }
-//     }
-//
-//     function appendCSS( cssText, element ) {
-//         let styleElement = document.createElement("style");
-//         styleElement.setAttribute("type","text/css");
-//         styleElement.innerHTML = cssText;
-//         let refNode = element.hasChildNodes() ? element.children[0] : null;
-//         element.insertBefore( styleElement, refNode );
-//     }
-// }
-//
-//
-// function svgString2Image( svgString, width, height, format, callback ) {
-//     let imgsrc = 'data:image/svg+xml;base64,'+ btoa( unescape( encodeURIComponent( svgString ) ) ); // Convert SVG string to data URL
-//
-//     let canvas = document.createElement("canvas");
-//     let context = canvas.getContext("2d");
-//
-//     canvas.width = width;
-//     canvas.height = height;
-//
-//     let image = new Image();
-//     image.onload = function() {
-//         context.clearRect ( 0, 0, width, height );
-//         context.drawImage(image, 0, 0, width, height);
-//         canvas.toBlob( function(blob) {
-//             let filesize = Math.round( blob.length/1024 ) + ' KB';
-//             if ( callback ) callback( blob, filesize );
-//         });
-//     };
-//     image.src = imgsrc;
-// }

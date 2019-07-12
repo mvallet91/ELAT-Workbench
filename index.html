@@ -34,11 +34,12 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.11/lodash.min.js"></script>
     <script src="https://d3js.org/d3.v5.min.js"></script>
     <script src="https://d3js.org/d3-scale-chromatic.v1.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/save-svg-as-png@1.4.14/lib/saveSvgAsPng.min.js"></script>
+    <!--<script src="https://cdn.jsdelivr.net/npm/save-svg-as-png@1.4.14/lib/saveSvgAsPng.min.js"></script>-->
+    <script src="https://cdn.jsdelivr.net/npm/canvg/dist/browser/canvg.min.js"></script>
 
     <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery.gridster/0.5.6/jquery.gridster.min.js" charset="utf-8"></script>
 
-    <link href="https://fonts.googleapis.com/css?family=Roboto:300,400" rel="stylesheet">
+    <!--<link href="https://fonts.googleapis.com/css?family=Roboto:300,400" rel="stylesheet">-->
 
 </head>
 
@@ -412,6 +413,14 @@
                 <header>|||</header>
                 <div class="container-fluid  " id="cycleChartBox">
                     <form>
+                        <div class="dropdown">
+                            <button type="button" class="btn btn-sm dropdown-toggle" data-toggle="dropdown" style="float:right;">
+                                <i class="fas fa-download"></i>
+                            </button>
+                            <div class="dropdown-menu">
+                                <a class="dropdown-item" onclick="exportChartPNG('cycleChart')">Download PNG</a>
+                            </div>
+                        </div>
                         <label for="linksCycle" style="float:right;"> - Number of Links</label>
                         <input type="range" min=0 max=100 step=10 id="linksCycle" value=30 style="float:right;">
                         <label style="float:left;" for="cycleType">Student Status - </label>

@@ -6,26 +6,22 @@ let connection = new JsStore.Instance();
 // };
 
 window.onload = function () {
-
     //// PAGE INITIALIZATION  //////////////////////////////////////////////////////////////////////////////
-
     initiateEdxDb();
     getGraphElementMap(drawCharts);
     loadDashboard();
     prepareDashboard();
     drawVideoArc();
     drawCycles();
-
     //// MULTI FILE SYSTEM  ///////////////////////////////////////////////////////////////////////////
-    let  multiFileInput = document.getElementById('filesInput');
-    multiFileInput.value = '';
-    multiFileInput.addEventListener('change', function () {
+    let  multiFileInputMetadata = document.getElementById('filesInput');
+    multiFileInputMetadata.value = '';
+    multiFileInputMetadata.addEventListener('change', function () {
         $('#loading').show();
         $.blockUI();
-        let files = multiFileInput.files;
+        let files = multiFileInputMetadata.files;
         readMetaFiles(files, passFiles);
     });
-
     let  multiFileInputLogs = document.getElementById('logFilesInput');
     multiFileInputLogs.value = '';
     multiFileInputLogs.addEventListener('change', function () {
@@ -33,8 +29,7 @@ window.onload = function () {
         $.blockUI();
         processLogFiles(0, 0)
     });
-
-    let pairs = {'sessions': ['session_id', 'course_learner_id', 'start_time', 'end_time', 'duration'],
+    let schemaMap = {'sessions': ['session_id', 'course_learner_id', 'start_time', 'end_time', 'duration'],
                  'forum_sessions': ['session_id', 'course_learner_id', 'times_search', 'start_time',
                       'end_time', 'duration', 'relevent_element_id'],
                  'video_interaction':['interaction_id', 'course_learner_id', 'video_id','duration',
@@ -43,42 +38,41 @@ window.onload = function () {
                  'submissions': ['submission_id', 'course_learner_id', 'question_id', 'submission_timestamp'],
                  'assessments': ['assessment_id', 'course_learner_id', 'max_grade', 'grade'],
                  'quiz_sessions': ['session_id', 'course_learner_id', 'start_time', 'end_time', 'duration']};
-
     let dlAllButton = document.getElementById('dl_all');
     dlAllButton.addEventListener('click', function() {
-        for (let table in pairs){
-            processSessions(table, pairs[table]);
+        for (let table in schemaMap){
+            processSessions(table, schemaMap[table]);
         }
     });
 
     let dlSessionButton = document.getElementById('dl_sessions');
     dlSessionButton.addEventListener('click', function() {
-        processSessions('sessions', pairs['sessions']);
+        processSessions('sessions', schemaMap['sessions']);
     });
 
     let dlForumSesButton = document.getElementById('dl_forum');
     dlForumSesButton.addEventListener('click', function() {
-        processSessions('forum_sessions', pairs['forum_sessions']);
+        processSessions('forum_sessions', schemaMap['forum_sessions']);
     });
 
     let dlVidButton = document.getElementById('dl_vid_sessions');
     dlVidButton.addEventListener('click', function() {
-        processSessions('video_interaction', pairs['video_interaction']);
+        processSessions('video_interaction', schemaMap['video_interaction']);
     });
 
     let dlSubButton = document.getElementById('dl_submissions');
     dlSubButton.addEventListener('click', function() {
-        processSessions('submissions', pairs['submissions']);
+        processSessions('submissions', schemaMap['submissions']);
     });
 
     let dlAssButton = document.getElementById('dl_assessments');
     dlAssButton.addEventListener('click', function() {
-        processSessions('assessments', pairs['assessments']);
+        processSessions('assessments', schemaMap['assessments']);
     });
 
     let dlQuizButton = document.getElementById('dl_quiz');
     dlQuizButton.addEventListener('click', function() {
-        processSessions('quiz_sessions', pairs['quiz_sessions']);
+        processSessions('quiz_sessions', schemaMap['quiz_sessions']);
     });
 };
 
@@ -129,91 +123,91 @@ function readMetaFiles(files, callback){
     }
 }
 
-let chunk_size = 750 * 1024 * 1024;
+let chunkSize = 60 * 1024 * 1024;
 
-function processLogFiles(index, chunk){
+function processLogFiles(fileIndex, chunk){
     let  multiFileInputLogs = document.getElementById('logFilesInput');
     let files = multiFileInputLogs.files;
     let counter = 0;
-    let total = files.length;
+    let totalFiles = files.length;
     for (const f of files) {
-        if (counter === index){
+        if (counter === fileIndex){
             let today = new Date();
-            console.log('Starting with file ' + index + ' at ' + today);
-            readAndPassLog(f, reader, index, total, chunk, passLogFiles)
+            console.log('Starting with file ' + fileIndex + ' at ' + today);
+            readAndPassLog(f, reader, fileIndex, totalFiles, chunk, passLogFiles)
         }
         counter += 1;
     }
 }
 
 
-function readAndPassLog(f, reader, index, total, chunk, callback){
+function readAndPassLog(file, reader, fileIndex, totalFiles, chunkIndex, callback){
     let output = [];
     let processedFiles = [];
     let gzipType = /gzip/;
-    let total_chunks = 1;
-    output.push('<li><strong>', f.name, '</strong> (', f.type || 'n/a', ') - ',
-                f.size, ' bytes', '</li>');
+    let totalChunks = 1;
+    output.push('<li><strong>', file.name, '</strong> (', file.type || 'n/a', ') - ',
+                file.size, ' bytes', '</li>');
 
-    if (f.type.match(gzipType)) {
-
+    if (file.type.match(gzipType)) {
         reader.onload = function (event) {
             let content = pako.inflate(event.target.result, {to: 'array'});
-            let string_content = new TextDecoder("utf-8").decode(content.slice(chunk * chunk_size, (chunk + 1) * chunk_size));
+            let stringContent = new TextDecoder("utf-8").decode(content.slice(chunkIndex * chunkSize, (chunkIndex + 1) * chunkSize));
             processedFiles.push({
-                key: f.name,
-                value: string_content.slice(string_content.indexOf('{"username":'),
-                                            string_content.lastIndexOf('\n{'))
+                key: file.name,
+                value: stringContent.slice(stringContent.indexOf('{"username":'),
+                                            stringContent.lastIndexOf('\n{'))
             });
-            if (string_content.lastIndexOf('\n') + 2 < string_content.length ){
-                total_chunks++;
+            if (stringContent.lastIndexOf('\n') + 2 < stringContent.length ){
+                totalChunks++;
             }
-            callback([processedFiles, output, index, total, chunk, total_chunks]);
+            callback([processedFiles, output, fileIndex, totalFiles, chunkIndex, totalChunks]);
             reader.abort();
         };
-        reader.readAsArrayBuffer(f);
+        reader.readAsArrayBuffer(file);
     } else {
         $('#loading').hide();
         $.unblockUI();
-        toastr.error(f.name + ' is not a log file (should end with: .log.gz)');
+        toastr.error(file.name + ' is not a log file (should end with: .log.gz)');
     }
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
 function passFiles(result){
-    let names = result[0];
-    let output = result[1];
+    let names = result[0],
+        output = result[1];
     document.getElementById('list').innerHTML = '<ul>' + output.join('') + '</ul>';
     $('#loading').hide();
     $.unblockUI();
     learner_mode(names);
 }
 
+
 function passLogFiles(result){
-    let files = result[0];
-    let output = result[1];
-    let index = result[2];
-    let total = result[3];
-    let chunk = result[4];
-    let total_chunks = result[5];
+    let files = result[0],
+        output = result[1],
+        fileIndex = result[2],
+        totalFiles = result[3],
+        chunk = result[4],
+        totalChunks = result[5];
 
     connection.runSql("SELECT * FROM metadata WHERE name = 'metadata_map' ").then(function(result) {
         if (result.length > 0) {
-            let course_metadata_map = result[0]['object'];
+            let courseMetadataMap = result[0]['object'];
             if (chunk === 0) {
-                let table = document.getElementById("progress_tab");
-                let row = table.insertRow();
-                let cell1 = row.insertCell();
-                cell1.innerHTML = ('Processing file ' + (index + 1) + '/' + total +
+                let table = document.getElementById("progress_tab"),
+                    row = table.insertRow(),
+                    cell1 = row.insertCell();
+                cell1.innerHTML = ('Processing file ' + (fileIndex + 1) + '/' + totalFiles +
                     '\n at ' + new Date().toLocaleString('en-GB'));
             }
 
-            session_mode(course_metadata_map, files, index, total, chunk);
-            forum_sessions(course_metadata_map, files, index, total, chunk);
-            video_interaction(course_metadata_map, files, index, total, chunk);
-            quiz_mode(course_metadata_map, files, index, total, chunk);
-            quiz_sessions(course_metadata_map, files, index, total, chunk, total_chunks);
+            session_mode(courseMetadataMap, files, fileIndex, totalFiles, chunk);
+            forum_sessions(courseMetadataMap, files, fileIndex, totalFiles, chunk);
+            video_interaction(courseMetadataMap, files, fileIndex, totalFiles, chunk);
+            quiz_mode(courseMetadataMap, files, fileIndex, totalFiles, chunk);
+            quiz_sessions(courseMetadataMap, files, fileIndex, totalFiles, chunk, totalChunks);
         } else {
             $('#loading').hide();
             $.unblockUI();
@@ -223,12 +217,12 @@ function passLogFiles(result){
 }
 
 
-function sqlInsert(table, data) {
+function sqlInsert(table, dataObject) {
     if (!(['forum_interaction', 'webdata'].includes(table))){
         connection.runSql('DELETE FROM ' + table);
     }
     let query = new SqlWeb.Query("INSERT INTO " + table + " values='@val'");
-    for (let v of data) {
+    for (let v of dataObject) {
         for (let field of Object.keys(v)) {
             if (field.includes('time')){
                 let date = v[field];
@@ -236,7 +230,7 @@ function sqlInsert(table, data) {
             }
         }
     }
-    query.map("@val", data);
+    query.map("@val", dataObject);
     connection.runSql(query).then(function (rowsAdded) {
         if (rowsAdded > 0 && table !== 'forum_interaction') {
             let today = new Date();
@@ -247,10 +241,6 @@ function sqlInsert(table, data) {
                 $.unblockUI();
                 toastr.success('Please reload the page now', 'Metadata ready', {timeOut: 0})
             }
-            // if (table === 'webdata'){
-            //     $('#loading').hide();
-            //     $.unblockUI();
-            // }
         }
     }).catch(function (err) {
         console.log(err);
@@ -258,19 +248,18 @@ function sqlInsert(table, data) {
 }
 
 
-function sqlLogInsert(table, data) {
-    // console.log('Not saving ', data.length, ' for ', table);
-
+function sqlLogInsert(table, rowsArray) {
+    // console.log('Not saving ', rowsArray.length, ' for ', table);
     let query = new SqlWeb.Query("INSERT INTO " + table + " values='@val'");
-    for (let v of data) {
-        for (let field of Object.keys(v)) {
+    for (let row of rowsArray) {
+        for (let field of Object.keys(row)) {
             if (field.includes('_time')){
-                let date = v[field];
-                v[field] = new Date(date);
+                let date = row[field];
+                row[field] = new Date(date);
             }
         }
     }
-    query.map("@val", data);
+    query.map("@val", rowsArray);
     connection.runSql(query)
         .then(function (rowsAdded) {
             if (rowsAdded > 0) {
@@ -297,12 +286,12 @@ function download(filename, content) {
 
 
 function downloadCsv(filename, content) {
-    let a = document.createElement('a');
+    let downloadElement = document.createElement('a');
     let joinedContent = content.map(e=>e.join(",")).join("\n");
     let t = new Blob([joinedContent], {type : 'application/csv'});
-    a.href = URL.createObjectURL(t);
-    a.download = filename;
-    a.click();
+    downloadElement.href = URL.createObjectURL(t);
+    downloadElement.download = filename;
+    downloadElement.click();
 }
 
 
@@ -324,8 +313,8 @@ function initiateEdxDb() {
                 $('#loading').hide();
                 $.unblockUI();
                 toastr.success('Database ready', 'ELAT',  {timeOut: 1500});
-                showCoursesTableDataExtra();
-                showSessionTable();
+                showCourseTable();
+                showDetailsTable();
                 showMainIndicators();
             });
         } else {
@@ -345,7 +334,7 @@ function initiateEdxDb() {
     });
 }
 
-function showCoursesTableDataExtra() {
+function showCourseTable() {
     let HtmlString = "";
     connection.runSql("SELECT * FROM webdata WHERE name = 'courseDetails' ").then(function(result) {
         if (result.length === 1) {
@@ -356,12 +345,12 @@ function showCoursesTableDataExtra() {
             connection.runSql('select * from courses').then(function (courses) {
                 let questionCounter = 0;
                 let forumInteractionCounter = 0;
-                let options = {weekday: 'short', year: 'numeric', month: 'long', day: 'numeric'};
+                let dateFormat = {weekday: 'short', year: 'numeric', month: 'long', day: 'numeric'};
                 courses.forEach(async function (course) {
                     HtmlString += "<tr ItemId=" + course.course_id + "><td>" +
                         course.course_name + "</td><td>" +
-                        course.start_time.toLocaleDateString('en-EN', options) + "</td><td>" +
-                        course.end_time.toLocaleDateString('en-EN', options) + "</td><td>";
+                        course.start_time.toLocaleDateString('en-EN', dateFormat) + "</td><td>" +
+                        course.end_time.toLocaleDateString('en-EN', dateFormat) + "</td><td>";
                     let query = "count from course_elements where course_id = '" + course.course_id + "'";
                     await connection.runSql(query).then(function (result) {
                         HtmlString += result.toLocaleString('en-US') + "</td><td>";
@@ -402,7 +391,7 @@ function showCoursesTableDataExtra() {
 }
 
 
-function showSessionTable() {
+function showDetailsTable() {
     let HtmlString = "";
     let totalHtmlString = "";
     connection.runSql("SELECT * FROM webdata WHERE name = 'databaseDetails' ").then(function(result) {
@@ -536,7 +525,7 @@ function showMainIndicators() {
                         completionRate = completed / result;
                     });
                     await connection.runSql("SELECT [avg(final_grade)] from course_learner WHERE certificate_status = 'downloadable' ").then(function (result) {
-                        avgGrade = result[0]['avg(final_grade)'];
+                        avgGrade = result[0]['avg(final_grade)'] * 100;
                     });
                     await connection.runSql("COUNT * from course_learner WHERE enrollment_mode = 'verified' ").then(function (result) {
                         verifiedLearners = result;
@@ -549,7 +538,7 @@ function showMainIndicators() {
                     });
                     await connection.runSql("SELECT [avg(final_grade)] from course_learner WHERE certificate_status = 'downloadable' GROUP BY enrollment_mode").then(function (results) {
                         results.forEach(function (result) {
-                            avgGrades[result.enrollment_mode] = result.final_grade;
+                            avgGrades[result.enrollment_mode] = result.final_grade * 100;
                         });
                     });
                     await connection.runSql("SELECT [sum(duration)] from video_interaction GROUP BY course_learner_id").then(function (watchers) {
@@ -608,10 +597,10 @@ function showMainIndicators() {
 
 // METADATA MODULES ////////////////////////////////////////////////////////////////////
 function ExtractCourseInformation(files) {
-    let course_metadata_map = {};
+    let courseMetadataMap = {};
     for (let file of files) {
-        let file_name = file['key'];
-        if (file_name.includes('course_structure')) {
+        let fileName = file['key'];
+        if (fileName.includes('course_structure')) {
             let child_parent_map = {};
             let element_time_map = {};
 
@@ -637,33 +626,33 @@ function ExtractCourseInformation(files) {
                         course_id = course_id.replace('i4x://', '');
                         course_id = course_id.replace('course/', '');
                     }
-                    course_metadata_map['course_id'] = course_id;
-                    course_metadata_map['course_name'] = jsonObject[record]['metadata']['display_name'];
+                    courseMetadataMap['course_id'] = course_id;
+                    courseMetadataMap['course_name'] = jsonObject[record]['metadata']['display_name'];
 
-                    course_metadata_map['start_date'] = new Date(jsonObject[record]['metadata']['start']);
-                    course_metadata_map['end_date'] = new Date(jsonObject[record]['metadata']['end']);
+                    courseMetadataMap['start_date'] = new Date(jsonObject[record]['metadata']['start']);
+                    courseMetadataMap['end_date'] = new Date(jsonObject[record]['metadata']['end']);
 
-                    course_metadata_map['start_time'] = new Date(course_metadata_map['start_date']);
-                    course_metadata_map['end_time'] = new Date(course_metadata_map['end_date']);
+                    courseMetadataMap['start_time'] = new Date(courseMetadataMap['start_date']);
+                    courseMetadataMap['end_time'] = new Date(courseMetadataMap['end_date']);
 
-                    let i = 0; // Feature Testing
+                    let elementPosition = 0;
 
                     for (let child of jsonObject[record]['children']) {
-                        i++;
+                        elementPosition++;
                         child_parent_map[child] = record;
-                        order_map[child] = i; // Feature Testing
+                        order_map[child] = elementPosition;
                     }
                     element_time_map[record] = new Date(jsonObject[record]['metadata']['start']);
                     element_type_map[record] = jsonObject[record]['category'];
                 } else {
                     let element_id = record;
                     element_name_map[element_id] = jsonObject[element_id]['metadata']['display_name'];
-                    let i = 0; // Feature Testing
+                    let elementPosition = 0;
 
                     for (let child of jsonObject[element_id]['children']) {
-                        i++;
+                        elementPosition++;
                         child_parent_map[child] = element_id;
-                        order_map[child] = i; // Feature Testing
+                        order_map[child] = elementPosition;
                     }
 
                     if ('start' in jsonObject[element_id]['metadata']) {
@@ -702,16 +691,16 @@ function ExtractCourseInformation(files) {
                 }
                 element_time_map[element_id] = element_start_time;
             }
-            course_metadata_map['element_time_map'] = element_time_map;
-            course_metadata_map['element_time_map_due'] = element_time_map_due;
-            course_metadata_map['element_type_map'] = element_type_map;
-            course_metadata_map['quiz_question_map'] = quiz_question_map;
-            course_metadata_map['child_parent_map'] = child_parent_map;
-            course_metadata_map['block_type_map'] = block_type_map;
-            course_metadata_map['order_map'] = order_map;
-            course_metadata_map['element_name_map'] = element_name_map;
+            courseMetadataMap['element_time_map'] = element_time_map;
+            courseMetadataMap['element_time_map_due'] = element_time_map_due;
+            courseMetadataMap['element_type_map'] = element_type_map;
+            courseMetadataMap['quiz_question_map'] = quiz_question_map;
+            courseMetadataMap['child_parent_map'] = child_parent_map;
+            courseMetadataMap['block_type_map'] = block_type_map;
+            courseMetadataMap['order_map'] = order_map;
+            courseMetadataMap['element_name_map'] = element_name_map;
             console.log('Metadata map ready');
-            return course_metadata_map;
+            return courseMetadataMap;
         }
     }
 }
@@ -837,17 +826,17 @@ function learner_mode(files) {
 
         console.log('All metadata ready');
         if (course_record.length > 0) {
-            let data = [];
+            let rows = [];
             for (let array of course_record) {
                 let course_id = course_metadata_map['course_id'];
                 let course_name = course_metadata_map['course_name'];
                 let start_time = course_metadata_map['start_time'];
                 let end_time = course_metadata_map['end_time'];
-                let py_values = {'course_id': course_id, 'course_name': course_name,
+                let values = {'course_id': course_id, 'course_name': course_name,
                     'start_time': start_time, 'end_time': end_time};
-                data.push(py_values);
+                rows.push(values);
             }
-            sqlInsert('courses', data);
+            sqlInsert('courses', rows);
         } else {
             console.log('no courses info');
         }
@@ -858,9 +847,9 @@ function learner_mode(files) {
                 let element_type = array[1];
                 let week = process_null(array[2]);
                 let course_id = array[3];
-                let py_values = {'element_id': element_id, 'element_type': element_type,
+                let values = {'element_id': element_id, 'element_type': element_type,
                     'week': week, 'course_id': course_id};
-                data.push(py_values);
+                data.push(values);
             }
             sqlInsert ('course_elements', data);
         }
@@ -873,9 +862,9 @@ function learner_mode(files) {
                 let global_learner_id = array[0];
                 let course_id = array[1];
                 let course_learner_id = array[2];
-                let py_values = {'global_learner_id': global_learner_id.toString(), 'course_id': course_id,
+                let values = {'global_learner_id': global_learner_id.toString(), 'course_id': course_id,
                     'course_learner_id': course_learner_id};
-                data.push(py_values);
+                data.push(values);
             }
             sqlInsert ('learner_index', data);
         }
@@ -890,10 +879,10 @@ function learner_mode(files) {
                 let enrollment_mode = array[2];
                 let certificate_status = array[3];
                 let register_time = new Date(process_null(array[4]));
-                let py_values = {'course_learner_id': course_learner_id, 'final_grade': final_grade,
+                let values = {'course_learner_id': course_learner_id, 'final_grade': final_grade,
                     'enrollment_mode': enrollment_mode, 'certificate_status': certificate_status,
                     'register_time': register_time};
-                data.push(py_values);
+                data.push(values);
             }
             sqlInsert('course_learner', data);
         }
@@ -910,9 +899,9 @@ function learner_mode(files) {
                 let country = array[4];
                 let email = array[5];
                 email = email.replace(/"/g, '');
-                let py_values = {'course_learner_id': course_learner_id, 'gender': gender, 'year_of_birth': year_of_birth,
+                let values = {'course_learner_id': course_learner_id, 'gender': gender, 'year_of_birth': year_of_birth,
                     'level_of_education': level_of_education, 'country': country, 'email': email};
-                data.push(py_values);
+                data.push(values);
             }
             sqlInsert('learner_demographic', data);
         }
@@ -931,11 +920,11 @@ function learner_mode(files) {
                 let post_parent_id = array[6];
                 let post_thread_id = array[7];
 
-                let py_values = {"post_id": post_id, "course_learner_id": course_learner_id, "post_type": post_type,
+                let values = {"post_id": post_id, "course_learner_id": course_learner_id, "post_type": post_type,
                     "post_title": post_title, "post_content": post_content, "post_timestamp":post_timestamp,
                     "post_parent_id": post_parent_id, "post_thread_id":post_thread_id};
 
-                data.push(py_values);
+                data.push(values);
             }
 
             connection.runSql('DELETE FROM forum_interaction');
@@ -973,11 +962,9 @@ function learner_mode(files) {
                 'question_due': new Date(question_due)};
             data.push(values);
         }
-
         sqlInsert('quiz_questions', data);
-
-        let store_map = [{'name': 'metadata_map', 'object': course_metadata_map}];
-        sqlInsert('metadata', store_map);
+        let metadataMap = [{'name': 'metadata_map', 'object': course_metadata_map}];
+        sqlInsert('metadata', metadataMap);
     }
     else {
         console.log('Course structure file not found');
@@ -1161,7 +1148,6 @@ function weirdDateFinder(course_metadata_map, log_files, index, total, chunk, to
 
 // TRANSLATION MODULES
 function session_mode(course_metadata_map, log_files, index, total, chunk){
-    // This is only for one course! It has to be changed to allow for more courses
     let current_course_id = course_metadata_map["course_id"];
     current_course_id = current_course_id.slice(current_course_id.indexOf('+') + 1, current_course_id.lastIndexOf('+') + 7);
 
@@ -1323,11 +1309,11 @@ function session_mode(course_metadata_map, log_files, index, total, chunk){
                 console.log(performance.now() - zero_start);
 
                 sqlLogInsert('sessions', data);
-                connection.runSql("DELETE FROM webdata WHERE name = 'graphElements'");
-                connection.runSql("DELETE FROM webdata WHERE name = 'databaseDetails'");
-                connection.runSql("DELETE FROM webdata WHERE name = 'mainIndicators'");
-                connection.runSql("DELETE FROM webdata WHERE name = 'arcElements'");
-                connection.runSql("DELETE FROM webdata WHERE name = 'cycleElements'");
+                // connection.runSql("DELETE FROM webdata WHERE name = 'graphElements'");
+                // connection.runSql("DELETE FROM webdata WHERE name = 'databaseDetails'");
+                // connection.runSql("DELETE FROM webdata WHERE name = 'mainIndicators'");
+                // connection.runSql("DELETE FROM webdata WHERE name = 'arcElements'");
+                // connection.runSql("DELETE FROM webdata WHERE name = 'cycleElements'");
                 progress_display(data.length + ' sessions', index);
             } else {
                 console.log('no session info', index, total);
@@ -2625,7 +2611,7 @@ function drawCharts(graphElementMap, start, end) {
                         max: endDate
                     },
                     scaleLabel: {
-                        display: true,
+                        display: false,
                         labelString: "Date",
                     }
                 }],
@@ -2659,7 +2645,7 @@ function drawCharts(graphElementMap, start, end) {
                     display: true,
                     scaleLabel: {
                         display: true,
-                        labelString: "Total Number of Sessions",
+                        labelString: "Total Sessions",
                         fontStyle: 'bold'
                     }
                 }]
@@ -2762,7 +2748,7 @@ function drawCharts(graphElementMap, start, end) {
                     tooltipFormat: 'll'
                 },
                 scaleLabel: {
-                    display: true,
+                    display: false,
                     labelString: "Date",
                 },
             }],
@@ -2795,28 +2781,7 @@ function drawCharts(graphElementMap, start, end) {
         data: boxplotData,
         options: boxOptions
     });
-    // document.getElementById('limitMinMax').onclick = function() {
-    //     options.scales.yAxes[0].ticks.minStats = 'min';
-    //     options.scales.yAxes[0].ticks.maxStats = 'max';
-    //     let boxChart = new Chart(boxCtx, {
-    //         type: 'boxplot',
-    //         data: boxplotData,
-    //         options: boxOptions
-    //     });
-    // };
-    // document.getElementById('limitWhiskers').onclick = function() {
-    //     options.scales.yAxes[0].ticks.minStats = 'whiskerMin';
-    //     options.scales.yAxes[0].ticks.maxStats = 'whiskerMax';
-    //     let boxChart = new Chart(boxCtx, {
-    //         type: 'boxplot',
-    //         data: boxplotData,
-    //         options: boxOptions
-    //     });
-    // };
 }
-
-// TODO - REVIEW MIXED CHART AXES
-
 
 function getGraphElementMap(callback, start, end) {
     let graphElementMap = {};
@@ -3013,7 +2978,7 @@ function getGraphElementMap(callback, start, end) {
                             });
 
                             let annotations = annotationsDue.concat(annotationStart);
-                            console.log(annotations);
+                            // console.log(annotations);
 
                             query = "SELECT * FROM forum_sessions";
                             await connection.runSql(query).then(function (f_sessions) {
@@ -4885,8 +4850,6 @@ function moduleTransitions() {
             let weekEnd = new Date();
             let weeklyData = {};
             do {
-                console.log(weekStart);
-
                 learningPaths = {
                     'downloadable': {},
                     'notpassing': {}
@@ -4941,11 +4904,7 @@ function moduleTransitions() {
                     }
                 }
                 weeklyData[week] = frequencies;
-                console.log(frequencies['notpassing']);
-
-
             } while (weekStart < new Date(course_metadata_map.end_date.toDateString()));
-
 
             let nodeMap = {
                 'forum': 'FORUM START',

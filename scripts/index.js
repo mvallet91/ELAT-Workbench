@@ -1309,11 +1309,11 @@ function session_mode(course_metadata_map, log_files, index, total, chunk){
                 console.log(performance.now() - zero_start);
 
                 sqlLogInsert('sessions', data);
-                // connection.runSql("DELETE FROM webdata WHERE name = 'graphElements'");
-                // connection.runSql("DELETE FROM webdata WHERE name = 'databaseDetails'");
-                // connection.runSql("DELETE FROM webdata WHERE name = 'mainIndicators'");
-                // connection.runSql("DELETE FROM webdata WHERE name = 'arcElements'");
-                // connection.runSql("DELETE FROM webdata WHERE name = 'cycleElements'");
+                connection.runSql("DELETE FROM webdata WHERE name = 'graphElements'");
+                connection.runSql("DELETE FROM webdata WHERE name = 'databaseDetails'");
+                connection.runSql("DELETE FROM webdata WHERE name = 'mainIndicators'");
+                connection.runSql("DELETE FROM webdata WHERE name = 'arcElements'");
+                connection.runSql("DELETE FROM webdata WHERE name = 'cycleElements'");
                 progress_display(data.length + ' sessions', index);
             } else {
                 console.log('no session info', index, total);

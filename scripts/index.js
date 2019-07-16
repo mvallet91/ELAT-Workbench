@@ -4561,6 +4561,7 @@ function drawVideoArc(linkNumber){ // https://www.d3-graph-gallery.com/graph/arc
                 .attr("stroke-width", function (d) {
                     return (25 - d.n)
                 });
+
             let labels = svg
                 .selectAll("mylabels")
                 .data(nodeData.nodes)
@@ -5368,10 +5369,11 @@ function prepareDashboard() {
                 });
             });
         } else {
-            let defaultOrder = [{"id":"mixedTile","col":8,"row":9,"size_x":7,"size_y":4},
-                {"id":"heatTile","col":1,"row":13,"size_x":7,"size_y":4},{"id":"lineTile","col":8,"row":5,"size_x":7,"size_y":4},
-                {"id":"boxTile","col":8,"row":13,"size_x":7,"size_y":4},{"id":"areaTile","col":1,"row":5,"size_x":7,"size_y":4},
-                {"id":"arcTile","col":1,"row":1,"size_x":14,"size_y":4},{"id":"cycleTile","col":1,"row":9,"size_x":7,"size_y":4}];
+            let defaultOrder = [{"id":"arcTile","col":1,"row":1,"size_x":12,"size_y":4},
+                {"id":"cycleTile","col":3,"row":5,"size_x":8,"size_y":4},
+                {"id":"areaTile","col":1,"row":9,"size_x":6,"size_y":3},{"id":"lineTile","col":7,"row":9,"size_x":6,"size_y":3},
+                {"id":"heatTile","col":1,"row":13,"size_x":5,"size_y":4},{"id":"mixedTile","col":6,"row":13,"size_x":7,"size_y":4},
+                {"id":"boxTile","col":1,"row":17,"size_x":6,"size_y":3}];
             $.each(defaultOrder, function (i, value) {
                 let id_name = "#";
                 id_name = id_name + value.id;

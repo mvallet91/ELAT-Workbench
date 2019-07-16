@@ -5368,6 +5368,20 @@ function prepareDashboard() {
                 });
             });
         } else {
+            let defaultOrder = [{"id":"mixedTile","col":8,"row":9,"size_x":7,"size_y":4},
+                {"id":"heatTile","col":1,"row":13,"size_x":7,"size_y":4},{"id":"lineTile","col":8,"row":5,"size_x":7,"size_y":4},
+                {"id":"boxTile","col":8,"row":13,"size_x":7,"size_y":4},{"id":"areaTile","col":1,"row":5,"size_x":7,"size_y":4},
+                {"id":"arcTile","col":1,"row":1,"size_x":14,"size_y":4},{"id":"cycleTile","col":1,"row":9,"size_x":7,"size_y":4}];
+            $.each(defaultOrder, function (i, value) {
+                let id_name = "#";
+                id_name = id_name + value.id;
+                $(id_name).attr({
+                    "data-col": value.col,
+                    "data-row": value.row,
+                    "data-sizex": value.size_x,
+                    "data-sizey": value.size_y
+                });
+            });
             console.log('Dashboard is in default state');
         }
 
@@ -5382,7 +5396,8 @@ function prepareDashboard() {
                     stop: function (event, ui) {
                         let positions = JSON.stringify(this.serialize());
                         localStorage.setItem('positions', positions);
-                        drawVideoArc();
+                        // drawVideoArc();
+                        // drawCycles();
                     }
                 },
                 serialize_params: function ($w, wgd) {

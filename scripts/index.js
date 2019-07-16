@@ -3832,7 +3832,7 @@ function drawApex(graphElementMap, start, end, weekly){
             }
         ],
         title: {
-            text: 'Average Grades per Group by Forum Behavior\n(students with completed course)'
+            text: 'Average Grade per Group by Forum Behavior'
         },
     };
 

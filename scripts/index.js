@@ -4170,6 +4170,8 @@ function videoTransitions() {
                 });
             });
 
+            let chapterMap = {};
+
             for (let elementId in course_metadata_map.child_parent_map) {
                 if (elementId.includes('video')) {
                     let parentId = course_metadata_map.child_parent_map[elementId];
@@ -4178,9 +4180,15 @@ function videoTransitions() {
                     unorderedVideos.push({
                         'elementId': elementId,
                         'chapter': course_metadata_map.order_map[parent3Id],
+                        // 'chapterName': course_metadata_map.element_name_map[parent3Id],
                         'section': course_metadata_map.order_map[parent2Id],
+                        // 'sectionName': course_metadata_map.element_name_map[parent2Id],
                         'block': course_metadata_map.order_map[parentId]
-                    })
+                    });
+                    chapterMap[elementId.slice(elementId.lastIndexOf('@') + 1,)] = {
+                        'chapter': course_metadata_map.order_map[parent3Id],
+                        'chapterName': course_metadata_map.element_name_map[parent3Id]
+                    }
                 }
             }
 
@@ -4326,6 +4334,7 @@ function videoTransitions() {
                         let i = 0;
                         let nodes = [];
                         let links = [];
+                        let currentChapter = '';
                         for (let currentVideo in frequencies) {
                             let percentages = "<span style='font-size: 14px;'>" +
                                 course_metadata_map['element_name_map']["block-v1:" + courseId + "+type@video+block@" + currentVideo] +
@@ -4368,11 +4377,23 @@ function videoTransitions() {
                                 }
                             }
                             i++;
+
+                            let chapterName = '';
+
+                            if (chapterMap[currentVideo]['chapterName'] !== currentChapter){
+                                currentChapter =  chapterMap[currentVideo]['chapterName'];
+                                chapterName = currentChapter;
+                            } else {
+                                chapterName = '';
+                            }
+
                             nodes.push({
-                                'name': 'Video ' + i,
+                                // 'name': 'Video ' + i,
+                                'name': course_metadata_map.element_name_map['block-v1:DelftX+FP101x+3T2015+type@video+block@'+currentVideo],
                                 'info': percentages,
                                 'n': (videoIds[currentVideo].length / maxViewers) * 20,
-                                'grp': 1,
+                                'grp': chapterMap[currentVideo]['chapter'],
+                                'chapter': chapterName,
                                 'id': currentVideo
                             });
                         }
@@ -4421,7 +4442,7 @@ function drawVideoArc(linkNumber){ // https://www.d3-graph-gallery.com/graph/arc
             $("#arcChart").empty();
             let arcDiv = document.getElementById("arcChart");
 
-            let margin = {top: 100, right: 50, bottom: 80, left: 50},
+            let margin = {top: 100, right: 70, bottom: 120, left: 70},
                 // width = arcDiv.clientWidth - margin.left - margin.right,
                 width = 1300,
                 height = 200;
@@ -4450,6 +4471,7 @@ function drawVideoArc(linkNumber){ // https://www.d3-graph-gallery.com/graph/arc
             let allGroups = nodeData.nodes.map(function (d) {
                 return d.grp
             });
+
             allGroups = [...new Set(allGroups)];
 
             let color = d3.scaleOrdinal()
@@ -4539,7 +4561,6 @@ function drawVideoArc(linkNumber){ // https://www.d3-graph-gallery.com/graph/arc
                 .attr("stroke-width", function (d) {
                     return (25 - d.n)
                 });
-
             let labels = svg
                 .selectAll("mylabels")
                 .data(nodeData.nodes)
@@ -4548,11 +4569,12 @@ function drawVideoArc(linkNumber){ // https://www.d3-graph-gallery.com/graph/arc
                 .attr("x", 0)
                 .attr("y", 0)
                 .text(function (d) {
-                    return (d.name)
+                    // return (d.name)
+                    return d.chapter;
                 })
                 .style("text-anchor", "end")
                 .attr("transform", function (d) {
-                    return ("translate(" + (x(d.name)) + "," + (height - 15) + ")rotate(-45)")
+                    return ("translate(" + (x(d.name) + 20) + "," + (height - 15) + ")rotate(-20)")
                 })
                 .style("font-size", 10);
 
@@ -4573,7 +4595,6 @@ function drawVideoArc(linkNumber){ // https://www.d3-graph-gallery.com/graph/arc
                     d3.select(this)
                         .style('opacity', 0.7);
                     links
-
                         .style('stroke', function (link_d) {
                             if (link_d.status === 'general') {
                                 return link_d.source === d.id ? '#0006b8' : '#b8b8b8';
@@ -4590,6 +4611,9 @@ function drawVideoArc(linkNumber){ // https://www.d3-graph-gallery.com/graph/arc
                             return link_d.source === d.id || link_d.target === d.id ? 10 * (d.value) : 5;
                         });
                     labels
+                        .text(function (d) {
+                            return d.name;
+                        })
                         .style("font-size", function (label_d) {
                             return label_d.name === d.name ? 16 : 2
                         })
@@ -4597,7 +4621,7 @@ function drawVideoArc(linkNumber){ // https://www.d3-graph-gallery.com/graph/arc
                             return label_d.name === d.name ? 10 : 0
                         });
                     tooltip
-                        .style("top", (event.pageY - 250) + "px")
+                        .style("top", (event.pageY - 150) + "px")
                         .style("left", (event.pageX - 50) + "px")
                         .html(d.info)
                         .style("visibility", "visible");
@@ -4613,7 +4637,7 @@ function drawVideoArc(linkNumber){ // https://www.d3-graph-gallery.com/graph/arc
                         });
                     labels
                         .text(function (d) {
-                            return (d.name)
+                            return (d.chapter)
                         })
                         .attr("y", 0)
                         .style("font-size", 10);

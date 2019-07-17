@@ -4387,7 +4387,7 @@ function videoTransitions() {
 
                             i++;
 
-                            let videoName = course_metadata_map.element_name_map['block-v1:DelftX+FP101x+3T2015+type@video+block@'+currentVideo];
+                            let videoName = course_metadata_map.element_name_map["block-v1:" + courseId + "+type@video+block@" + currentVideo];
                             if (!videoName){
                                 videoName = 'Video ' + i
                             }
@@ -4621,7 +4621,7 @@ function drawVideoArc(linkNumber){ // https://www.d3-graph-gallery.com/graph/arc
                             return d.name;
                         })
                         .style("font-size", function (label_d) {
-                            return label_d.name === d.name ? 16 : 2
+                            return label_d.name === d.name ? 12 : 2
                         })
                         .attr("y", function (label_d) {
                             return label_d.name === d.name ? 10 : 0
@@ -4679,9 +4679,9 @@ function moduleTransitions() {
                 });
             });
             for (let elementId in course_metadata_map.child_parent_map) {
-                if (elementId.includes('video') ||
-                    elementId.includes('problem') ||
-                    elementId.includes('discussion')) {
+                if (elementId.includes('video+') ||
+                    elementId.includes('problem+') ||
+                    elementId.includes('discussion+')) {
                     let parentId = course_metadata_map.child_parent_map[elementId];
                     let parent2Id = course_metadata_map.child_parent_map[parentId];
                     let parent3Id = course_metadata_map.child_parent_map[parent2Id];
@@ -4710,6 +4710,7 @@ function moduleTransitions() {
                 // elementId = elementId.slice(elementId.lastIndexOf('@') + 1,);
                 elementIdsD[elementId] = []; //Designed
             }
+            console.log(elementIds);
 
             let learningPaths = {};
             let passingPaths = {};
@@ -4776,6 +4777,8 @@ function moduleTransitions() {
                     l++;
                 }
             }
+
+            console.log(linksDesigned);
 
             toastr.info('Calculating element transitions');
             learningPaths = {};

@@ -4401,8 +4401,7 @@ function videoTransitions() {
                                 'id': currentVideo
                             });
                         }
-                        console.log(videoIds);
-                        console.log(nodes);
+
                         arcData['nodes'] = nodes;
                         arcData['links'] = links;
                         let arcElements = [{'name': 'arcElements', 'object': arcData}];

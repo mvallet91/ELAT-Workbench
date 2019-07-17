@@ -3840,7 +3840,6 @@ function drawApex(graphElementMap, start, end, weekly){
         document.querySelector("#heatChart"),
         heatOptions
     );
-
     heatChart.render();
 }
 
@@ -4202,6 +4201,8 @@ function videoTransitions() {
                 return a.chapter - b.chapter
             });
 
+
+
             for (let video of orderedVideos) {
                 let videoId = video.elementId;
                 videoId = videoId.slice(videoId.lastIndexOf('@') + 1,);
@@ -4376,10 +4377,7 @@ function videoTransitions() {
                                     links.push(link);
                                 }
                             }
-                            i++;
-
                             let chapterName = '';
-
                             if (chapterMap[currentVideo]['chapterName'] !== currentChapter){
                                 currentChapter =  chapterMap[currentVideo]['chapterName'];
                                 chapterName = currentChapter;
@@ -4387,9 +4385,15 @@ function videoTransitions() {
                                 chapterName = '';
                             }
 
+                            i++;
+
+                            let videoName = course_metadata_map.element_name_map['block-v1:DelftX+FP101x+3T2015+type@video+block@'+currentVideo];
+                            if (!videoName){
+                                videoName = 'Video ' + i
+                            }
+
                             nodes.push({
-                                // 'name': 'Video ' + i,
-                                'name': course_metadata_map.element_name_map['block-v1:DelftX+FP101x+3T2015+type@video+block@'+currentVideo],
+                                'name': videoName,
                                 'info': percentages,
                                 'n': (videoIds[currentVideo].length / maxViewers) * 20,
                                 'grp': chapterMap[currentVideo]['chapter'],
@@ -4397,6 +4401,8 @@ function videoTransitions() {
                                 'id': currentVideo
                             });
                         }
+                        console.log(videoIds);
+                        console.log(nodes);
                         arcData['nodes'] = nodes;
                         arcData['links'] = links;
                         let arcElements = [{'name': 'arcElements', 'object': arcData}];

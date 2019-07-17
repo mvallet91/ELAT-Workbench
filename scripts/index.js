@@ -3809,25 +3809,25 @@ function drawApex(graphElementMap, start, end, weekly){
         series: [{
                 name: 'Non-Posters',
                 data: [
-                    { x:'Regular Viewers', y: graphElementMap['gradeLists']['nonPostersRegViewers']},
-                    { x:'Occasional Viewers', y: graphElementMap['gradeLists']['nonPostersOccViewers']},
-                    { x:'Non-Viewers', y: graphElementMap['gradeLists']['nonPostersNonViewers']}
+                    { x:'Regular Viewers', y: zeroIfEmptyArray(graphElementMap['gradeLists']['nonPostersRegViewers'])},
+                    { x:'Occasional Viewers', y: zeroIfEmptyArray(graphElementMap['gradeLists']['nonPostersOccViewers'])},
+                    { x:'Non-Viewers', y: zeroIfEmptyArray(graphElementMap['gradeLists']['nonPostersNonViewers'])}
                 ]
             },
             {
                 name: 'Occasional Posters',
                 data: [
-                    { x:'Regular Viewers', y: graphElementMap['gradeLists']['occPostersRegViewers']},
-                    { x:'Occasional Viewers', y: graphElementMap['gradeLists']['occPostersOccViewers']},
-                    { x:'Non-Viewers', y: [0]}
+                    { x:'Regular Viewers', y: zeroIfEmptyArray(graphElementMap['gradeLists']['occPostersRegViewers'])},
+                    { x:'Occasional Viewers', y: zeroIfEmptyArray(graphElementMap['gradeLists']['occPostersOccViewers'])},
+                    { x:'Non-Viewers', y: zeroIfEmptyArray(graphElementMap['gradeLists']['occPostersNonViewers'])}
                 ]
             },
             {
                 name: 'Regular Posters',
                 data: [
-                    { x:'Regular Viewers', y: graphElementMap['gradeLists']['regPostersRegViewers']},
-                    { x:'Occasional Viewers', y: [0]},
-                    { x:'Non-Viewers', y: [0]}
+                    { x:'Regular Viewers', y: zeroIfEmptyArray(graphElementMap['gradeLists']['regPostersRegViewers'])},
+                    { x:'Occasional Viewers', y: zeroIfEmptyArray(graphElementMap['gradeLists']['regPostersOccViewers'])},
+                    { x:'Non-Viewers', y: zeroIfEmptyArray(graphElementMap['gradeLists']['regPostersNonViewers'])}
                 ],
             }
         ],
@@ -3841,6 +3841,14 @@ function drawApex(graphElementMap, start, end, weekly){
         heatOptions
     );
     heatChart.render();
+}
+
+
+function zeroIfEmptyArray(array){
+    if (array.length === 0){
+        return [0]
+    }
+    return array
 }
 
 
@@ -5255,7 +5263,8 @@ function populateSamples(courseId){
     let courseMap = {'FP101x': "DelftX+FP101x+3T2015.json",
                      'TW3421x': "DelftX+TW3421x+3T2016.json",
                      'AE1110x':"DelftX+AE1110x+2T2017.json",
-                     "Visual101x":"DelftX+Visual101x+1T2016"
+                     "Visual101x":"DelftX+Visual101x+1T2016",
+                     "Mind101x":"DelftX+MIND101x+1T2018.json"
     };
     let courseFile = 'samples/' + courseMap[courseId];
     connection.runSql("SELECT * FROM webdata").then(function(metadata) {

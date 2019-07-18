@@ -2908,6 +2908,7 @@ function getGraphElementMap(callback, start, end) {
                             query = "SELECT * FROM video_interaction";
                             await connection.runSql(query).then(function (v_sessions) {
                                 v_sessions.forEach(function (session) {
+                                    // start_str = session["start_time"].toDateString();
                                     start_str = session["start_time"].toDateString();
                                     start = new Date(start_str);
                                     if (videoDurations.hasOwnProperty(start)) {
@@ -3122,6 +3123,8 @@ function getGraphElementMap(callback, start, end) {
                                 return new Date(a) - new Date(b);
                             });
 
+                            console.log(dateList);
+
                             for (let date of dateList) {
                                 orderedSessions[date] = dailySessions[date].length;
                                 orderedStudents[date] = new Set(dailySessions[date]).size;
@@ -3152,13 +3155,18 @@ function getGraphElementMap(callback, start, end) {
                                             occasionals.push(student)
                                         }
                                     }
+                                    orderedForumSessionRegulars[date] = regulars.length;
+                                    orderedForumRegulars[date] = new Set(regulars).size;
+                                    orderedForumSessionOccasionals[date] = occasionals.length;
+                                    orderedForumOccasionals[date] = new Set(occasionals).size;
                                 } else {
-                                    orderedForumSessions[date] = 0
+                                    orderedForumSessions[date] = 0;
+                                    orderedForumSessionRegulars[date] = 0;
+                                    orderedForumRegulars[date] = 0;
+                                    orderedForumSessionOccasionals[date] = 0;
+                                    orderedForumOccasionals[date] = 0;
                                 }
-                                orderedForumSessionRegulars[date] = regulars.length;
-                                orderedForumRegulars[date] = new Set(regulars).size;
-                                orderedForumSessionOccasionals[date] = occasionals.length;
-                                orderedForumOccasionals[date] = new Set(occasionals).size;
+
 
                                 orderedForumPostsByOccasionals[date] = 0;
                                 orderedForumPostsByRegulars[date] = 0;
@@ -3169,15 +3177,17 @@ function getGraphElementMap(callback, start, end) {
                                     orderedForumPosters[date] = Math.round(forumPosters[date].length);
                                     for (let poster of forumPosters[date]) {
                                         if (regularPosters.includes(poster)) {
-                                            orderedForumPostsByRegulars[date] = orderedForumPostsByRegulars[date] + 1
+                                            orderedForumPostsByRegulars[date] = orderedForumPostsByRegulars[date] + 1;
                                             orderedForumPostersRegulars[date].push(poster)
                                         } else {
-                                            orderedForumPostsByOccasionals[date] = orderedForumPostsByOccasionals[date] + 1
+                                            orderedForumPostsByOccasionals[date] = orderedForumPostsByOccasionals[date] + 1;
                                             orderedForumPostersOccasionals[date].push(poster);
                                         }
                                     }
                                 } else {
                                     orderedForumPosters[date] = 0;
+                                    orderedForumPostsByRegulars[date] = 0;
+                                    orderedForumPostsByOccasionals[date] = 0;
                                 }
 
                                 orderedForumPostersRegulars[date] = new Set(orderedForumPostersRegulars[date]).size;
@@ -3354,15 +3364,25 @@ function updateChart() {
     });
 }
 
+function trimByDates(values, start, end){
+    let trimmed = [];
+    for (let date in values){
+        if (new Date(date) >= new Date(start) && new Date(date) <= new Date(end)) {
+            trimmed.push(values[date])
+        }
+    }
+    return trimmed
+}
+
 
 function drawApex(graphElementMap, start, end, weekly){
-    let data = [];
 
-    for (let date in graphElementMap["orderedSessions"]){
-        let value = [date, graphElementMap["orderedSessions"][date]];
-        data.push(value)
-    }
 
+    // let data = [];
+    // for (let date in graphElementMap["orderedSessions"]){
+    //     let value = [date, graphElementMap["orderedSessions"][date]];
+    //     data.push(value)
+    // }
     // let optionsDetail = {
     //     chart: {
     //         id: 'chartDetail',
@@ -3475,36 +3495,38 @@ function drawApex(graphElementMap, start, end, weekly){
     let forumStudentsOccasionals = [];
     if (weekly === true){
         for (let date in weeklyPosts['weeklySum']){
-            if (new Date(date) > start && new Date(date) < end) {
-                dateLabels.push(date.toLocaleString())
+            if (new Date(date) >= new Date(start) && new Date(date) <= new Date(end)) {
+                // dateLabels.push(date.toLocaleString())
+                dateLabels.push(new Date(date).toUTCString())
             }
         }
-        forumData = Object.values(weeklyPosts['weeklySum']);
-        forumRegData = Object.values(weeklyRegPosts['weeklySum']);
-        forumRegPosters = Object.values(weeklyRegPosters['weeklySum']);
-        forumOccData = Object.values(weeklyOccPosts['weeklySum']);
-        forumOccPosters = Object.values(weeklyOccPosters['weeklySum']);
-        forumDurations = Object.values(weeklyForumSessions['weeklyAvg']);
-        forumStudents = Object.values(weeklyForumStudents['weeklySum']);
-        forumStudentsRegulars = Object.values(weeklyForumRegulars['weeklySum']);
-        forumStudentsOccasionals = Object.values(weeklyForumOccasionals['weeklySum']);
+        forumData = trimByDates(weeklyPosts['weeklySum'], start, end);
+        forumRegData = trimByDates(weeklyRegPosts['weeklySum'], start, end);
+        forumRegPosters = trimByDates(weeklyRegPosters['weeklySum'], start, end);
+        forumOccData = trimByDates(weeklyOccPosts['weeklySum'], start, end);
+        forumOccPosters = trimByDates(weeklyOccPosters['weeklySum'], start, end);
+        forumDurations = trimByDates(weeklyForumSessions['weeklyAvg'], start, end);
+        forumStudents = trimByDates(weeklyForumStudents['weeklySum'], start, end);
+        forumStudentsRegulars = trimByDates(weeklyForumRegulars['weeklySum'], start, end);
+        forumStudentsOccasionals = trimByDates(weeklyForumOccasionals['weeklySum'], start, end);
     } else {
         for (let date of graphElementMap["dateListChart"]){
-            if (new Date(date) > start && new Date(date) < end) {
-                dateLabels.push(date.toLocaleString())
+            if (new Date(date) >= new Date(start) && new Date(date) <= new Date(end)) {
+                // dateLabels.push(date.toLocaleString())
+                dateLabels.push(new Date(date).toUTCString())
             }
         }
-        forumData = Object.values(graphElementMap["orderedForumPosts"]);
-        forumRegData = Object.values(graphElementMap["orderedForumPostsByRegulars"]);
-        forumRegPosters = Object.values(graphElementMap["orderedForumPostersRegulars"]);
-        forumOccData = Object.values(graphElementMap["orderedForumPostsByOccasionals"]);
-        forumOccPosters = Object.values(graphElementMap["orderedForumPostersOccasionals"]);
-        forumDurations = Object.values(graphElementMap['orderedForumAvgDurations']);
-        forumStudents = Object.values(graphElementMap['orderedForumStudents']);
-        forumStudentsRegulars = Object.values(graphElementMap['orderedForumRegulars']);
-        forumStudentsOccasionals = Object.values(graphElementMap['orderedForumOccasionals']);
+        forumData = trimByDates(graphElementMap["orderedForumPosts"], start, end);
+        forumRegData = trimByDates(graphElementMap["orderedForumPostsByRegulars"], start, end);
+        forumRegPosters = trimByDates(graphElementMap["orderedForumPostersRegulars"], start, end);
+        forumOccData = trimByDates(graphElementMap["orderedForumPostsByOccasionals"], start, end);
+        forumOccPosters = trimByDates(graphElementMap["orderedForumPostersOccasionals"], start, end);
+        forumDurations = trimByDates(graphElementMap['orderedForumAvgDurations'], start, end);
+        forumStudents = trimByDates(graphElementMap['orderedForumStudents'], start, end);
+        forumStudentsRegulars = trimByDates(graphElementMap['orderedForumRegulars'], start, end);
+        forumStudentsOccasionals = trimByDates(graphElementMap['orderedForumOccasionals'], start, end);
     }
-
+    console.log(dateLabels);
     let optionsMixed = {
         chart: {
             height: '420px',
@@ -3513,7 +3535,6 @@ function drawApex(graphElementMap, start, end, weekly){
             toolbar: {
                 show: true,
                 tools: {
-                    // download: true,
                     download: '<i class="fas fa-download"></i>',
                     selection: false,
                     zoom: false,
@@ -3587,8 +3608,6 @@ function drawApex(graphElementMap, start, end, weekly){
         labels: dateLabels,
         xaxis: {
             type: 'datetime',
-            min: start.toDateString(),
-            max: end.toDateString()
         },
         yaxis: [{
             seriesName: 'Posts by Regulars',
@@ -4718,7 +4737,6 @@ function moduleTransitions() {
                 // elementId = elementId.slice(elementId.lastIndexOf('@') + 1,);
                 elementIdsD[elementId] = []; //Designed
             }
-            console.log(elementIds);
 
             let learningPaths = {};
             let passingPaths = {};
@@ -4785,8 +4803,6 @@ function moduleTransitions() {
                     l++;
                 }
             }
-
-            console.log(linksDesigned);
 
             toastr.info('Calculating element transitions');
             learningPaths = {};
@@ -5003,7 +5019,7 @@ function drawCycles(){
     connection.runSql("SELECT * FROM webdata WHERE name = 'cycleElements' ").then(function(result) {
         if (result.length !== 1) {
             console.log('Start transition calculation');
-            moduleTransitions();
+            // moduleTransitions();
         } else {
             let linkData = result[0]['object'];
 

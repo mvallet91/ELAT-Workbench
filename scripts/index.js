@@ -3123,8 +3123,6 @@ function getGraphElementMap(callback, start, end) {
                                 return new Date(a) - new Date(b);
                             });
 
-                            console.log(dateList);
-
                             for (let date of dateList) {
                                 orderedSessions[date] = dailySessions[date].length;
                                 orderedStudents[date] = new Set(dailySessions[date]).size;
@@ -3526,7 +3524,6 @@ function drawApex(graphElementMap, start, end, weekly){
         forumStudentsRegulars = trimByDates(graphElementMap['orderedForumRegulars'], start, end);
         forumStudentsOccasionals = trimByDates(graphElementMap['orderedForumOccasionals'], start, end);
     }
-    console.log(dateLabels);
     let optionsMixed = {
         chart: {
             height: '420px',
@@ -3608,6 +3605,8 @@ function drawApex(graphElementMap, start, end, weekly){
         labels: dateLabels,
         xaxis: {
             type: 'datetime',
+            min: new Date(start).getTime(),
+            max: new Date(end).getTime(),
         },
         yaxis: [{
             seriesName: 'Posts by Regulars',
@@ -3774,7 +3773,6 @@ function drawApex(graphElementMap, start, end, weekly){
             toolbar: {
                 show: true,
                 tools: {
-                    // download: true,
                     download: '<i class="fas fa-download"></i>',
                 }
             }
@@ -4206,9 +4204,7 @@ function videoTransitions() {
                     unorderedVideos.push({
                         'elementId': elementId,
                         'chapter': course_metadata_map.order_map[parent3Id],
-                        // 'chapterName': course_metadata_map.element_name_map[parent3Id],
                         'section': course_metadata_map.order_map[parent2Id],
-                        // 'sectionName': course_metadata_map.element_name_map[parent2Id],
                         'block': course_metadata_map.order_map[parentId]
                     });
                     chapterMap[elementId.slice(elementId.lastIndexOf('@') + 1,)] = {
@@ -4227,8 +4223,6 @@ function videoTransitions() {
             orderedVideos.sort(function (a, b) {
                 return a.chapter - b.chapter
             });
-
-
 
             for (let video of orderedVideos) {
                 let videoId = video.elementId;
@@ -4476,12 +4470,13 @@ function drawVideoArc(linkNumber){ // https://www.d3-graph-gallery.com/graph/arc
 
             let margin = {top: 100, right: 70, bottom: 120, left: 70},
                 // width = arcDiv.clientWidth - margin.left - margin.right,
-                width = 1300,
+                width = nodeData.nodes.length * 35,
                 height = 200;
                 // height = arcDiv.clientWidth/3 - margin.top - margin.bottom;
 
             let svg = d3.select(arcDiv)
                 .append("svg")
+                .attr(':xmlns:xlink','http://www.w3.org/1999/xlink')
                 .attr("width", width + margin.left + margin.right)
                 .attr("height", height + margin.top + margin.bottom)
                 .append("g")
@@ -4693,8 +4688,8 @@ function moduleTransitions() {
             $('#loading').hide();
             $.unblockUI();
         } else {
-            $('#loading').show();
-            $.blockUI();
+            // $('#loading').show();
+            // $.blockUI();
             let course_metadata_map = result[0]['object'];
             let courseId = course_metadata_map.course_id;
             courseId = courseId.slice(courseId.indexOf(':') + 1,);
@@ -4909,7 +4904,9 @@ function moduleTransitions() {
             do {
                 learningPaths = {
                     'downloadable': {},
-                    'notpassing': {}
+                    'notpassing': {},
+                    'audit_passing': {},
+                    'unverified': {}
                 };
                 weekEnd = new Date(weekStart.toDateString());
                 weekEnd = new Date(weekEnd.setDate(weekEnd.getDate() + 7));
@@ -5068,6 +5065,7 @@ function drawCycles(){
             let svg = d3.select(cycleDiv)
                 .append("svg")
                 .attr("width", width + margin.left + margin.right)
+                .attr(':xmlns:xlink','http://www.w3.org/1999/xlink')
                 .attr("height", height + margin.top + margin.bottom)
                 .append("g")
                 .attr("transform",

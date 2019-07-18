@@ -3324,10 +3324,13 @@ function exportChartPNG(chartId) {
             a.click();
         });
     } else {
+
         SVG2PNG(element.firstElementChild, function(canvas) { // Arguments: SVG element, callback function.
             let base64 = canvas.toDataURL("image/png"); // toDataURL return DataURI as Base64 format.
             generateLink(filename + '.png', base64).click(); // Trigger the Link is made by Link Generator and download.
         });
+
+        // saveSvgAsPng(element.firstElementChild, filename + '.png');
     }
 }
 
@@ -5016,7 +5019,7 @@ function drawCycles(){
     connection.runSql("SELECT * FROM webdata WHERE name = 'cycleElements' ").then(function(result) {
         if (result.length !== 1) {
             console.log('Start transition calculation');
-            // moduleTransitions();
+            moduleTransitions();
         } else {
             let linkData = result[0]['object'];
 

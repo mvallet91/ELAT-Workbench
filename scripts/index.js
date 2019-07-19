@@ -9,7 +9,6 @@ window.onload = function () {
     //// PAGE INITIALIZATION  //////////////////////////////////////////////////////////////////////////////
     initiateEdxDb();
     getGraphElementMap(drawCharts);
-    loadDashboard();
     prepareDashboard();
     drawVideoArc();
     drawCycles();
@@ -5345,47 +5344,6 @@ function deleteDashboard(){
     });
 }
 
-
-function loadDashboard(){
-    let orderedDB = {};
-    connection.runSql("SELECT * FROM webdata WHERE name = 'chartList'").then(function (metadata) {
-        if (metadata.length === 1) {
-            orderedDB = metadata[0]['object'];
-            let chartElements = document.getElementById('chartList');
-            while (chartElements.hasChildNodes()) {
-                chartElements.removeChild(chartElements.firstChild);
-            }
-            for (let e in orderedDB) {
-                let eHTML = document.createElement('li');
-                eHTML.id = orderedDB[e].id;
-                eHTML.innerHTML = orderedDB[e].html;
-                let checkboxId = eHTML.firstElementChild.firstElementChild.id;
-                chartElements.appendChild(eHTML);
-                $("#" + checkboxId).prop("checked", orderedDB[e].checked);
-            }
-            updateDashboard()
-        } else {
-            connection.runSql("SELECT * FROM webdata WHERE name = 'defaultChartList'").then(function (metadata) {
-                if (metadata.length === 1) {
-                    orderedDB = metadata[0]['object'];
-                    let chartElements = document.getElementById('chartList');
-                    while (chartElements.hasChildNodes()) {
-                        chartElements.removeChild(chartElements.firstChild);
-                    }
-                    for (let e in orderedDB) {
-                        let eHTML = document.createElement('li');
-                        eHTML.id = orderedDB[e].id;
-                        eHTML.innerHTML = orderedDB[e].html;
-                        let checkboxId = eHTML.firstElementChild.firstElementChild.id;
-                        chartElements.appendChild(eHTML);
-                        $("#" + checkboxId).prop("checked", orderedDB[e].checked);
-                    }
-                    updateDashboard()
-                }
-            })
-        }
-    });
-}
 
 function prepareDashboard() {
     $(function () {

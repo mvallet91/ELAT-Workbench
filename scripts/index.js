@@ -5320,31 +5320,6 @@ function updateDashboard(){
 }
 
 
-function saveDashboard(){
-    connection.runSql("DELETE FROM webdata WHERE name = 'chartList'").then(function () {
-        let chartElements = document.getElementById('chartList');
-        let ordered = {};
-        let i = 0;
-        for (let e of chartElements.children){
-            ordered[i.toString()] = {
-                'id': e.id,
-                'html': e.innerHTML,
-                'checked': e.firstElementChild.firstElementChild.checked
-            };
-            i++;
-        }
-        sqlInsert('webdata', [{'name':'chartList', 'object': ordered}]);
-    });
-}
-
-
-function deleteDashboard(){
-    connection.runSql("DELETE FROM webdata WHERE name = 'chartList'").then(function () {
-        updateDashboard();
-    });
-}
-
-
 function prepareDashboard() {
     $(function () {
         let localData = JSON.parse(localStorage.getItem('positions'));

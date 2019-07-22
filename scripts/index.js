@@ -1,9 +1,11 @@
 // let connection = new JsStore.Instance(new Worker('scripts/jsstore.worker.js'));
 let connection = new JsStore.Instance();
 
-// let define function (require) {
-//     pako = require('pako');
-// };
+import * as metadataProcessing from './metadataProcessing.js'
+import * as prepareTables from './prepareTables.js'
+import {populateSamples, sqlInsert, sqlLogInsert} from "./databaseHelpers.js";
+import {loader, progress_display, downloadCsv, webdataJSON} from './helpers.js'
+import {session_mode} from "./logProcessing.js";
 
 window.onload = function () {
     //// PAGE INITIALIZATION  //////////////////////////////////////////////////////////////////////////////
@@ -16,7 +18,6 @@ window.onload = function () {
     let  multiFileInputMetadata = document.getElementById('filesInput');
     multiFileInputMetadata.value = '';
     multiFileInputMetadata.addEventListener('change', function () {
-        loader(true);
         readMetaFiles(multiFileInputMetadata.files, passFiles);
     });
 
@@ -73,21 +74,23 @@ window.onload = function () {
     dlQuizButton.addEventListener('click', function() {
         processSessions('quiz_sessions', schemaMap['quiz_sessions']);
     });
+
+    let clearButton = document.getElementById('clearDB');
+    clearButton.addEventListener('click', function() {
+        deleteEverything();
+    });
+
+    let populateFP101x = document.getElementById('populate-fp101');
+    populateFP101x.addEventListener('click', function() {
+        populateSamples('FP101x', connection);
+    });
 };
 
 let reader = new FileReader();
 
-function loader(on){
-    if (on){
-        $('#loading').show();
-        $.blockUI();
-    } else {
-        $('#loading').hide();
-        $.unblockUI();
-    }
-}
-
 function readMetaFiles(files, callback){
+    loader(true);
+
     let output = [];
     let checkedFiles = {};
     let processedFiles = [];
@@ -103,7 +106,7 @@ function readMetaFiles(files, callback){
 
         if (f.name.includes('zip')) {
             loader(false);
-            toastr.error('Metadata files cannot be zipped!');
+            toastr.error('Metadata files have to be unzipped!');
             break;
         }
 
@@ -188,7 +191,6 @@ function passFiles(result){
     learner_mode(names);
 }
 
-
 function passLogFiles(result){
     let files = result[0],
         output = result[1],
@@ -209,70 +211,13 @@ function passLogFiles(result){
                 cell1.innerHTML = ('Processing file ' + (fileIndex + 1) + '/' + totalFiles +
                     '\n at ' + new Date().toLocaleString('en-GB'));
             }
-            session_mode(courseMetadataMap, files, fileIndex, totalFiles, chunk);
+            session_mode(courseMetadataMap, files, fileIndex, totalFiles, chunk, connection);
             forum_sessions(courseMetadataMap, files, fileIndex, totalFiles, chunk);
             video_interaction(courseMetadataMap, files, fileIndex, totalFiles, chunk);
             quiz_mode(courseMetadataMap, files, fileIndex, totalFiles, chunk);
             quiz_sessions(courseMetadataMap, files, fileIndex, totalFiles, chunk, totalChunks);
         }
     });
-}
-
-
-function sqlInsert(table, dataObject) {
-    if (!(['forum_interaction', 'webdata'].includes(table))){
-        connection.runSql('DELETE FROM ' + table);
-    }
-    let query = new SqlWeb.Query("INSERT INTO " + table + " values='@val'");
-    for (let v of dataObject) {
-        for (let field of Object.keys(v)) {
-            if (field.includes('time')){
-                let date = v[field];
-                v[field] = new Date(date);
-            }
-        }
-    }
-    query.map("@val", dataObject);
-    connection.runSql(query).then(function (rowsAdded) {
-        if (rowsAdded > 0 && table !== 'forum_interaction') {
-            let today = new Date();
-            let time = today.getHours() + ":" + today.getMinutes() + ":" + today.getSeconds() + '.' + today.getMilliseconds();
-            console.log('Successfully added to' , table, ' at ', time);
-            if (table === 'metadata'){
-                $('#loading').hide();
-                $.unblockUI();
-                toastr.success('Please reload the page now', 'Metadata ready', {timeOut: 0})
-            }
-        }
-    }).catch(function (err) {
-        console.log(err);
-    });
-}
-
-
-function sqlLogInsert(table, rowsArray) {
-    // console.log('Not saving ', rowsArray.length, ' for ', table);
-    let query = new SqlWeb.Query("INSERT INTO " + table + " values='@val'");
-    for (let row of rowsArray) {
-        for (let field of Object.keys(row)) {
-            if (field.includes('_time')){
-                let date = row[field];
-                row[field] = new Date(date);
-            }
-        }
-    }
-    query.map("@val", rowsArray);
-    connection.runSql(query)
-        .then(function (rowsAdded) {
-            if (rowsAdded > 0) {
-                let today = new Date();
-                let time = today.getHours() + ":" + today.getMinutes() + ":" + today.getSeconds() + '.' + today.getMilliseconds();
-                console.log('Successfully added: ', table, ' at ', time);
-            }
-        })
-        .catch(function (err) {
-            console.log(err);
-        });
 }
 
 
@@ -287,23 +232,6 @@ function download(filename, content) {
 }
 
 
-function downloadCsv(filename, content) {
-    let downloadElement = document.createElement('a');
-    let joinedContent = content.map(e=>e.join(",")).join("\n");
-    let t = new Blob([joinedContent], {type : 'application/csv'});
-    downloadElement.href = URL.createObjectURL(t);
-    downloadElement.download = filename;
-    downloadElement.click();
-}
-
-
-function progress_display(content, index){
-    let table = document.getElementById("progress_tab");
-    let row = table.rows[index];
-    let cell1 = row.insertCell();
-    cell1.innerHTML = '  ' + content + '  ';
-}
-
 ////////////////////////////////////////////////////////////////////////////////////////////////
 // DATABASE FUNCTIONS
 function initiateEdxDb() {
@@ -315,19 +243,17 @@ function initiateEdxDb() {
                 $('#loading').hide();
                 $.unblockUI();
                 toastr.success('Database ready', 'ELAT',  {timeOut: 1500});
-                showCourseTable();
-                showDetailsTable();
-                showMainIndicators();
+                prepareTables.showCourseTable(connection);
+                prepareTables.showDetailsTable(connection);
+                prepareTables.showMainIndicators(connection);
             });
         } else {
             console.log('Generating edx database');
             toastr.info('Welcome! If this is your first time here, visit ELAT Home for more info', 'ELAT',  {timeOut: 7000});
             let dbQuery = getEdxDbQuery();
             connection.runSql(dbQuery).then(function (tables) {
-                console.log(tables);
                 toastr.success('Database generated, please reload the page', 'ELAT',  {timeOut: 5000});
-                $('#loading').hide();
-                $.unblockUI();
+                loader(false)
             });
         }
     }).catch(function (err) {
@@ -336,377 +262,101 @@ function initiateEdxDb() {
     });
 }
 
-function showCourseTable() {
-    let HtmlString = "";
-    connection.runSql("SELECT * FROM webdata WHERE name = 'courseDetails' ").then(function(result) {
-        if (result.length === 1) {
-            HtmlString = result[0]['object']['details'];
-            document.getElementById("loading").style.display = "none";
-            $('#tblGrid tbody').html(HtmlString);
-        } else {
-            connection.runSql('select * from courses').then(function (courses) {
-                let questionCounter = 0;
-                let forumInteractionCounter = 0;
-                let dateFormat = {weekday: 'short', year: 'numeric', month: 'long', day: 'numeric'};
-                courses.forEach(async function (course) {
-                    HtmlString += "<tr ItemId=" + course.course_id + "><td>" +
-                        course.course_name + "</td><td>" +
-                        course.start_time.toLocaleDateString('en-EN', dateFormat) + "</td><td>" +
-                        course.end_time.toLocaleDateString('en-EN', dateFormat) + "</td><td>";
-                    let query = "count from course_elements where course_id = '" + course.course_id + "'";
-                    await connection.runSql(query).then(function (result) {
-                        HtmlString += result.toLocaleString('en-US') + "</td><td>";
-                    });
-                    query = "count from learner_index where course_id = '" + course.course_id + "'";
-                    await connection.runSql(query).then(function (result) {
-                        HtmlString += result.toLocaleString('en-US') + "</td><td>";
-                    });
-                    query = "SELECT * FROM quiz_questions";
-                    await connection.runSql(query).then(function (results) {
-                        results.forEach(function (result) {
-                            if (result['question_id'].includes(course.course_id.slice(10,))) {
-                                questionCounter++;
-                            }
-                        });
-                        HtmlString += questionCounter.toLocaleString('en-US') + "</td><td>";
-                    });
-                    query = "SELECT * FROM forum_interaction";
-                    await connection.runSql(query).then(function (sessions) {
-                        sessions.forEach(function (session) {
-                            if (session['course_learner_id'].includes(course.course_id)) {
-                                forumInteractionCounter++;
-                            }
-                        });
-                    });
-                    HtmlString += forumInteractionCounter.toLocaleString('en-US');
-                    $('#tblGrid tbody').html(HtmlString);
-                    let courseDetails = [{'name': 'courseDetails', 'object': {'details': HtmlString}}];
-                    sqlInsert('webdata', courseDetails);
-                })
-            }).catch(function (error) {
-                console.log(error);
-                $('#loading').hide();
-                $.unblockUI();
-            })
-        }
-    })
-}
 
-
-function showDetailsTable() {
-    let HtmlString = "";
-    let totalHtmlString = "";
-    connection.runSql("SELECT * FROM webdata WHERE name = 'databaseDetails' ").then(function(result) {
-        if (result.length === 1) {
-            HtmlString = result[0]['object']['details'];
-            document.getElementById("loading").style.display = "none";
-            $('#dbGrid tbody').html(HtmlString);
-        } else {
-            connection.runSql('select * from courses').then(function (courses) {
-                courses.forEach(async function (course) {
-                    let tsessionCounter = 0;
-                    let tforumSessionCounter = 0;
-                    let tvideoInteractionCounter = 0;
-                    let tsubmissionCounter = 0;
-                    let tassessmentCounter = 0;
-                    let tquizSessionCounter = 0;
-                    let sessionCounter = 0;
-                    let forumSessionCounter = 0;
-                    let videoInteractionCounter = 0;
-                    let submissionCounter = 0;
-                    let assessmentCounter = 0;
-                    let quizSessionCounter = 0;
-                    totalHtmlString += "<tr ItemId=" + 'total' + "><td>" +
-                        "Total" + "</td><td>";
-                    HtmlString += "<tr ItemId=" + course.course_id + "><td>" +
-                        course.course_name + "</td><td>";
-                    let query = "SELECT * FROM sessions";
-                    await connection.runSql(query).then(function (sessions) {
-                        sessions.forEach(function (session) {
-                            tsessionCounter++;
-                            if (session['course_learner_id'].includes(course.course_id)) {
-                                sessionCounter++;
-                            }
-                        });
-                    });
-                    query = "SELECT * FROM forum_sessions";
-                    await connection.runSql(query).then(function (sessions) {
-                        sessions.forEach(function (session) {
-                            tforumSessionCounter++;
-                            if (session['course_learner_id'].includes(course.course_id)) {
-                                forumSessionCounter++;
-                            }
-                        });
-                    });
-                    query = "SELECT * FROM video_interaction";
-                    await connection.runSql(query).then(function (sessions) {
-                        sessions.forEach(function (session) {
-                            tvideoInteractionCounter++;
-                            if (session['course_learner_id'].includes(course.course_id)) {
-                                videoInteractionCounter++;
-                            }
-                        });
-                    });
-                    query = "SELECT * FROM submissions";
-                    await connection.runSql(query).then(function (sessions) {
-                        sessions.forEach(function (session) {
-                            tsubmissionCounter++;
-                            if (session['course_learner_id'].includes(course.course_id)) {
-                                submissionCounter++;
-                            }
-                        });
-                    });
-                    query = "SELECT * FROM assessments";
-                    await connection.runSql(query).then(function (sessions) {
-                        sessions.forEach(function (session) {
-                            tassessmentCounter++;
-                            if (session['course_learner_id'].includes(course.course_id)) {
-                                assessmentCounter++;
-                            }
-                        });
-                    });
-                    query = "SELECT * FROM quiz_sessions";
-                    await connection.runSql(query).then(function (sessions) {
-                        sessions.forEach(function (session) {
-                            tquizSessionCounter++;
-                            if (session['course_learner_id'].includes(course.course_id)) {
-                                quizSessionCounter++;
-                            }
-                        });
-                    });
-                    totalHtmlString += tsessionCounter.toLocaleString('en-US') + "</td><td>" +
-                        tforumSessionCounter.toLocaleString('en-US') + "</td><td>" +
-                        tvideoInteractionCounter.toLocaleString('en-US') + "</td><td>" +
-                        tsubmissionCounter.toLocaleString('en-US') + "</td><td>" +
-                        tassessmentCounter.toLocaleString('en-US') + "</td><td>" +
-                        tquizSessionCounter.toLocaleString('en-US');
-                    HtmlString += sessionCounter.toLocaleString('en-US') + "</td><td>" +
-                        forumSessionCounter.toLocaleString('en-US') + "</td><td>" +
-                        videoInteractionCounter.toLocaleString('en-US') + "</td><td>" +
-                        submissionCounter.toLocaleString('en-US') + "</td><td>" +
-                        assessmentCounter.toLocaleString('en-US') + "</td><td>" +
-                        quizSessionCounter.toLocaleString('en-US');
-                    document.getElementById("loading").style.display = "none";
-                    $('#dbGrid tbody').html(HtmlString);
-                    let databaseDetails = [{'name': 'databaseDetails', 'object': {'details':HtmlString}}];
-                    sqlInsert('webdata', databaseDetails);
+function prepareDashboard() {
+    $(function () {
+        let localData = JSON.parse(localStorage.getItem('positions'));
+        if (localData != null) {
+            console.log('Loading dashboard position');
+            $.each(localData, function (i, value) {
+                let id_name = "#";
+                id_name = id_name + value.id;
+                $(id_name).attr({
+                    "data-col": value.col,
+                    "data-row": value.row,
+                    "data-sizex": value.size_x,
+                    "data-sizey": value.size_y
                 });
-            }).catch(function (error) {
-                console.log(error);
             });
-        }
-    })
-}
-
-
-function showMainIndicators() {
-    let HtmlString = "";
-    connection.runSql("SELECT * FROM webdata WHERE name = 'mainIndicators' ").then(function(result) {
-        if (result.length === 1) {
-            HtmlString = result[0]['object']['details'];
-            $('#indicatorGrid tbody').html(HtmlString);
         } else {
-            connection.runSql('select * from courses').then(function (courses) {
-                courses.forEach(async function (course) {
-                    let course_id = course.course_id,
-                        completed = 0,
-                        completionRate = 0,
-                        avgGrade = 0,
-                        verifiedLearners = 0,
-                        honorLearners = 0,
-                        auditLearners = 0,
-                        videoWatchers = 0,
-                        videoDuration = 0,
-                        avgGrades = {};
-
-                    HtmlString += "<tr ItemId=" + course_id + "><td>";
-                    await connection.runSql("COUNT * from course_learner WHERE certificate_status = 'downloadable' ").then(function (result) {
-                        completed = result;
-                    });
-                    await connection.runSql("COUNT * from learner_index").then(function (result) {
-                        completionRate = completed / result;
-                    });
-                    await connection.runSql("SELECT [avg(final_grade)] from course_learner WHERE certificate_status = 'downloadable' ").then(function (result) {
-                        avgGrade = result[0]['avg(final_grade)'] * 100;
-                    });
-                    await connection.runSql("COUNT * from course_learner WHERE enrollment_mode = 'verified' ").then(function (result) {
-                        verifiedLearners = result;
-                    });
-                    await connection.runSql("COUNT * from course_learner WHERE enrollment_mode = 'honor' ").then(function (result) {
-                        honorLearners = result;
-                    });
-                    await connection.runSql("COUNT * from course_learner WHERE enrollment_mode = 'audit' ").then(function (result) {
-                        auditLearners = result;
-                    });
-                    await connection.runSql("SELECT [avg(final_grade)] from course_learner WHERE certificate_status = 'downloadable' GROUP BY enrollment_mode").then(function (results) {
-                        results.forEach(function (result) {
-                            avgGrades[result.enrollment_mode] = result.final_grade * 100;
-                        });
-                    });
-                    await connection.runSql("SELECT [sum(duration)] from video_interaction GROUP BY course_learner_id").then(function (watchers) {
-                        videoWatchers = watchers.length;
-                        videoDuration = 0;
-                        watchers.forEach(function (watcher) {
-                            videoDuration += watcher['sum(duration)'];
-                        });
-                    });
-                    let avgDuration = videoDuration / videoWatchers;
-                    HtmlString += completionRate.toFixed(2).toLocaleString('en-US')  + "</td><td>" +
-                        avgGrade.toFixed(2).toLocaleString('en-US')  + "</td><td>" +
-                        "Verified: " + verifiedLearners.toLocaleString('en-US') + "<br>" +
-                        "Honor: " + honorLearners.toLocaleString('en-US') + "<br>" +
-                        "Audit: " + auditLearners.toLocaleString('en-US') + "<br>" +
-                        "</td><td>" +
-                        "Verified: " + avgGrades['verified'] + "<br>" +
-                        "Honor: " + avgGrades['honor'] + "<br>" +
-                        "Audit: " + avgGrades['audit'] + "<br>" +
-                        "</td><td>" +
-                        (avgDuration/60).toFixed(2).toLocaleString('en-US') + " minutes" + "</td><td>" +
-                        videoWatchers.toLocaleString('en-US');
-                    $('#indicatorGrid tbody').html(HtmlString);
-                    let indicators = [{'name': 'mainIndicators', 'object': {'details': HtmlString}}];
-                    sqlInsert('webdata', indicators);
+            let defaultOrder = [{"id":"arcTile","col":1,"row":1,"size_x":12,"size_y":4},
+                {"id":"cycleTile","col":3,"row":5,"size_x":8,"size_y":4},
+                {"id":"areaTile","col":1,"row":9,"size_x":6,"size_y":3},{"id":"lineTile","col":7,"row":9,"size_x":6,"size_y":3},
+                {"id":"heatTile","col":1,"row":13,"size_x":5,"size_y":4},{"id":"mixedTile","col":6,"row":13,"size_x":7,"size_y":4},
+                {"id":"boxTile","col":1,"row":17,"size_x":6,"size_y":3}];
+            $.each(defaultOrder, function (i, value) {
+                let id_name = "#";
+                id_name = id_name + value.id;
+                $(id_name).attr({
+                    "data-col": value.col,
+                    "data-row": value.row,
+                    "data-sizex": value.size_x,
+                    "data-sizey": value.size_y
                 });
-            }).catch(function (error) {
-                console.log(error);
-                loader(false)
             });
+            console.log('Dashboard is in default state');
         }
-    })
-}
 
-// METADATA MODULES ////////////////////////////////////////////////////////////////////
-function ExtractCourseInformation(files) {
-    let courseMetadataMap = {};
-    let i = 0;
-    for (let file of files) {
-        i++;
-        let fileName = file['key'];
-        if (! fileName.includes('course_structure')) {
-            if (i === files.length){
-                toastr.error('Course structure file is missing!');
-                return courseMetadataMap
-            }
-        } else {
-            let child_parent_map = {};
-            let element_time_map = {};
-
-            let element_time_map_due = {};
-            let element_type_map = {};
-            let element_without_time = [];
-
-            let quiz_question_map = {};
-            let block_type_map = {};
-
-            let order_map = {};
-            let element_name_map = {};
-
-            let jsonObject = JSON.parse(file['value']);
-            for (let record in jsonObject) {
-                if (jsonObject[record]['category'] === 'course') {
-                    let course_id = record;
-                    if (course_id.startsWith('block-')) {
-                        course_id = course_id.replace('block-', 'course-');
-                        course_id = course_id.replace('+type@course+block@course', '');
+        let gridster;
+        $(function () {
+            gridster = $(".gridster ul").gridster({
+                widget_base_dimensions: [100, 120],
+                widget_margins: [5, 5],
+                helper: 'clone',
+                resize: {
+                    enabled: true,
+                    stop: function (event, ui) {
+                        let positions = JSON.stringify(this.serialize());
+                        localStorage.setItem('positions', positions);
+                        // drawVideoArc();
+                        // drawCycles();
                     }
-                    if (course_id.startsWith('i4x://')) {
-                        course_id = course_id.replace('i4x://', '');
-                        course_id = course_id.replace('course/', '');
-                    }
-                    courseMetadataMap['course_id'] = course_id;
-                    courseMetadataMap['course_name'] = jsonObject[record]['metadata']['display_name'];
-
-                    courseMetadataMap['start_date'] = new Date(jsonObject[record]['metadata']['start']);
-                    courseMetadataMap['end_date'] = new Date(jsonObject[record]['metadata']['end']);
-
-                    courseMetadataMap['start_time'] = new Date(courseMetadataMap['start_date']);
-                    courseMetadataMap['end_time'] = new Date(courseMetadataMap['end_date']);
-
-                    let elementPosition = 0;
-
-                    for (let child of jsonObject[record]['children']) {
-                        elementPosition++;
-                        child_parent_map[child] = record;
-                        order_map[child] = elementPosition;
-                    }
-                    element_time_map[record] = new Date(jsonObject[record]['metadata']['start']);
-                    element_type_map[record] = jsonObject[record]['category'];
-                } else {
-                    let element_id = record;
-                    element_name_map[element_id] = jsonObject[element_id]['metadata']['display_name'];
-                    let elementPosition = 0;
-
-                    for (let child of jsonObject[element_id]['children']) {
-                        elementPosition++;
-                        child_parent_map[child] = element_id;
-                        order_map[child] = elementPosition;
-                    }
-
-                    if ('start' in jsonObject[element_id]['metadata']) {
-                        element_time_map[element_id] = new Date(jsonObject[element_id]['metadata']['start']);
-                    } else {
-                        element_without_time.push(element_id);
-                    }
-
-                    if ('due' in jsonObject[element_id]['metadata']) {
-                        element_time_map_due[element_id] = new Date(jsonObject[element_id]['metadata']['due']);
-                    }
-
-                    element_type_map[element_id] = jsonObject[element_id]['category'];
-                    if (jsonObject[element_id]['category'] === 'problem') {
-                        if ('weight' in jsonObject[element_id]['metadata']) {
-                            quiz_question_map[element_id] = jsonObject[element_id]['metadata']['weight'];
-                        } else {
-                            quiz_question_map[element_id] = 1.0;
-                        }
-                    }
-                    if (jsonObject[element_id]['category'] === 'sequential') {
-                        if ('display_name' in jsonObject[element_id]['metadata']) {
-                            block_type_map[element_id] = jsonObject[element_id]['metadata']['display_name'];
-                        }
+                },
+                serialize_params: function ($w, wgd) {
+                    return {
+                        id: $($w).attr('id'),
+                        col: wgd.col,
+                        row: wgd.row,
+                        size_x: wgd.size_x,
+                        size_y: wgd.size_y,
+                    };
+                },
+                draggable: {
+                    handle: 'header',
+                    stop: function (event, ui) {
+                        let positions = JSON.stringify(this.serialize());
+                        localStorage.setItem('positions', positions);
+                        drawVideoArc();
                     }
                 }
-            }
-            for (let element_id of element_without_time) {
-                let element_start_time = '';
-                while (element_start_time === '') {
-                    let element_parent = child_parent_map[element_id];
-                    while (!(element_time_map.hasOwnProperty(element_parent))) {
-                        element_parent = child_parent_map[element_parent];
-                    }
-                    element_start_time = element_time_map[element_parent];
-                }
-                element_time_map[element_id] = element_start_time;
-            }
-            courseMetadataMap['element_time_map'] = element_time_map;
-            courseMetadataMap['element_time_map_due'] = element_time_map_due;
-            courseMetadataMap['element_type_map'] = element_type_map;
-            courseMetadataMap['quiz_question_map'] = quiz_question_map;
-            courseMetadataMap['child_parent_map'] = child_parent_map;
-            courseMetadataMap['block_type_map'] = block_type_map;
-            courseMetadataMap['order_map'] = order_map;
-            courseMetadataMap['element_name_map'] = element_name_map;
-            console.log('Metadata map ready');
-            return courseMetadataMap;
-        }
-    }
+            }).data('gridster');
+        });
+    });
+
+    $(function() {
+        $('input[name="daterange"]').daterangepicker({
+            opens: 'left'
+        }, function(start, end, label) {
+            document.getElementById('allDatesRadio').checked = false;
+            document.getElementById('courseDatesRadio').checked = false;
+            getGraphElementMap(drawCharts, start.format('YYYY-MM-DD'), end.format('YYYY-MM-DD'));
+        });
+    });
 }
 
 
-function processEnrollment(input_file, course_metadata_map){
+function processEnrollment(course_id, input_file, course_metadata_map){
     let course_learner_map = {};
     let learner_enrollment_time_map = {};
     let enrolled_learner_set = new Set();
-    let course_id = '';
     let learner_index_record = [];
     let lines = input_file.split('\n');
     for (let line of lines.slice(1, )) {
         let record = line.split('\t');
         if (record.length < 2) { continue; }
-        let global_learner_id = record[1];
-        course_id = record[2];
-        let time = new Date(record[3]);
-        let course_learner_id = course_id + '_' + global_learner_id;
+        let global_learner_id = record[1],
+            time = new Date(record[3]),
+            course_learner_id = course_id + '_' + global_learner_id;
         if (cmp_datetime(course_metadata_map['end_time'], new Date(time)) === 1) {
             enrolled_learner_set.add(global_learner_id);
             let array = [global_learner_id, course_id, course_learner_id];
@@ -715,286 +365,283 @@ function processEnrollment(input_file, course_metadata_map){
             learner_enrollment_time_map[global_learner_id] = time;
         }
     }
-    return {'course_learner_map': course_learner_map,
-        'learner_enrollment_time_map': learner_enrollment_time_map,
-        'enrolled_learner_set': enrolled_learner_set,
-        'learner_index_record': learner_index_record,
-        'course_id': course_id}
+    return {'courseLearnerMap': course_learner_map,
+        'learnerEnrollmentTimeMap': learner_enrollment_time_map,
+        'enrolledLearnerSet': enrolled_learner_set,
+        'learnerIndexRecord': learner_index_record
+    }
+}
+
+
+function processCertificates(inputFile, enrollmentValues) {
+    let uncertifiedLearners = 0,
+        certifiedLearners = 0,
+        courseLearnerRecord = [];
+    for (let line of inputFile.split('\n')) {
+        let record = line.split('\t');
+        if (record.length < 10) { continue; }
+        let global_learner_id = record[1],
+            final_grade = record[3],
+            enrollment_mode = record[14].replace(/\n/g, ''),
+            certificate_status = record[7],
+            register_time = '';
+        if (global_learner_id in enrollmentValues.courseLearnerMap) {
+            register_time =  enrollmentValues.learnerEnrollmentTimeMap[global_learner_id];
+        }
+        if (global_learner_id in  enrollmentValues.courseLearnerMap) {
+            certifiedLearners++;
+            let array = [ enrollmentValues.courseLearnerMap[global_learner_id], final_grade, enrollment_mode, certificate_status, register_time];
+            courseLearnerRecord.push(array);
+        }
+        else {
+            uncertifiedLearners++;
+        }
+    }
+    return {'certifiedLearners': certifiedLearners,
+        'uncertifiedLearners': uncertifiedLearners,
+        'courseLearnerRecord': courseLearnerRecord
+    }
+}
+
+
+function processMailMap(inputFile, enrollmentValues) {
+    let learnerMailMap = {};
+    for (let line of inputFile.split('\n')) {
+        let record = line.split('\t');
+        if (enrollmentValues.enrolledLearnerSet.has(record[0])) {
+            learnerMailMap[record[0]] = record[4];
+        }
+    }
+    return learnerMailMap
+}
+
+
+function processDemographics(courseId, inputFile, enrollmentValues, learnerMailMap) {
+    let learnerDemographicRecord = [];
+    for (let line of inputFile.split('\n')) {
+        let record = line.split('\t');
+        if (record.length < 10) { continue; }
+        let global_learner_id = record[1],
+            gender = record[7],
+            year_of_birth = record[9],
+            level_of_education = record[10],
+            country = record[13],
+            course_learner_id = courseId + '_' + global_learner_id;
+        if (enrollmentValues.enrolledLearnerSet.has(global_learner_id)) {
+            let array = [course_learner_id, gender, year_of_birth, level_of_education, country, learnerMailMap[global_learner_id]];
+            learnerDemographicRecord.push(array);
+        }
+    }
+    return {'learnerDemographicRecord': learnerDemographicRecord}
+
 }
 
 
 function learner_mode(files) {
     loader(true);
-    let course_record = [];
-    let course_element_record = [];
-    let learner_index_record = [];
-    let course_learner_record = [];
-    let learner_demographic_record = [];
-    let course_metadata_map = ExtractCourseInformation(files);
 
-    if (Object.keys(course_metadata_map).length > 1) {
-        let course_id = course_metadata_map.course_id;
-        course_record.push([course_metadata_map['course_id'], course_metadata_map['course_name'], course_metadata_map['start_time'], course_metadata_map['end_time']]);
-        for (let element_id in course_metadata_map['element_time_map']) {
-            let element_start_time = new Date(course_metadata_map['element_time_map'][element_id]);
-            let week = getDayDiff(course_metadata_map['start_time'], element_start_time) / 7 + 1;
-            let array = [element_id, course_metadata_map['element_type_map'][element_id], week, course_metadata_map['course_id']];
-            course_element_record.push(array);
-        }
-        console.log('Finished processing ' + course_element_record.length + ' elements in metadata map');
+    let courseMetadataMap = metadataProcessing.ExtractCourseInformation(files);
+    if (Object.keys(courseMetadataMap).length < 1) {
+        loader(false);
+    } else {
+        let courseRecord = [],
+            course_id = courseMetadataMap.course_id,
+            fileMap = {};
+        courseRecord.push([courseMetadataMap['course_id'], courseMetadataMap['course_name'], courseMetadataMap['start_time'], courseMetadataMap['end_time']]);
 
-        let course_learner_map = {};
-        let learner_enrollment_time_map = {};
-        let enrolled_learner_set = new Set();
-        // let course_id = '';
-        let enrollmentValues = {}
+        let shortId = course_id.slice(course_id.indexOf(':') + 1, );
+        shortId = shortId.replace('+', '-').replace('+', '-');
         for (let file of files) {
-            let file_name = file['key'];
-            let input_file = file['value'];
-            if (file_name.includes('student_courseenrollment')){
-
-                // enrollmentValues = processEnrollment(input_file, course_metadata_map);
-
-                let lines = input_file.split('\n');
-                for (let line of lines.slice(1, )) {
-                    let record = line.split('\t');
-                    if (record.length < 2) { continue; }
-                    let global_learner_id = record[1];
-                    course_id = record[2];
-                    let time = new Date(record[3]);
-                    let course_learner_id = course_id + '_' + global_learner_id;
-                    if (cmp_datetime(course_metadata_map['end_time'], new Date(time)) === 1) {
-                        enrolled_learner_set.add(global_learner_id);
-                        let array = [global_learner_id, course_id, course_learner_id];
-                        learner_index_record.push(array);
-                        course_learner_map[global_learner_id] = course_learner_id;
-                        learner_enrollment_time_map[global_learner_id] = time;
-                    }
-                }
-            }
+            let fileName = file['key'];
+            let shortName = fileName.slice(fileName.indexOf(shortId) + shortId.length + 1, fileName.indexOf('.'));
+            fileMap[shortName] = file['value'];
         }
 
-        let learner_mail_map = {};
-        for (let file of files) {
-            let file_name = file['key'];
-            if (file_name.includes('auth_user-')) {
-                let input_file = file['value'];
-                let lines = input_file.split('\n');
-                for (let line of lines) {
-                    let record = line.split('\t');
-                    if (enrolled_learner_set.has(record[0])) {
-                        learner_mail_map[record[0]] = record[4];
-                    }
-                }
-            }
-        }
-        for (let file of files) {
-            let file_name = file['key'];
-            let num_uncertifiedLearners = 0;
-            let num_certifiedLearners = 0;
-            if (file_name.includes('certificates_generatedcertificate')) {
-                let input_file = file['value'];
-                let lines = input_file.split('\n');
-                for (let line of lines) {
-                    let record = line.split('\t');
-                    if (record.length < 10) { continue; }
-                    let global_learner_id = record[1];
-                    let final_grade = record[3];
-                    let enrollment_mode = record[14].replace(/\n/g, '');
-                    let certificate_status = record[7];
-                    let register_time = '';
-                    if (global_learner_id in course_learner_map) {
-                        register_time =  learner_enrollment_time_map[global_learner_id];
-                    }
-                    if (global_learner_id in  course_learner_map) {
-                        num_certifiedLearners++;
-                        let array = [ course_learner_map[global_learner_id], final_grade, enrollment_mode, certificate_status, register_time];
-                        course_learner_record.push(array);
-                    }
-                    else {
-                        num_uncertifiedLearners++;
-                    }
-                }
-            }
-        }
-        for (let file of files) {
-            let file_name = file['key'];
-            if (file_name.includes('auth_userprofile')) {
-                let input_file = file['value'];
-                let lines = input_file.split('\n');
-                for (let line of lines) {
-                    let record = line.split('\t');
-                    if (record.length < 10) { continue; }
-                    let global_learner_id = record[1];
-                    let gender = record[7];
-                    let year_of_birth = record[9];
-                    let level_of_education = record[10];
-                    let country = record[13];
-                    let course_learner_id = course_id + '_' + global_learner_id;
-                    if (enrolled_learner_set.has(global_learner_id)) {
-                        let array = [course_learner_id, gender, year_of_birth, level_of_education, country, learner_mail_map[global_learner_id]];
-                        learner_demographic_record.push(array);
-                    }
-                }
-            }
-        }
+        let requiredFiles = ['student_courseenrollment-prod-analytics', 'auth_user-prod-analytics',
+            'certificates_generatedcertificate-prod-analytics', 'auth_userprofile-prod-analytics',
+            'prod'];
 
-        let forum_interaction_records = [];
-        for (let file of files) {
-            let file_name = file['key'];
-            if (file_name.includes(".mongo")) {
-                forum_interaction_records = forum_interaction(file['value'], course_metadata_map);
-            }
-        }
-
-        console.log('All metadata ready');
-        if (course_record.length > 0) {
-            let rows = [];
-            for (let array of course_record) {
-                let course_id = course_metadata_map['course_id'];
-                let course_name = course_metadata_map['course_name'];
-                let start_time = course_metadata_map['start_time'];
-                let end_time = course_metadata_map['end_time'];
-                let values = {'course_id': course_id, 'course_name': course_name,
-                    'start_time': start_time, 'end_time': end_time};
-                rows.push(values);
-            }
-            sqlInsert('courses', rows);
+        if (! requiredFiles.every(function(x) { return x in fileMap; })) {
+            toastr.error('Some files are missing');
+            loader(false);
         } else {
-            console.log('no courses info');
-        }
-        if (course_element_record.length > 0) {
-            let data = [];
-            for (let array of course_element_record) {
-                let element_id = array[0];
-                let element_type = array[1];
-                let week = process_null(array[2]);
-                let course_id = array[3];
-                let values = {'element_id': element_id, 'element_type': element_type,
-                    'week': week, 'course_id': course_id};
-                data.push(values);
+            let courseElementRecord = [];
+            for (let element_id in courseMetadataMap['element_time_map']) {
+                let element_start_time = new Date(courseMetadataMap['element_time_map'][element_id]);
+                let week = getDayDiff(courseMetadataMap['start_time'], element_start_time) / 7 + 1;
+                let array = [element_id, courseMetadataMap['element_type_map'][element_id], week, courseMetadataMap['course_id']];
+                courseElementRecord.push(array);
             }
-            sqlInsert ('course_elements', data);
-        }
-        else {
-            console.log('no course element info');
-        }
-        if (learner_index_record.length > 0) {
-            let data = [];
-            for (let array of learner_index_record) {
-                let global_learner_id = array[0];
-                let course_id = array[1];
-                let course_learner_id = array[2];
-                let values = {'global_learner_id': global_learner_id.toString(), 'course_id': course_id,
-                    'course_learner_id': course_learner_id};
-                data.push(values);
-            }
-            sqlInsert ('learner_index', data);
-        }
-        else {
-            console.log('no learner index info');
-        }
-        if (course_learner_record.length > 0) {
-            let data = [];
-            for (let array of course_learner_record) {
-                let course_learner_id = array[0];
-                let final_grade = parseFloat(process_null(array[1]));
-                let enrollment_mode = array[2];
-                let certificate_status = array[3];
-                let register_time = new Date(process_null(array[4]));
-                let values = {'course_learner_id': course_learner_id, 'final_grade': final_grade,
-                    'enrollment_mode': enrollment_mode, 'certificate_status': certificate_status,
-                    'register_time': register_time};
-                data.push(values);
-            }
-            sqlInsert('course_learner', data);
-        }
-        else {
-            console.log('no enrolled students info');
-        }
-        if (learner_demographic_record.length > 0) {
-            let data = [];
-            for (let array of learner_demographic_record) {
-                let course_learner_id = process_null(array[0]);
-                let gender = array[1];
-                let year_of_birth = parseInt(process_null(array[2]));
-                let level_of_education = array[3];
-                let country = array[4];
-                let email = array[5];
-                email = email.replace(/"/g, '');
-                let values = {'course_learner_id': course_learner_id, 'gender': gender, 'year_of_birth': year_of_birth,
-                    'level_of_education': level_of_education, 'country': country, 'email': email};
-                data.push(values);
-            }
-            sqlInsert('learner_demographic', data);
-        }
-        else {
-            console.log('no learner demographic info');
-        }
-        if (forum_interaction_records.length > 0){
-            let data = [];
-            for (let array of forum_interaction_records) {
-                let post_id = process_null(array[0]);
-                let course_learner_id = array[1];
-                let post_type = array[2];
-                let post_title = cleanUnicode(array[3]);
-                let post_content = cleanUnicode(array[4]);
-                let post_timestamp = array[5];
-                let post_parent_id = array[6];
-                let post_thread_id = array[7];
+            console.log('Finished processing ' + courseElementRecord.length + ' course components in metadata map');
 
-                let values = {"post_id": post_id, "course_learner_id": course_learner_id, "post_type": post_type,
-                    "post_title": post_title, "post_content": post_content, "post_timestamp":post_timestamp,
-                    "post_parent_id": post_parent_id, "post_thread_id":post_thread_id};
+            let enrollmentValues = processEnrollment(course_id, fileMap['student_courseenrollment-prod-analytics'], courseMetadataMap);
 
-                data.push(values);
+            let learnerMailMap = processMailMap(fileMap['auth_user-prod-analytics'], enrollmentValues);
+
+            let certificateValues = processCertificates(fileMap['certificates_generatedcertificate-prod-analytics'], enrollmentValues);
+
+            let demographicValues = processDemographics(course_id, fileMap['auth_userprofile-prod-analytics'], enrollmentValues, learnerMailMap);
+
+            let forumInteractionRecords = forum_interaction(fileMap['prod'], courseMetadataMap);
+
+            console.log('All metadata ready');
+            if (courseRecord.length === 0) {
+                console.log('No courses info');
+            } else {
+                let rows = [];
+                for (let array of courseRecord) {
+                    let course_id = courseMetadataMap['course_id'];
+                    let course_name = courseMetadataMap['course_name'];
+                    let start_time = courseMetadataMap['start_time'];
+                    let end_time = courseMetadataMap['end_time'];
+                    let values = {
+                        'course_id': course_id, 'course_name': course_name,
+                        'start_time': start_time, 'end_time': end_time
+                    };
+                    rows.push(values);
+                }
+                sqlInsert('courses', rows, connection);
             }
 
-            connection.runSql('DELETE FROM forum_interaction');
-            for (let array of data){
-                try {
-                    sqlInsert('forum_interaction', [array])
-                } catch(error) {
-                    console.log(array)
+            if (courseElementRecord.length === 0) {
+                console.log('No course element info');
+            } else {
+                let data = [];
+                for (let array of courseElementRecord) {
+                    let element_id = array[0];
+                    let element_type = array[1];
+                    let week = process_null(array[2]);
+                    let course_id = array[3];
+                    let values = {
+                        'element_id': element_id, 'element_type': element_type,
+                        'week': week, 'course_id': course_id
+                    };
+                    data.push(values);
+                }
+                sqlInsert('course_elements', data, connection);
+            }
+
+            if (enrollmentValues.learnerIndexRecord.length === 0) {
+                console.log('no learner index info');
+            } else {
+                let data = [];
+                for (let array of enrollmentValues.learnerIndexRecord) {
+                    let global_learner_id = array[0];
+                    let course_id = array[1];
+                    let course_learner_id = array[2];
+                    let values = {
+                        'global_learner_id': global_learner_id.toString(), 'course_id': course_id,
+                        'course_learner_id': course_learner_id
+                    };
+                    data.push(values);
+                }
+                sqlInsert('learner_index', data, connection);
+            }
+
+            if (certificateValues.courseLearnerRecord.length === 0) {
+                console.log('no enrolled students info');
+            } else {
+                let data = [];
+                for (let array of certificateValues.courseLearnerRecord) {
+                    let course_learner_id = array[0],
+                        final_grade = parseFloat(process_null(array[1])),
+                        enrollment_mode = array[2],
+                        certificate_status = array[3],
+                        register_time = new Date(process_null(array[4])),
+                        values = {
+                            'course_learner_id': course_learner_id, 'final_grade': final_grade,
+                            'enrollment_mode': enrollment_mode, 'certificate_status': certificate_status,
+                            'register_time': register_time
+                        };
+                    data.push(values);
+                }
+                sqlInsert('course_learner', data, connection);
+            }
+
+            if (demographicValues.learnerDemographicRecord.length === 0) {
+                console.log('no learner demographic info');
+            } else {
+                let data = [];
+                for (let array of demographicValues.learnerDemographicRecord) {
+                    let course_learner_id = process_null(array[0]),
+                        gender = array[1],
+                        year_of_birth = parseInt(process_null(array[2])),
+                        level_of_education = array[3],
+                        country = array[4],
+                        email = array[5];
+                    email = email.replace(/"/g, '');
+                    let values = {
+                        'course_learner_id': course_learner_id, 'gender': gender, 'year_of_birth': year_of_birth,
+                        'level_of_education': level_of_education, 'country': country, 'email': email
+                    };
+                    data.push(values);
+                }
+                sqlInsert('learner_demographic', data, connection);
+            }
+
+            if (forumInteractionRecords.length === 0) {
+                console.log('no forum interaction records')
+            } else {
+                let data = [];
+                for (let array of forumInteractionRecords) {
+                    let post_id = process_null(array[0]),
+                        course_learner_id = array[1],
+                        post_type = array[2],
+                        post_title = cleanUnicode(array[3]),
+                        post_content = cleanUnicode(array[4]),
+                        post_timestamp = array[5],
+                        post_parent_id = array[6],
+                        post_thread_id = array[7];
+                    let values = {
+                        "post_id": post_id, "course_learner_id": course_learner_id, "post_type": post_type,
+                        "post_title": post_title, "post_content": post_content, "post_timestamp": post_timestamp,
+                        "post_parent_id": post_parent_id, "post_thread_id": post_thread_id
+                    };
+                    data.push(values);
+                }
+                connection.runSql('DELETE FROM forum_interaction');
+                for (let array of data) {
+                    try {
+                        sqlInsert('forum_interaction', [array], connection)
+                    } catch (error) {
+                        console.log(array)
+                    }
                 }
             }
-        } else {
-            console.log('no forum interaction records')
-        }
 
-        let quiz_question_map = course_metadata_map['quiz_question_map']; //object
-        let block_type_map = course_metadata_map['block_type_map']; //object
-        let element_time_map_due = course_metadata_map['element_time_map_due']; //object
-        let data = [];
-        for (let question_id in quiz_question_map) {
-            let question_due = '';
-            let question_weight = quiz_question_map[question_id];
-            let quiz_question_parent = course_metadata_map['child_parent_map'][question_id];
-            if (question_due === '' && quiz_question_parent in element_time_map_due) {
-                question_due = element_time_map_due[quiz_question_parent];
-            }
-            while (!(quiz_question_parent in block_type_map)) {
-                quiz_question_parent = course_metadata_map['child_parent_map'][quiz_question_parent];
-                if (question_due === '' && quiz_question_parent in element_time_map_due) {
-                    question_due = element_time_map_due [quiz_question_parent];
+            let quizQuestionMap = courseMetadataMap['quiz_question_map'],
+                blockTypeMap = courseMetadataMap['block_type_map'],
+                elementTimeMapDue = courseMetadataMap['element_time_map_due'],
+                data = [];
+            for (let questionId in quizQuestionMap) {
+                let questionDue = '',
+                    questionWeight = quizQuestionMap[questionId],
+                    quizQuestionParent = courseMetadataMap['child_parent_map'][questionId];
+                if (questionDue === '' && quizQuestionParent in elementTimeMapDue) {
+                    questionDue = elementTimeMapDue[quizQuestionParent];
                 }
+                while (!(quizQuestionParent in blockTypeMap)) {
+                    quizQuestionParent = courseMetadataMap['child_parent_map'][quizQuestionParent];
+                    if (questionDue === '' && quizQuestionParent in elementTimeMapDue) {
+                        questionDue = elementTimeMapDue [quizQuestionParent];
+                    }
+                }
+                let quizQuestionType = blockTypeMap[quizQuestionParent];
+                questionDue = process_null(questionDue);
+                let values = {
+                    'question_id': questionId, 'question_type': quizQuestionType, 'question_weight': questionWeight,
+                    'question_due': new Date(questionDue)
+                };
+                data.push(values);
             }
-            let quiz_question_type = block_type_map[quiz_question_parent];
-            question_due = process_null(question_due);
-            let values = {'question_id':question_id, 'question_type':quiz_question_type, 'question_weight':question_weight,
-                'question_due': new Date(question_due)};
-            data.push(values);
+            sqlInsert('quiz_questions', data, connection);
+
+            let metadataMap = [{'name': 'metadata_map', 'object': courseMetadataMap}];
+            sqlInsert('metadata', metadataMap, connection);
         }
-        sqlInsert('quiz_questions', data);
-        let metadataMap = [{'name': 'metadata_map', 'object': course_metadata_map}];
-        sqlInsert('metadata', metadataMap);
-    }
-    else {
-        console.log('Course structure file not found');
-        $('#loading').hide();
-        $.unblockUI();
     }
 }
+
 
 // HELPER FUNCTIONS
 function cmp_datetime(a_datetime, b_datetime){
@@ -1170,180 +817,6 @@ function weirdDateFinder(course_metadata_map, log_files, index, total, chunk, to
 
 
 // TRANSLATION MODULES
-function session_mode(course_metadata_map, log_files, index, total, chunk){
-    let current_course_id = course_metadata_map["course_id"];
-    current_course_id = current_course_id.slice(current_course_id.indexOf('+') + 1, current_course_id.lastIndexOf('+') + 7);
-
-    let zero_start = performance.now();
-    // let current_date = course_metadata_map["start_date"];
-    // let end_next_date  = getNextDay(course_metadata_map["end_date"]);
-    let learner_all_event_logs = [];
-    let updated_learner_all_event_logs = {};
-    let session_record = [];
-
-    for (let f in log_files){
-        let file_name = log_files[f]['key'];
-        let input_file = log_files[f]['value'];
-        if (file_name.includes('log')){
-
-            let today = new Date();
-            let start = today.getHours() + ":" + today.getMinutes() + ":" + today.getSeconds() + '.' + today.getMilliseconds();
-            console.log('Starting at', start);
-            learner_all_event_logs = [];
-            learner_all_event_logs = JSON.parse(JSON.stringify(updated_learner_all_event_logs));
-            updated_learner_all_event_logs = [];
-
-            let course_learner_id_set = new Set();
-            for (const course_learner_id in learner_all_event_logs){
-                course_learner_id_set.add(course_learner_id)
-            }
-            console.log(input_file.length);
-            let lines = input_file.split('\n');
-            console.log(lines.length + ' lines to process in file');
-
-            for (let line of lines){
-                if (line.length < 10 || !(line.includes(current_course_id)) ) { //
-                    continue;
-                }
-                let jsonObject = JSON.parse(line);
-                if (jsonObject['context'].hasOwnProperty('user_id') === false ){ continue; }
-                let global_learner_id = jsonObject["context"]["user_id"];
-                let event_type = jsonObject["event_type"];
-
-                if (global_learner_id != ''){
-                    let course_id = jsonObject["context"]["course_id"];
-
-                    let course_learner_id = course_id + "_" + global_learner_id;
-
-                    let event_time = new Date(jsonObject["time"]);
-
-                    if (course_learner_id_set.has(course_learner_id)){
-                        learner_all_event_logs[course_learner_id].push({"event_time":event_time, "event_type":event_type});
-                    } else {
-                        learner_all_event_logs[course_learner_id] = [{"event_time":event_time, "event_type":event_type}];
-                        course_learner_id_set.add(course_learner_id);
-                    }
-                }
-            }
-
-            for (let course_learner_id in learner_all_event_logs){
-                let event_logs = learner_all_event_logs[course_learner_id];
-
-                event_logs.sort(function(a, b) {
-                    return new Date(a.event_time) - new Date(b.event_time) ;
-                });
-
-                let session_id = "";
-                let start_time = "";
-                let end_time = "";
-                let final_time = "";
-                for (let i in event_logs){
-                    if (start_time === ''){
-                        start_time = new Date(event_logs[i]["event_time"]);
-                        end_time = new Date(event_logs[i]["event_time"]);
-                    } else {
-                        let verification_time = new Date(end_time);
-                        if (new Date(event_logs[i]["event_time"]) > verification_time.setMinutes(verification_time.getMinutes() + 30)){
-                            let session_id = course_learner_id + '_' + start_time + '_' + end_time;
-                            let duration = (end_time - start_time)/1000;
-
-                            if (duration > 5){
-                                let array = [session_id, course_learner_id, start_time, end_time, duration];
-                                session_record.push(array);
-                            }
-
-                            final_time = new Date(event_logs[i]["event_time"]);
-
-                            //Re-initialization
-                            session_id = "";
-                            start_time = new Date(event_logs[i]["event_time"]);
-                            end_time = new Date(event_logs[i]["event_time"]);
-
-                        } else {
-                            if (event_logs[i]["event_type"] === "page_close"){
-                                end_time = new Date(event_logs[i]["event_time"]);
-                                session_id = course_learner_id + '_' + start_time + '_' + end_time;
-                                let duration = (end_time - start_time)/1000;
-
-                                if (duration > 5){
-                                    let array = [session_id, course_learner_id, start_time, end_time, duration];
-                                    session_record.push(array);
-                                }
-                                session_id = "";
-                                start_time = "";
-                                end_time = "";
-
-                                final_time = new Date(event_logs[i]["event_time"]);
-
-                            } else {
-                                end_time = new Date(event_logs[i]["event_time"]);
-                            }
-                        }
-                    }
-                }
-                if (final_time !== ""){
-                    let new_logs = [];
-                    for (let x in event_logs){
-                        let log = event_logs[x];
-                        if (new Date(log["event_time"]) >= final_time){
-                            new_logs.push(log);
-                        }
-                    }
-                    updated_learner_all_event_logs[course_learner_id] = new_logs;
-                }
-            }
-
-            //current_date = getNextDay(current_date)
-
-            // Filter duplicated records
-            let updated_session_record = [];
-            let session_id_set = new Set();
-            for (let array of session_record){
-                let session_id = array[0];
-                if (!(session_id_set.has(session_id))){
-                    session_id_set.add(session_id);
-                    updated_session_record.push(array);
-                }
-            }
-            console.log('Session record:', session_record.length, 'session_id_set', session_id_set.length);
-
-            session_record = updated_session_record;
-            if (session_record.length > 0){
-                let data = [];
-                for (let x in session_record){
-                    let array = session_record[x];
-                    let session_id = array[0];
-                    if (chunk !== 0) {
-                        session_id = session_id + '_' + chunk
-                    }
-                    if (index !== 0) {
-                        session_id = session_id + '_' + index
-                    }
-                    let course_learner_id = array[1];
-                    let start_time = array[2];
-                    let end_time = array[3];
-                    let duration = process_null(array[4]);
-                    let values = {'session_id':session_id, 'course_learner_id':course_learner_id,
-                        'start_time':start_time,
-                        'end_time': end_time, 'duration':duration};
-                    data.push(values);
-                }
-                console.log('Send to storage at ' + new Date());
-                console.log(performance.now() - zero_start);
-
-                sqlLogInsert('sessions', data);
-                connection.runSql("DELETE FROM webdata WHERE name = 'graphElements'");
-                connection.runSql("DELETE FROM webdata WHERE name = 'databaseDetails'");
-                connection.runSql("DELETE FROM webdata WHERE name = 'mainIndicators'");
-                connection.runSql("DELETE FROM webdata WHERE name = 'arcElements'");
-                connection.runSql("DELETE FROM webdata WHERE name = 'cycleElements'");
-                progress_display(data.length + ' sessions', index);
-            } else {
-                console.log('no session info', index, total);
-            }
-        }
-    }
-}
 
 function forum_interaction(forum_file, course_metadata_map){
     let forum_interaction_records = [];
@@ -2712,21 +2185,10 @@ function drawCharts(graphElementMap, start, end) {
     let boxplotData = {
         labels: dateLabels,
         datasets: [{
-        //     label: 'All Posts',
-        //     backgroundColor: 'rgba(255,0,0,0.5)',
-        //     borderColor: 'red',
-        //     borderWidth: 1,
-        //     outlierColor: '#999999',
-        //     padding: 10,
-        //     itemRadius: 0,
-        //     outlierColor: '#999999',
-        //     data: postContentData
-        // }, {
             label: 'Posts by Regulars - ' + graphElementMap['forumSegmentation']['regularPosters'] + ' students',
             backgroundColor:  'rgba(0,0,255,0.5)',
             borderColor: 'blue',
             borderWidth: 1,
-            outlierColor: '#999999',
             padding: 10,
             itemRadius: 0,
             outlierColor: '#999999',
@@ -2736,7 +2198,6 @@ function drawCharts(graphElementMap, start, end) {
             backgroundColor:  '#11aa00',
             borderColor: 'green',
             borderWidth: 1,
-            outlierColor: '#999999',
             padding: 10,
             itemRadius: 0,
             outlierColor: '#999999',
@@ -3317,7 +2778,7 @@ function getGraphElementMap(callback, start, end) {
                                 'object': graphElementMap
                             }];
                             toastr.info('Processing graph data');
-                            sqlInsert('webdata', graphElements);
+                            sqlInsert('webdata', graphElements, connection);
                             callback(graphElementMap, start, end);
                         });
                     });
@@ -3898,9 +3359,10 @@ function zeroIfEmptyArray(array){
 async function deleteEverything() {
     let query = 'DELETE FROM sessions';
     let r = confirm("WARNING!\nTHIS WILL DELETE EVERYTHING IN THE DATABASE");
-    if (r === true) {
-        $('#loading').show();
-        $.blockUI();
+    if (r === false) {
+        alert('Nothing was deleted')
+    } else {
+        loader(true);
         await connection.clear('sessions').then(function () {
             console.log('Cleared sessions table');
         }).catch(function (err) {
@@ -3939,18 +3401,16 @@ async function deleteEverything() {
         });
         await connection.dropDb().then(function (result) {
             if (result === 1) {
-                $('#loading').hide();
-                $.unblockUI();
+                loader(false);
                 toastr.success('Database has been deleted!')
             }
         }).catch(function (err) {
             console.log(err);
             alert('The deletion process started but did not finish,\n please refresh and try again');
         });
-    } else {
-        alert('Nothing was deleted')
     }
 }
+
 
 Date.prototype.getWeek = function() {
     let date = new Date(this.getTime());
@@ -3961,11 +3421,13 @@ Date.prototype.getWeek = function() {
         - 3 + (week1.getDay() + 6) % 7) / 7);
 };
 
+
 Date.prototype.getWeekYear = function() {
     let date = new Date(this.getTime());
     date.setDate(date.getDate() + 3 - (date.getDay() + 6) % 7);
     return date.getFullYear();
 };
+
 
 function getEdxDbQuery() {
     let db = "DEFINE DB edxdb;";
@@ -4451,7 +3913,7 @@ function videoTransitions() {
                         arcData['links'] = links;
                         let arcElements = [{'name': 'arcElements', 'object': arcData}];
                         connection.runSql("DELETE FROM webdata WHERE name = 'arcElements'").then(function (success) {
-                            sqlInsert('webdata', arcElements);
+                            sqlInsert('webdata', arcElements, connection);
                             drawVideoArc();
                         });
                     }
@@ -5018,10 +4480,9 @@ function moduleTransitions() {
             cycleData['links'] = weeklyLinks;
             let cycleElements = [{'name': 'cycleElements', 'object': cycleData}];
             connection.runSql("DELETE FROM webdata WHERE name = 'cycleElements'").then(function (success) {
-                sqlInsert('webdata', cycleElements);
+                sqlInsert('webdata', cycleElements, connection);
                 drawCycles();
-                $('#loading').hide();
-                $.unblockUI();
+                loader(false);
             });
         }
     })
@@ -5095,6 +4556,7 @@ function drawCycles(){
                 .text("Learning Path");
 
             let defs = svg.append("svg:defs");
+
             function marker(color) {
                 defs.append("svg:marker")
                     .attr("id", color.replace("#", ""))
@@ -5109,6 +4571,7 @@ function drawCycles(){
                     .style("fill", color.replace("#", ""));
                 return "url(" + color + ")";
             }
+
             let idToNode = {};
             linkData.nodes.forEach(function (n) {
                 idToNode[n.name] = n;
@@ -5277,127 +4740,3 @@ function drawCycles(){
     })
 }
 
-
-function webdataJSON(){
-    connection.runSql("SELECT * FROM webdata").then(function(webElements) {
-        let jsonString = '[';
-        webElements.forEach(function (element) {
-            jsonString += JSON.stringify(element) + ',\n'
-        });
-        console.log(jsonString.slice(0, jsonString.lastIndexOf(',')) + ']')
-    });
-}
-
-
-function populateSamples(courseId){
-    let courseMap = {'FP101x': "DelftX+FP101x+3T2015.json",
-                     'TW3421x': "DelftX+TW3421x+3T2016.json",
-                     'AE1110x':"DelftX+AE1110x+2T2017.json",
-                     "Visual101x":"DelftX+Visual101x+1T2016",
-                     "Mind101x":"DelftX+MIND101x+1T2018.json"
-    };
-    let courseFile = 'samples/' + courseMap[courseId];
-    connection.runSql("SELECT * FROM webdata").then(function(metadata) {
-        if (metadata.length > 1){
-            toastr.error('The database has to be clear first!');
-        } else {
-            toastr.info('Reading sample');
-            $.getJSON(courseFile, function(json) {
-                sqlInsert('webdata', json);
-                toastr.success('Please reload the page now', 'Sample data ready', {timeOut: 0})
-            })
-        }
-    })
-}
-
-
-
-function prepareDashboard() {
-    $(function () {
-        let localData = JSON.parse(localStorage.getItem('positions'));
-        if (localData != null) {
-            console.log('Loading dashboard position');
-            $.each(localData, function (i, value) {
-                let id_name = "#";
-                id_name = id_name + value.id;
-                $(id_name).attr({
-                    "data-col": value.col,
-                    "data-row": value.row,
-                    "data-sizex": value.size_x,
-                    "data-sizey": value.size_y
-                });
-            });
-        } else {
-            let defaultOrder = [{"id":"arcTile","col":1,"row":1,"size_x":12,"size_y":4},
-                {"id":"cycleTile","col":3,"row":5,"size_x":8,"size_y":4},
-                {"id":"areaTile","col":1,"row":9,"size_x":6,"size_y":3},{"id":"lineTile","col":7,"row":9,"size_x":6,"size_y":3},
-                {"id":"heatTile","col":1,"row":13,"size_x":5,"size_y":4},{"id":"mixedTile","col":6,"row":13,"size_x":7,"size_y":4},
-                {"id":"boxTile","col":1,"row":17,"size_x":6,"size_y":3}];
-            $.each(defaultOrder, function (i, value) {
-                let id_name = "#";
-                id_name = id_name + value.id;
-                $(id_name).attr({
-                    "data-col": value.col,
-                    "data-row": value.row,
-                    "data-sizex": value.size_x,
-                    "data-sizey": value.size_y
-                });
-            });
-            console.log('Dashboard is in default state');
-        }
-
-        let gridster;
-        $(function () {
-            gridster = $(".gridster ul").gridster({
-                widget_base_dimensions: [100, 120],
-                widget_margins: [5, 5],
-                helper: 'clone',
-                resize: {
-                    enabled: true,
-                    stop: function (event, ui) {
-                        let positions = JSON.stringify(this.serialize());
-                        localStorage.setItem('positions', positions);
-                        // drawVideoArc();
-                        // drawCycles();
-                    }
-                },
-                serialize_params: function ($w, wgd) {
-                    return {
-                        id: $($w).attr('id'),
-                        col: wgd.col,
-                        row: wgd.row,
-                        size_x: wgd.size_x,
-                        size_y: wgd.size_y,
-                    };
-                },
-                draggable: {
-                    handle: 'header',
-                    stop: function (event, ui) {
-                        let positions = JSON.stringify(this.serialize());
-                        localStorage.setItem('positions', positions);
-                        drawVideoArc();
-                    }
-                }
-            }).data('gridster');
-        });
-    });
-
-    $(function() {
-        $('input[name="daterange"]').daterangepicker({
-            opens: 'left'
-        }, function(start, end, label) {
-            document.getElementById('allDatesRadio').checked = false;
-            document.getElementById('courseDatesRadio').checked = false;
-            getGraphElementMap(drawCharts, start.format('YYYY-MM-DD'), end.format('YYYY-MM-DD'));
-        });
-    });
-}
-
-// R SCRIPT FOR MARKOV CHAIN VIZ
-// video.str <-
-// video.m <- read.table(text = video.str, header = T, allowEscapes = TRUE, sep = ',', stringsAsFactors = F, row.names = 1, check.names = F)
-// video.m <- read.table(text = video.str, allowEscapes = TRUE, sep = ',', stringsAsFactors = F)
-// video.t <- data.matrix(video.m)
-// g <- graph_from_adjacency_matrix(video.t, weighted = "prob")
-// E(g)$prob <- ifelse(is.nan(E(g)$prob), NA, E(g)$prob)
-// plot(g, edge.label = round(E(g)$prob, 2), edge.arrow.size = .25, edge.label.cex = .5)

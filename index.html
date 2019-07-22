@@ -103,7 +103,7 @@
             <button type="button" class="btn btn-primary" data-toggle="collapse" data-target="#uploadBoxes" aria-expanded="false"  aria-controls="uploadBoxes">
                 Upload Files
             </button>
-            <button type="button" class="btn btn-secondary float-right" onclick="deleteEverything()">
+            <button id="clearDB" type="button" class="btn btn-secondary float-right" >
                 Clear Database
             </button>
             <button type="button" class="btn btn-primary " data-toggle="collapse" data-target="#sampleData" aria-expanded="false"  aria-controls="sampleData">
@@ -133,7 +133,7 @@
             <div id="sampleData" class="collapse">
                 <br>
                 <div class="col ">
-                    <button type="button" class="btn btn-secondary btn-sm" id="populate-fp101"  onclick="populateSamples('FP101x')">Introduction to Functional Programming</button>
+                    <button type="button" class="btn btn-secondary btn-sm" id="populate-fp101">Introduction to Functional Programming</button>
                 </div>
                 <!--<br>-->
                 <!--<div class="col ">-->
@@ -399,7 +399,12 @@
 
     <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
 
-    <script src="scripts/index.js"></script>
+    <script type="module" src="scripts/index.js"></script>
+    <script type="module" src="scripts/metadataProcessing.js"></script>
+    <script type="module" src="scripts/prepareTables.js"></script>
+    <script type="module" src="scripts/databaseHelpers.js"></script>
+    <script type="module" src="scripts/helpers.js"></script>
+
 
     <script>
         let lineChart = null;

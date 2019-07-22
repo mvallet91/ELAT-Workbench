@@ -9,7 +9,6 @@ window.onload = function () {
     //// PAGE INITIALIZATION  //////////////////////////////////////////////////////////////////////////////
     initiateEdxDb();
     getGraphElementMap(drawCharts);
-    loadDashboard();
     prepareDashboard();
     drawVideoArc();
     drawCycles();
@@ -17,18 +16,17 @@ window.onload = function () {
     let  multiFileInputMetadata = document.getElementById('filesInput');
     multiFileInputMetadata.value = '';
     multiFileInputMetadata.addEventListener('change', function () {
-        $('#loading').show();
-        $.blockUI();
-        let files = multiFileInputMetadata.files;
-        readMetaFiles(files, passFiles);
+        loader(true);
+        readMetaFiles(multiFileInputMetadata.files, passFiles);
     });
+
     let  multiFileInputLogs = document.getElementById('logFilesInput');
     multiFileInputLogs.value = '';
     multiFileInputLogs.addEventListener('change', function () {
-        $('#loading').show();
-        $.blockUI();
-        processLogFiles(0, 0)
+        loader(true);
+        processLogFiles(0, 0);
     });
+
     let schemaMap = {'sessions': ['session_id', 'course_learner_id', 'start_time', 'end_time', 'duration'],
                  'forum_sessions': ['session_id', 'course_learner_id', 'times_search', 'start_time',
                       'end_time', 'duration', 'relevent_element_id'],
@@ -38,6 +36,7 @@ window.onload = function () {
                  'submissions': ['submission_id', 'course_learner_id', 'question_id', 'submission_timestamp'],
                  'assessments': ['assessment_id', 'course_learner_id', 'max_grade', 'grade'],
                  'quiz_sessions': ['session_id', 'course_learner_id', 'start_time', 'end_time', 'duration']};
+
     let dlAllButton = document.getElementById('dl_all');
     dlAllButton.addEventListener('click', function() {
         for (let table in schemaMap){
@@ -78,6 +77,16 @@ window.onload = function () {
 
 let reader = new FileReader();
 
+function loader(on){
+    if (on){
+        $('#loading').show();
+        $.blockUI();
+    } else {
+        $('#loading').hide();
+        $.unblockUI();
+    }
+}
+
 function readMetaFiles(files, callback){
     let output = [];
     let checkedFiles = {};
@@ -93,8 +102,7 @@ function readMetaFiles(files, callback){
             f.size, ' bytes', '</li>');
 
         if (f.name.includes('zip')) {
-            $('#loading').hide();
-            $.unblockUI();
+            loader(false);
             toastr.error('Metadata files cannot be zipped!');
             break;
         }
@@ -148,7 +156,6 @@ function readAndPassLog(file, reader, fileIndex, totalFiles, chunkIndex, callbac
     let totalChunks = 1;
     output.push('<li><strong>', file.name, '</strong> (', file.type || 'n/a', ') - ',
                 file.size, ' bytes', '</li>');
-
     if (file.type.match(gzipType)) {
         reader.onload = function (event) {
             let content = pako.inflate(event.target.result, {to: 'array'});
@@ -166,8 +173,7 @@ function readAndPassLog(file, reader, fileIndex, totalFiles, chunkIndex, callbac
         };
         reader.readAsArrayBuffer(file);
     } else {
-        $('#loading').hide();
-        $.unblockUI();
+        loader(false);
         toastr.error(file.name + ' is not a log file (should end with: .log.gz)');
     }
 }
@@ -178,8 +184,7 @@ function passFiles(result){
     let names = result[0],
         output = result[1];
     document.getElementById('list').innerHTML = '<ul>' + output.join('') + '</ul>';
-    $('#loading').hide();
-    $.unblockUI();
+    loader(false);
     learner_mode(names);
 }
 
@@ -191,9 +196,11 @@ function passLogFiles(result){
         totalFiles = result[3],
         chunk = result[4],
         totalChunks = result[5];
-
     connection.runSql("SELECT * FROM metadata WHERE name = 'metadata_map' ").then(function(result) {
-        if (result.length > 0) {
+        if (result.length === 0) {
+            loader(false);
+            toastr.error('Metadata has not been processed! Please upload all metadata files first');
+        } else {
             let courseMetadataMap = result[0]['object'];
             if (chunk === 0) {
                 let table = document.getElementById("progress_tab"),
@@ -202,16 +209,11 @@ function passLogFiles(result){
                 cell1.innerHTML = ('Processing file ' + (fileIndex + 1) + '/' + totalFiles +
                     '\n at ' + new Date().toLocaleString('en-GB'));
             }
-
             session_mode(courseMetadataMap, files, fileIndex, totalFiles, chunk);
             forum_sessions(courseMetadataMap, files, fileIndex, totalFiles, chunk);
             video_interaction(courseMetadataMap, files, fileIndex, totalFiles, chunk);
             quiz_mode(courseMetadataMap, files, fileIndex, totalFiles, chunk);
             quiz_sessions(courseMetadataMap, files, fileIndex, totalFiles, chunk, totalChunks);
-        } else {
-            $('#loading').hide();
-            $.unblockUI();
-            toastr.error('Metadata has not been processed! Please upload all metadata files first');
         }
     });
 }
@@ -517,7 +519,7 @@ function showMainIndicators() {
                         videoDuration = 0,
                         avgGrades = {};
 
-                    HtmlString += "<tr ItemId=" + course.course_id + "><td>";
+                    HtmlString += "<tr ItemId=" + course_id + "><td>";
                     await connection.runSql("COUNT * from course_learner WHERE certificate_status = 'downloadable' ").then(function (result) {
                         completed = result;
                     });
@@ -564,32 +566,10 @@ function showMainIndicators() {
                     $('#indicatorGrid tbody').html(HtmlString);
                     let indicators = [{'name': 'mainIndicators', 'object': {'details': HtmlString}}];
                     sqlInsert('webdata', indicators);
-
-                    // let joinLogic = {
-                    //     table1: {
-                    //         table: 'quiz_questions',
-                    //         column: 'question_id'
-                    //     },
-                    //     join: 'inner',
-                    //     table2: {
-                    //         table: 'submissions',
-                    //         column: 'question_id'
-                    //     }
-                    // };
-                    // connection.select({
-                    //     from: joinLogic
-                    // }).then(function (results) {
-                    //     results.forEach(function (row) {
-                    //         console.log(row)
-                    //     })
-                    // }).catch(function (error) {
-                    //     alert(error.message);
-                    // });
                 });
             }).catch(function (error) {
                 console.log(error);
-                $('#loading').hide();
-                $.unblockUI();
+                loader(false)
             });
         }
     })
@@ -598,9 +578,16 @@ function showMainIndicators() {
 // METADATA MODULES ////////////////////////////////////////////////////////////////////
 function ExtractCourseInformation(files) {
     let courseMetadataMap = {};
+    let i = 0;
     for (let file of files) {
+        i++;
         let fileName = file['key'];
-        if (fileName.includes('course_structure')) {
+        if (! fileName.includes('course_structure')) {
+            if (i === files.length){
+                toastr.error('Course structure file is missing!');
+                return courseMetadataMap
+            }
+        } else {
             let child_parent_map = {};
             let element_time_map = {};
 
@@ -706,9 +693,38 @@ function ExtractCourseInformation(files) {
 }
 
 
+function processEnrollment(input_file, course_metadata_map){
+    let course_learner_map = {};
+    let learner_enrollment_time_map = {};
+    let enrolled_learner_set = new Set();
+    let course_id = '';
+    let learner_index_record = [];
+    let lines = input_file.split('\n');
+    for (let line of lines.slice(1, )) {
+        let record = line.split('\t');
+        if (record.length < 2) { continue; }
+        let global_learner_id = record[1];
+        course_id = record[2];
+        let time = new Date(record[3]);
+        let course_learner_id = course_id + '_' + global_learner_id;
+        if (cmp_datetime(course_metadata_map['end_time'], new Date(time)) === 1) {
+            enrolled_learner_set.add(global_learner_id);
+            let array = [global_learner_id, course_id, course_learner_id];
+            learner_index_record.push(array);
+            course_learner_map[global_learner_id] = course_learner_id;
+            learner_enrollment_time_map[global_learner_id] = time;
+        }
+    }
+    return {'course_learner_map': course_learner_map,
+        'learner_enrollment_time_map': learner_enrollment_time_map,
+        'enrolled_learner_set': enrolled_learner_set,
+        'learner_index_record': learner_index_record,
+        'course_id': course_id}
+}
+
+
 function learner_mode(files) {
-    $('#loading').show();
-    $.blockUI();
+    loader(true);
     let course_record = [];
     let course_element_record = [];
     let learner_index_record = [];
@@ -717,6 +733,7 @@ function learner_mode(files) {
     let course_metadata_map = ExtractCourseInformation(files);
 
     if (Object.keys(course_metadata_map).length > 1) {
+        let course_id = course_metadata_map.course_id;
         course_record.push([course_metadata_map['course_id'], course_metadata_map['course_name'], course_metadata_map['start_time'], course_metadata_map['end_time']]);
         for (let element_id in course_metadata_map['element_time_map']) {
             let element_start_time = new Date(course_metadata_map['element_time_map'][element_id]);
@@ -725,15 +742,19 @@ function learner_mode(files) {
             course_element_record.push(array);
         }
         console.log('Finished processing ' + course_element_record.length + ' elements in metadata map');
-        let learner_mail_map = {};
+
         let course_learner_map = {};
         let learner_enrollment_time_map = {};
         let enrolled_learner_set = new Set();
-        let course_id = '';
+        // let course_id = '';
+        let enrollmentValues = {}
         for (let file of files) {
             let file_name = file['key'];
+            let input_file = file['value'];
             if (file_name.includes('student_courseenrollment')){
-                let input_file = file['value'];
+
+                // enrollmentValues = processEnrollment(input_file, course_metadata_map);
+
                 let lines = input_file.split('\n');
                 for (let line of lines.slice(1, )) {
                     let record = line.split('\t');
@@ -752,6 +773,8 @@ function learner_mode(files) {
                 }
             }
         }
+
+        let learner_mail_map = {};
         for (let file of files) {
             let file_name = file['key'];
             if (file_name.includes('auth_user-')) {
@@ -781,11 +804,11 @@ function learner_mode(files) {
                     let certificate_status = record[7];
                     let register_time = '';
                     if (global_learner_id in course_learner_map) {
-                        register_time = learner_enrollment_time_map[global_learner_id];
+                        register_time =  learner_enrollment_time_map[global_learner_id];
                     }
-                    if (global_learner_id in course_learner_map) {
+                    if (global_learner_id in  course_learner_map) {
                         num_certifiedLearners++;
-                        let array = [course_learner_map[global_learner_id], final_grade, enrollment_mode, certificate_status, register_time];
+                        let array = [ course_learner_map[global_learner_id], final_grade, enrollment_mode, certificate_status, register_time];
                         course_learner_record.push(array);
                     }
                     else {
@@ -4200,7 +4223,9 @@ function videoTransitions() {
             let chapterMap = {};
 
             for (let elementId in course_metadata_map.child_parent_map) {
-                if (elementId.includes('video')) {
+                if (! elementId.includes('video')) {
+                    continue;
+                } else {
                     let parentId = course_metadata_map.child_parent_map[elementId];
                     let parent2Id = course_metadata_map.child_parent_map[parentId];
                     let parent3Id = course_metadata_map.child_parent_map[parent2Id];
@@ -4238,7 +4263,6 @@ function videoTransitions() {
             let videoChains = {};
             let passingChains = {};
             let failingChains = {};
-            // learnerIds = learnerIds.slice(0, 500);
             let maxViewers = 0;
             let passingViewers = 0;
             let failingViewers = 0;
@@ -4269,7 +4293,9 @@ function videoTransitions() {
                             failingViewers++;
                         }
                     }
+
                     counter++;
+
                     if (counter === learnerIds.length) {
                         for (let learner in videoChains) {
                             for (let i = 0; i < videoChains[learner].length - 1; i++) {
@@ -4283,7 +4309,6 @@ function videoTransitions() {
                             let frequency = _.countBy(videoIds[video]);
                             for (let nextVideo in videoIds) {
                                 if (frequency.hasOwnProperty(nextVideo)) {
-                                    // frequency[nextVideo] = frequency[nextVideo] / videoIds[video].length;
                                     frequency[nextVideo] = frequency[nextVideo] / (failingViewers + passingViewers) // For normalized value
                                 }
                             }
@@ -4311,9 +4336,7 @@ function videoTransitions() {
                             let frequency = _.countBy(videoIdsP[video]);
                             for (let nextVideo in videoIdsP) {
                                 if (frequency.hasOwnProperty(nextVideo)) {
-                                    // frequency[nextVideo] = frequency[nextVideo] / videoIds[video].length; // For absolute percentage
                                     frequency[nextVideo] = frequency[nextVideo] / passingViewers; //  For normalized value
-                                    // frequency[nextVideo] = frequency[nextVideo] / videoIdsP[video].length; // For passing-only percentage
                                 }
                             }
                             let freqSorted = Object.keys(frequency).sort(function (a, b) {
@@ -4340,9 +4363,7 @@ function videoTransitions() {
                             let frequency = _.countBy(videoIdsF[video]);
                             for (let nextVideo in videoIdsF) {
                                 if (frequency.hasOwnProperty(nextVideo)) {
-                                    // frequency[nextVideo] = frequency[nextVideo] / videoIds[video].length; // For absolute percentage
                                     frequency[nextVideo] = frequency[nextVideo] / failingViewers; // For normalized value
-                                    // frequency[nextVideo] = frequency[nextVideo] / videoIdsF[video].length; // For failing-only percentage
                                 }
                             }
                             let freqSorted = Object.keys(frequency).sort(function (a, b) {
@@ -4472,10 +4493,8 @@ function drawVideoArc(linkNumber){ // https://www.d3-graph-gallery.com/graph/arc
             let arcDiv = document.getElementById("arcChart");
 
             let margin = {top: 100, right: 70, bottom: 120, left: 70},
-                // width = arcDiv.clientWidth - margin.left - margin.right,
                 width = nodeData.nodes.length * 35,
                 height = 200;
-                // height = arcDiv.clientWidth/3 - margin.top - margin.bottom;
 
             let svg = d3.select(arcDiv)
                 .append("svg")
@@ -4740,7 +4759,6 @@ function moduleTransitions() {
 
             for (let element of orderedElements) {
                 let elementId = element.elementId;
-                // elementId = elementId.slice(elementId.lastIndexOf('@') + 1,);
                 elementIdsD[elementId] = []; //Designed
             }
 
@@ -4757,7 +4775,6 @@ function moduleTransitions() {
                     if (element.elementId !== currentElement) {
                         currentElement = element.elementId;
                         let elementId = element.elementId;
-                        // elementId = elementId.slice(elementId.lastIndexOf('@') + 1,);
                         designedPath.push(elementId);
                     }
                 }
@@ -4895,19 +4912,6 @@ function moduleTransitions() {
                 if (learnerIds.length / totalLearners === 2 ){toastr.info('Halfway there...');}
             }
 
-            // for (let learnerId in allSessions) {
-            //     let learningPath = [];
-            //     for (let session of allSessions[learnerId]){
-            //         if (new Date(session.time) > new Date('Oct 15, 2015') &&
-            //             new Date(session.time) < new Date('Oct 22, 2015') ){
-            //             learningPath.push(session.type + '_')// + session.elementId);
-            //         }
-            //     }
-            //     if (learningPath.length > 1) {
-            //         learningPaths[learnerStatus[learnerId]][learnerId] = learningPath;
-            //     }
-            // }
-
             let week = 0;
             let weekStart = new Date(course_metadata_map.start_date.toDateString());
             let weekEnd = new Date();
@@ -5022,6 +5026,7 @@ function moduleTransitions() {
         }
     })
 }
+
 
 function drawCycles(){
     connection.runSql("SELECT * FROM webdata WHERE name = 'cycleElements' ").then(function(result) {
@@ -5306,94 +5311,6 @@ function populateSamples(courseId){
 }
 
 
-function updateDashboard(){
-    let chartElements = document.getElementById('chartList');
-    let chartMap = {
-        'line': 'lineChartBox',
-        'area': 'areaChartBox',
-        // 'brush': 'brushChartBox',
-        // 'mixed': 'mixedChartBox',
-        'mixed': 'mixedTile',
-        'box-whisker': 'boxChartBox',
-        'arc': 'arcChartBox'
-    };
-    for (let e of chartElements.children){
-        let divId = chartMap[e.id];
-        let container = document.getElementById(divId);
-        if (e.firstElementChild.firstElementChild.checked) {
-            container.style.display = "block";
-        } else {
-            container.style.display = "none";
-        }
-    }
-}
-
-
-function saveDashboard(){
-    connection.runSql("DELETE FROM webdata WHERE name = 'chartList'").then(function () {
-        let chartElements = document.getElementById('chartList');
-        let ordered = {};
-        let i = 0;
-        for (let e of chartElements.children){
-            ordered[i.toString()] = {
-                'id': e.id,
-                'html': e.innerHTML,
-                'checked': e.firstElementChild.firstElementChild.checked
-            };
-            i++;
-        }
-        sqlInsert('webdata', [{'name':'chartList', 'object': ordered}]);
-    });
-}
-
-
-function deleteDashboard(){
-    connection.runSql("DELETE FROM webdata WHERE name = 'chartList'").then(function () {
-        updateDashboard();
-    });
-}
-
-
-function loadDashboard(){
-    let orderedDB = {};
-    connection.runSql("SELECT * FROM webdata WHERE name = 'chartList'").then(function (metadata) {
-        if (metadata.length === 1) {
-            orderedDB = metadata[0]['object'];
-            let chartElements = document.getElementById('chartList');
-            while (chartElements.hasChildNodes()) {
-                chartElements.removeChild(chartElements.firstChild);
-            }
-            for (let e in orderedDB) {
-                let eHTML = document.createElement('li');
-                eHTML.id = orderedDB[e].id;
-                eHTML.innerHTML = orderedDB[e].html;
-                let checkboxId = eHTML.firstElementChild.firstElementChild.id;
-                chartElements.appendChild(eHTML);
-                $("#" + checkboxId).prop("checked", orderedDB[e].checked);
-            }
-            updateDashboard()
-        } else {
-            connection.runSql("SELECT * FROM webdata WHERE name = 'defaultChartList'").then(function (metadata) {
-                if (metadata.length === 1) {
-                    orderedDB = metadata[0]['object'];
-                    let chartElements = document.getElementById('chartList');
-                    while (chartElements.hasChildNodes()) {
-                        chartElements.removeChild(chartElements.firstChild);
-                    }
-                    for (let e in orderedDB) {
-                        let eHTML = document.createElement('li');
-                        eHTML.id = orderedDB[e].id;
-                        eHTML.innerHTML = orderedDB[e].html;
-                        let checkboxId = eHTML.firstElementChild.firstElementChild.id;
-                        chartElements.appendChild(eHTML);
-                        $("#" + checkboxId).prop("checked", orderedDB[e].checked);
-                    }
-                    updateDashboard()
-                }
-            })
-        }
-    });
-}
 
 function prepareDashboard() {
     $(function () {

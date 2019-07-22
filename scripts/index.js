@@ -4,7 +4,9 @@ let connection = new JsStore.Instance();
 import * as metadataProcessing from './metadataProcessing.js'
 import * as prepareTables from './prepareTables.js'
 import {populateSamples, sqlInsert, sqlLogInsert} from "./databaseHelpers.js";
-import {loader, progress_display, downloadCsv, webdataJSON} from './helpers.js'
+import {loader, progress_display, downloadCsv, webdataJSON,
+    cmp_datetime, process_null, cleanUnicode, escapeString,
+    getDayDiff, getNextDay, courseElementsFinder} from './helpers.js'
 import {session_mode} from "./logProcessing.js";
 
 window.onload = function () {
@@ -643,111 +645,6 @@ function learner_mode(files) {
 }
 
 
-// HELPER FUNCTIONS
-function cmp_datetime(a_datetime, b_datetime){
-    if (a_datetime < b_datetime) {
-        return -1;
-    } else if (a_datetime > b_datetime){
-        return 1;
-    } else {
-        return 0;
-    }
-}
-
-function process_null(inputString){
-    if (typeof inputString === 'string'){
-        if (inputString.length === 0 || inputString === 'NULL'){
-            return null;
-        } else {
-            return inputString;
-        }
-    } else {
-        return inputString;
-    }
-}
-
-function cleanUnicode(text) {
-    if (typeof text === 'string'){
-        return text.normalize('NFC');
-    } else {
-        return text;
-    }
-}
-
-function escapeString(text) {
-    return text
-        .replace(/[\\]/g, '\\\\')
-        .replace(/["]/g, '\\\"')
-        .replace(/[\/]/g, '\\/')
-        .replace(/[\b]/g, '\\b')
-        .replace(/[\f]/g, '\\f')
-        .replace(/[\n]/g, '\\n')
-        .replace(/[\r]/g, '\\r')
-        .replace(/[\t]/g, '\\t');
-}
-
-
-function getNextDay(current_day){
-    current_day.setDate(current_day.getDate() + 1);
-    return current_day;
-}
-
-
-function getDayDiff(beginDate, endDate) {
-    let count = 0;
-    while ((endDate.getDate() - beginDate.getDate()) >= 1){
-        endDate.setDate(endDate.getDate() - 1);
-        count += 1
-    }
-    return count
-}
-
-function courseElementsFinder(eventlog, course_id) {
-    let elementsID = coucourseElementsFinder_string(eventlog['event_type'], course_id);
-    if (elementsID === '') {
-        elementsID = coucourseElementsFinder_string(eventlog['path'], course_id);
-    }
-    if (elementsID === '') {
-        elementsID = coucourseElementsFinder_string(eventlog['page'], course_id);
-    }
-    if (elementsID === '') {
-        elementsID = coucourseElementsFinder_string(eventlog['referer'], course_id);
-    }
-    return elementsID;
-}
-
-function coucourseElementsFinder_string(eventlog_item, course_id) {
-    let elementsID = '';
-    let courseId_filtered = course_id;
-    if (course_id.split(":").length > 1){
-        courseId_filtered = course_id.split(':')[1];
-    }
-
-    if (elementsID === '' && eventlog_item.includes('+type@') && eventlog_item.includes('block-v1:')) {
-        let templist = eventlog_item.split('/');
-        for (let tempstring of templist) {
-            if (tempstring.includes('+type@') && tempstring.includes('block-v1:')) {
-                elementsID = tempstring;
-            }
-        }
-    }
-    if (elementsID === '' && eventlog_item.includes('courseware/')) {
-        let templist = eventlog_item.split('/');
-        let tempflag = false;
-        for (let tempstring of templist) {
-            if (tempstring === 'courseware') {
-                tempflag = true;
-            } else {
-                if (tempflag === true && tempstring !== '') {
-                    elementsID = 'block-v1:' + courseId_filtered + '+type@chapter+block@' + tempstring;
-                    break;
-                }
-            }
-        }
-    }
-    return elementsID;
-}
-
 function weirdDateFinder(course_metadata_map, log_files, index, total, chunk, total_chunks){
     let current_course_id = course_metadata_map["course_id"];
     current_course_id = current_course_id.slice(current_course_id.indexOf('+') + 1, current_course_id.lastIndexOf('+') + 7);
@@ -1082,7 +979,7 @@ function forum_sessions(course_metadata_map, log_files, index, total, chunk) {
             data.push(values);
         }
         console.log('Send to storage at ' + new Date());
-        sqlLogInsert('forum_sessions', data);
+        sqlLogInsert('forum_sessions', data, connection);
         progress_display(data.length + ' forum interaction sessions', index);
         // loader.hide();
     } else {
@@ -1480,7 +1377,7 @@ function video_interaction(course_metadata_map, log_files, index, total, chunk) 
             data.push(values);
         }
         console.log('Sending', data.length, ' values to storage at ' + new Date());
-        sqlLogInsert('video_interaction', data);
+        sqlLogInsert('video_interaction', data, connection);
         progress_display(data.length + ' video interaction sessions', index);
     } else {
         console.log('no forum session info', index, total);
@@ -1552,12 +1449,12 @@ function quiz_mode(course_metadata_map, log_files, index, total, chunk) {
                 }
             }
             if (assessment_data.length > 0){
-                sqlLogInsert('assessments', assessment_data);
+                sqlLogInsert('assessments', assessment_data, connection);
             } else {
                 console.log('No assessment data', index, total)
             }
             if (submission_data.length > 0) {
-                sqlLogInsert('submissions', submission_data);
+                sqlLogInsert('submissions', submission_data, connection);
             } else {
                 console.log('No submission data', index, total)
             }
@@ -1814,7 +1711,7 @@ function quiz_sessions(course_metadata_map, log_files, index, total, chunk, tota
             };
             data.push(values)
         }
-        sqlLogInsert('quiz_sessions', data);
+        sqlLogInsert('quiz_sessions', data, connection);
         progress_display(data.length + ' quiz interaction sessions', index);
     } else {
         console.log('No quiz session data')

@@ -1,6 +1,7 @@
 import {sqlLogInsert} from "./databaseHelpers.js";
-import {progress_display} from "./helpers.js";
-
+import {loader, progress_display, downloadCsv, webdataJSON,
+    cmp_datetime, process_null, cleanUnicode, escapeString,
+    getDayDiff, getNextDay, courseElementsFinder} from './helpers.js'
 export function session_mode(course_metadata_map, log_files, index, total, chunk, connection){
     let current_course_id = course_metadata_map["course_id"];
     current_course_id = current_course_id.slice(current_course_id.indexOf('+') + 1, current_course_id.lastIndexOf('+') + 7);

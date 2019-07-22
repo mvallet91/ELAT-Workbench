@@ -4529,43 +4529,33 @@ function drawVideoArc(linkNumber){ // https://www.d3-graph-gallery.com/graph/arc
                 .enter()
                 .append('path')
                 .attr('d', function (d) {
+                    let start = x(idToNode[d.source].name);
+                    let end = x(idToNode[d.target].name);
                     if (arcType === 'general'){
                         if (d.status === 'general') {
-                            let start = x(idToNode[d.source].name);
-                            let end = x(idToNode[d.target].name);
-                            return ['M', start, height - 30,
-                                'A',
-                                (start - end) / 2.3, ',',
-                                (start - end) / 2, 0, 0, ',',
-                                start < end ? 1 : 1, end, ',', height - 30]
-                                .join(' ');
+                            return calculateArc(start, end, height)
                         }
                     } else if (arcType === 'passing'){
                         if (d.status === 'passing') {
-                            let start = x(idToNode[d.source].name);
-                            let end = x(idToNode[d.target].name);
-                            return ['M', start, height - 30,
-                                'A',
-                                (start - end) / 2.3, ',',
-                                (start - end) / 2, 0, 0, ',',
-                                start < end ? 1 : 1, end, ',', height - 30]
-                                .join(' ');
+                            return calculateArc(start, end, height)
                         }
                     } else {
                         if (d.status === 'failing') {
-                            let start = x(idToNode[d.source].name);
-                            let end = x(idToNode[d.target].name);
-                            return ['M', start, height - 30,
-                                'A',
-                                (start - end) / 2.3, ',',
-                                (start - end) / 2, 0, 0, ',',
-                                start < end ? 1 : 1, end, ',', height - 30]
-                                .join(' ');
+                            return calculateArc(start, end, height)
                         }
                     }
                 })
                 .style("fill", "none")
-                .attr("stroke", "grey")
+                .style('stroke', function (link_d) {
+                    if (link_d.status === 'general') {
+                        return '#0006b8';
+                    } else if (link_d.status === 'passing') {
+                        return  '#138d00';
+                    } else if (link_d.status === 'failing') {
+                        return  '#fe1100';
+                    }
+                })
+                .style('stroke-opacity', .5)
                 .style("stroke-width", function (d) {
                     return 10 * (d.value)
                 });
@@ -4661,8 +4651,16 @@ function drawVideoArc(linkNumber){ // https://www.d3-graph-gallery.com/graph/arc
                 .on('mouseout', function (d) {
                     nodes.style('opacity', 1);
                     links
-                        .style('stroke', 'grey')
-                        .style('stroke-opacity', .8)
+                        .style('stroke', function (link_d) {
+                            if (link_d.status === 'general') {
+                                return '#0006b8';
+                            } else if (link_d.status === 'passing') {
+                                return  '#138d00';
+                            } else if (link_d.status === 'failing') {
+                                return  '#fe1100';
+                            }
+                        })
+                        .style('stroke-opacity', .5)
                         .style("stroke-width", function (d) {
                             return 10 * (d.value)
                         });
@@ -4677,6 +4675,16 @@ function drawVideoArc(linkNumber){ // https://www.d3-graph-gallery.com/graph/arc
                 })
         }
     })
+}
+
+
+function calculateArc(start, end, height) {
+    return ['M', start, height - 30,
+        'A',
+        Math.abs(end - start) / 2.3, ',',
+        Math.abs(end - start) / 2, 0, 0, ',',
+        start < end ? 1 : 1, end, ',', height - 30]
+        .join(' ');
 }
 
 function moduleTransitions() {

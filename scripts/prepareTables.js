@@ -1,7 +1,13 @@
 import {sqlInsert} from "./databaseHelpers.js";
 import {loader} from "./helpers.js";
 
-export function showCourseTable(connection) {
+export function prepareTables(connection){
+    showCourseTable(connection);
+    showDetailsTable(connection);
+    showMainIndicatorsTable(connection);
+}
+
+function showCourseTable(connection) {
     let HtmlString = "";
     connection.runSql("SELECT * FROM webdata WHERE name = 'courseDetails' ").then(function(result) {
         if (result.length === 1) {
@@ -57,7 +63,7 @@ export function showCourseTable(connection) {
 }
 
 
-export function showDetailsTable(connection) {
+function showDetailsTable(connection) {
     let HtmlString = "";
     let totalHtmlString = "";
     connection.runSql("SELECT * FROM webdata WHERE name = 'databaseDetails' ").then(function(result) {
@@ -163,7 +169,7 @@ export function showDetailsTable(connection) {
 }
 
 
-export function showMainIndicators(connection) {
+function showMainIndicatorsTable(connection) {
     let HtmlString = "";
     connection.runSql("SELECT * FROM webdata WHERE name = 'mainIndicators' ").then(function(result) {
         if (result.length === 1) {

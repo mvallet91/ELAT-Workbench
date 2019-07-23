@@ -28,14 +28,14 @@ export function downloadCsv(filename, content) {
 }
 
 
-export function progress_display(content, index){
+export function progressDisplay(content, index){
     let table = document.getElementById("progress_tab");
     let row = table.rows[index];
     let cell1 = row.insertCell();
     cell1.innerHTML = '  ' + content + '  ';
 }
 
-export function cmp_datetime(a_datetime, b_datetime){
+export function cmpDatetime(a_datetime, b_datetime){
     if (a_datetime < b_datetime) {
         return -1;
     } else if (a_datetime > b_datetime){
@@ -45,7 +45,7 @@ export function cmp_datetime(a_datetime, b_datetime){
     }
 }
 
-export function process_null(inputString){
+export function processNull(inputString){
     if (typeof inputString === 'string'){
         if (inputString.length === 0 || inputString === 'NULL'){
             return null;
@@ -107,7 +107,7 @@ export function courseElementsFinder(eventlog, course_id) {
     return elementsID;
 }
 
-export function coucourseElementsFinder_string(eventlog_item, course_id) {
+function coucourseElementsFinder_string(eventlog_item, course_id) {
     let elementsID = '';
     let courseId_filtered = course_id;
     if (course_id.split(":").length > 1){

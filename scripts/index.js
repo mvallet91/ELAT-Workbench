@@ -3,13 +3,14 @@ let connection = new JsStore.Instance();
 
 import {learnerMode} from './metadataProcessing.js'
 import {prepareTables} from "./prepareTables.js";
-import {populateSamples, sqlInsert, sqlLogInsert, getEdxDbQuery,
+import {populateSamples, sqlInsert, getEdxDbQuery, updateChart,
     deleteEverything, schemaMap, processTablesForDownload} from "./databaseHelpers.js";
 import {loader, progressDisplay, downloadCsv, webdataJSON,
     cmpDatetime, processNull, cleanUnicode, escapeString,
     getDayDiff, getNextDay, courseElementsFinder} from './helpers.js'
 import {processGeneralSessions, processForumSessions, processVideoInteractionSessions,
     processAssessmentsSubmissions, processQuizSessions} from "./logProcessing.js";
+import {intersection, difference, exportChartPNG, generateLink, SVG2PNG, trimByDates} from './graphHelpers.js'
 
 window.onload = function () {
     //// PAGE INITIALIZATION  //////////////////////////////////////////////////////////////////////////////
@@ -30,7 +31,7 @@ window.onload = function () {
     multiFileInputLogs.value = '';
     multiFileInputLogs.addEventListener('change', function () {
         loader(true);
-        prepareLogFiles(0, 0);
+        prepareLogFiles(0, 0, 1);
     });
 
     //// BUTTONS /////////////////////////////////////////////////////////////////////////////////////////
@@ -47,6 +48,8 @@ window.onload = function () {
         } else if (id.startsWith('populate')) {
             let courseId = id.slice(id.indexOf('-') + 1,);
             populateSamples(courseId, connection);
+        } else if (id === 'updateChartValues') {
+            updateChart(connection)
         } else if (id.startsWith('dl')) {
             let table = id.slice(id.indexOf('_') + 1,);
             if (table === 'all') {
@@ -56,6 +59,33 @@ window.onload = function () {
             } else {
                 processTablesForDownload(table, schemaMap[table], connection);
             }
+        }
+    }
+
+    // RADIO INPUT ////////////////////////////////////////////////////////////////////////////////////////////
+    let inputs = document.querySelectorAll('input');
+    inputs.forEach( input => {
+        input.addEventListener('change', inputHandler);
+    });
+
+    function inputHandler(ev) {
+        const name = ev.currentTarget.name;
+        if (name === 'dayVSweekRadio' || name === 'optradio') {
+            getGraphElementMap(drawCharts)
+        }
+    }
+
+    //  ANCHOR ELEMENTS
+    let anchors = document.querySelectorAll('a');
+    anchors.forEach( a => {
+        a.addEventListener('click', anchorHandler);
+    });
+
+    function anchorHandler(ev) {
+        const id = ev.currentTarget.id;
+        if (id.startsWith('png')) {
+            let chartId = id.slice(id.indexOf('_') + 1,);
+            exportChartPNG(chartId)
         }
     }
 };
@@ -117,9 +147,7 @@ function processMetadataFiles(result){
 
 // LOGFILE PROCESSING /////////////////////////////////////////////////////////////////////////////////////////
 
-let chunkSize = 60 * 1024 * 1024;
-
-function prepareLogFiles(fileIndex, chunk){
+function prepareLogFiles(fileIndex, chunkIndex, totalChunks){
     const multiFileInputLogs = document.getElementById('logFilesInput'),
         files = multiFileInputLogs.files,
         totalFiles = files.length;
@@ -128,18 +156,17 @@ function prepareLogFiles(fileIndex, chunk){
         if (counter === fileIndex){
             const today = new Date();
             console.log('Starting with file ' + fileIndex + ' at ' + today);
-            unzipLogfile(f, reader, fileIndex, totalFiles, chunk, processLogfile)
+            unzipLogfile(f, reader, fileIndex, totalFiles, chunkIndex, totalChunks, processLogfile)
         }
         counter += 1;
     }
 }
 
-
-function unzipLogfile(file, reader, fileIndex, totalFiles, chunkIndex, callback){
+let chunkSize = 500 * 1024 * 1024;
+function unzipLogfile(file, reader, fileIndex, totalFiles, chunkIndex, totalChunks, callback){
     let output = [];
     let processedFiles = [];
     let gzipType = /gzip/;
-    let totalChunks = 1;
     output.push('<li><strong>', file.name, '</strong> (', file.type || 'n/a', ') - ',
                 file.size, ' bytes', '</li>');
     if (!file.type.match(gzipType)) {
@@ -147,52 +174,55 @@ function unzipLogfile(file, reader, fileIndex, totalFiles, chunkIndex, callback)
         toastr.error(file.name + ' is not a log file (should end with: .log.gz)');
     } else {
         reader.onload = function (event) {
-            let content = pako.inflate(event.target.result, {to: 'array'});
-            let stringContent = new TextDecoder("utf-8").decode(content.slice(chunkIndex * chunkSize, (chunkIndex + 1) * chunkSize));
-            processedFiles.push({
-                key: file.name,
-                value: stringContent.slice(stringContent.indexOf('{"username":'),
-                    stringContent.lastIndexOf('\n{'))
-            });
-            if (stringContent.lastIndexOf('\n') + 2 < stringContent.length) {
-                totalChunks++;
+            try {
+                let content = pako.inflate(event.target.result, {to: 'array'});
+                let stringContent = new TextDecoder("utf-8").decode(content.slice(chunkIndex * chunkSize, (chunkIndex + 1) * chunkSize));
+                processedFiles.push({
+                    key: file.name,
+                    value: stringContent.slice(stringContent.indexOf('{"username":'),
+                        stringContent.lastIndexOf('\n{'))
+                });
+                if (stringContent.lastIndexOf('\n') + 2 < stringContent.length) {
+                    totalChunks++;
+                }
+                reader.abort();
+                callback(processedFiles, fileIndex, totalFiles, chunkIndex, totalChunks);
+            } catch (error) {
+                if (error instanceof RangeError) {
+                    console.log(error);
+                    loader(false);
+                } else {
+                    toastr.error('There was an error unzipping the file, please try again');
+                    toastr.info('If this happens again, restart Chrome and close all other tabs');
+                    loader(false);
+                }
             }
-            callback([processedFiles, output, fileIndex, totalFiles, chunkIndex, totalChunks]);
-            reader.abort();
+
         };
         reader.readAsArrayBuffer(file);
     }
 }
 
-function processLogfile(result){
-    let files = result[0],
-        output = result[1],
-        fileIndex = result[2],
-        totalFiles = result[3],
-        chunk = result[4],
-        totalChunks = result[5];
+
+function processLogfile(processedFiles, fileIndex, totalFiles, chunkIndex, totalChunks){
     connection.runSql("SELECT * FROM metadata WHERE name = 'metadata_map' ").then(function(result) {
         if (result.length === 0) {
             loader(false);
             toastr.error('Metadata has not been processed! Please upload all metadata files first');
         } else {
             let courseMetadataMap = result[0]['object'];
-            if (chunk === 0) {
+            if (chunkIndex === 0) {
                 let table = document.getElementById("progress_tab"),
                     row = table.insertRow(),
                     cell1 = row.insertCell();
                 cell1.innerHTML = ('Processing file ' + (fileIndex + 1) + '/' + totalFiles +
                     '\n at ' + new Date().toLocaleString('en-GB'));
             }
-            processGeneralSessions(courseMetadataMap, files, fileIndex, totalFiles, chunk, connection);
-            processForumSessions(courseMetadataMap, files, fileIndex, totalFiles, chunk, connection);
-            processVideoInteractionSessions(courseMetadataMap, files, fileIndex, totalFiles, chunk, connection);
-            processAssessmentsSubmissions(courseMetadataMap, files, fileIndex, totalFiles, chunk, connection);
-            let processingCheck = processQuizSessions(courseMetadataMap, files, fileIndex, totalFiles, chunk, totalChunks, connection);
-            if (processingCheck ===! 'Done') {
-                const [index, chunk] = processingCheck;
-                prepareLogFiles(index, chunk)
-            }
+            processGeneralSessions(courseMetadataMap, processedFiles, fileIndex, totalFiles, chunkIndex, connection);
+            processForumSessions(courseMetadataMap, processedFiles, fileIndex, totalFiles, chunkIndex, connection);
+            processVideoInteractionSessions(courseMetadataMap, processedFiles, fileIndex, totalFiles, chunkIndex, connection);
+            processAssessmentsSubmissions(courseMetadataMap, processedFiles, fileIndex, totalFiles, chunkIndex, connection);
+            processQuizSessions(courseMetadataMap, processedFiles, fileIndex, totalFiles, chunkIndex, totalChunks, connection, prepareLogFiles);
         }
     });
 }
@@ -1216,174 +1246,7 @@ function getGraphElementMap(callback, start, end) {
 }
 
 
-function intersection(set1, set2){
-    return new Set([...set1].filter(x => set2.has(x)));
-}
-
-function difference(set1, set2){
-    return new Set([...set1].filter(x => !set2.has(x)));
-}
-
-function exportChartPNG(chartId) {
-    let filename = chartId;
-    let element = document.getElementById(chartId);
-    if (element.className === "chartjs-render-monitor") {
-        element.toBlob(function (blob) {
-            let a = document.createElement('a');
-            a.href = URL.createObjectURL(blob);
-            a.download = filename;
-            a.click();
-        });
-    } else {
-
-        SVG2PNG(element.firstElementChild, function(canvas) { // Arguments: SVG element, callback function.
-            let base64 = canvas.toDataURL("image/png"); // toDataURL return DataURI as Base64 format.
-            generateLink(filename + '.png', base64).click(); // Trigger the Link is made by Link Generator and download.
-        });
-
-        // saveSvgAsPng(element.firstElementChild, filename + '.png');
-    }
-}
-
-function SVG2PNG(svg, callback) {
-    let canvas = document.createElement('canvas'); // Create a Canvas element.
-    let ctx = canvas.getContext('2d'); // For Canvas returns 2D graphic.
-    let data = svg.outerHTML; // Get SVG element as HTML code.
-    canvg(canvas, data); // Render SVG on Canvas.
-    callback(canvas); // Execute callback function.
-}
-
-
-function generateLink(fileName, data) {
-    let link = document.createElement('a');
-    link.download = fileName;
-    link.href = data;
-    return link;
-}
-
-function updateChart() {
-    $('#loading').show();
-    $.blockUI();
-    connection.runSql("DELETE FROM webdata WHERE name = 'graphElements'");
-    connection.runSql("DELETE FROM webdata WHERE name = 'databaseDetails'");
-    connection.runSql("DELETE FROM webdata WHERE name = 'arcElements'");
-    connection.runSql("DELETE FROM webdata WHERE name = 'cycleElements'");
-    connection.runSql("DELETE FROM webdata WHERE name = 'databaseDetails'");
-    connection.runSql("DELETE FROM webdata WHERE name = 'mainIndicators'").then(function (e) {
-        $('#loading').hide();
-        $.unblockUI();
-        toastr.success('Please reload the page now', 'Updating Indicators and Charts', {timeOut: 0})
-    });
-}
-
-function trimByDates(values, start, end){
-    let trimmed = [];
-    for (let date in values){
-        if (new Date(date) >= new Date(start) && new Date(date) <= new Date(end)) {
-            trimmed.push(values[date])
-        }
-    }
-    return trimmed
-}
-
-
 function drawApex(graphElementMap, start, end, weekly){
-
-
-    // let data = [];
-    // for (let date in graphElementMap["orderedSessions"]){
-    //     let value = [date, graphElementMap["orderedSessions"][date]];
-    //     data.push(value)
-    // }
-    // let optionsDetail = {
-    //     chart: {
-    //         id: 'chartDetail',
-    //         type: 'line',
-    //         height: 250,
-    //         toolbar: {
-    //             autoSelected: 'pan',
-    //             show: false
-    //         }
-    //     },
-    //     colors: ['#546E7A'],
-    //     stroke: {
-    //         width: 3
-    //     },
-    //     fill: {
-    //         opacity: 1,
-    //     },
-    //     markers: {
-    //         size: 0
-    //     },
-    //     series: [{
-    //         name: 'Sessions',
-    //         data: data
-    //     }],
-    //     xaxis: {
-    //         type: 'datetime'
-    //     },
-    //     yaxis: {
-    //         min: 0,
-    //         forceNiceScale: true
-    //     }
-    // };
-    //
-    // let chartDetail = new ApexCharts(
-    //     document.querySelector("#chartDetail"),
-    //     optionsDetail
-    // );
-    //
-    // chartDetail.render();
-
-    // let optionsBrush = {
-    //     chart: {
-    //         id: 'chartBrush',
-    //         height: 150,
-    //         type: 'area',
-    //         brush:{
-    //             target: 'chartDetail',
-    //             enabled: true
-    //         },
-    //         stroke: {
-    //             curve: 'straight'
-    //         },
-    //         selection: {
-    //             enabled: true,
-    //             xaxis: {
-    //                 min: start,
-    //                 max: end
-    //             }
-    //         },
-    //     },
-    //     colors: ['#008FFB'],
-    //     series: [{
-    //         name: 'Sessions',
-    //         data: data
-    //     }],
-    //     fill: {
-    //         type: 'gradient',
-    //         gradient: {
-    //             opacityFrom: 0.91,
-    //             opacityTo: 0.1,
-    //         }
-    //     },
-    //     xaxis: {
-    //         type: 'datetime',
-    //         tooltip: {
-    //             enabled: false
-    //         }
-    //     },
-    //     yaxis: {
-    //         tickAmount: 2,
-    //         min: 0
-    //     }
-    // };
-    //
-    // let chartBrush = new ApexCharts(
-    //     document.querySelector("#chartBrush"),
-    //     optionsBrush
-    // );
-    // chartBrush.render();
 
     let weeklyPosts = groupWeeklyMapped(graphElementMap, 'orderedForumPosts');
     let weeklyRegPosts = groupWeeklyMapped(graphElementMap, 'orderedForumPostsByRegulars');
@@ -2121,10 +1984,10 @@ function videoTransitions() {
                         arcData['nodes'] = nodes;
                         arcData['links'] = links;
                         let arcElements = [{'name': 'arcElements', 'object': arcData}];
-                        connection.runSql("DELETE FROM webdata WHERE name = 'arcElements'").then(function (success) {
+                        // connection.runSql("DELETE FROM webdata WHERE name = 'arcElements'").then(function (success) {
                             sqlInsert('webdata', arcElements, connection);
                             drawVideoArc();
-                        });
+                        // });
                     }
                 });
             }
@@ -2386,12 +2249,9 @@ function moduleTransitions() {
     connection.runSql("SELECT * FROM metadata WHERE name = 'metadata_map' ").then(async function (result) {
         if (result.length !== 1) {
             console.log('Metadata empty');
-            $('#loading').hide();
-            $.unblockUI();
+            loader(false);
         } else {
-            // $('#loading').show();
-            // $.blockUI();
-            let course_metadata_map = result[0]['object'];
+            const course_metadata_map = result[0]['object'];
             let courseId = course_metadata_map.course_id;
             courseId = courseId.slice(courseId.indexOf(':') + 1,);
             let startingWeek = course_metadata_map.start_date.getWeek();
@@ -2688,11 +2548,11 @@ function moduleTransitions() {
             let cycleData = {};
             cycleData['links'] = weeklyLinks;
             let cycleElements = [{'name': 'cycleElements', 'object': cycleData}];
-            connection.runSql("DELETE FROM webdata WHERE name = 'cycleElements'").then(function (success) {
+            // connection.runSql("DELETE FROM webdata WHERE name = 'cycleElements'").then(function (success) {
                 sqlInsert('webdata', cycleElements, connection);
                 drawCycles();
                 loader(false);
-            });
+            // });
         }
     })
 }

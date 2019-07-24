@@ -31,7 +31,6 @@ export function processGeneralSessions(courseMetadataMap, logFiles, index, total
         if (file_name.includes('log')){
             let today = new Date();
             let start = today.getHours() + ":" + today.getMinutes() + ":" + today.getSeconds() + '.' + today.getMilliseconds();
-            console.log('Starting at', start);
             learner_all_event_logs = [];
             learner_all_event_logs = JSON.parse(JSON.stringify(updated_learner_all_event_logs));
             updated_learner_all_event_logs = [];
@@ -40,7 +39,6 @@ export function processGeneralSessions(courseMetadataMap, logFiles, index, total
             for (const course_learner_id in learner_all_event_logs){
                 course_learner_id_set.add(course_learner_id)
             }
-            console.log(input_file.length);
             let lines = input_file.split('\n');
             console.log(lines.length + ' lines to process in file');
 
@@ -878,9 +876,10 @@ export function processAssessmentsSubmissions(courseMetadataMap, logFiles, index
  * @param {number} chunk Current chunk to process
  * @param {number} totalChunks Total chunks to process in the current file
  * @param {JsStoreWorker} connection Main JsStore worker that handles the connection to SqlWeb
+ * @param {function} callback Callback to prepareLogFiles function, providing the file index and chunk index to continue
  * @returns {array} processingCheck Array with the values for next index and chunk, or to end processing
  */
-export function processQuizSessions(courseMetadataMap, logFiles, index, total, chunk, totalChunks, connection) {
+export function processQuizSessions(courseMetadataMap, logFiles, index, total, chunk, totalChunks, connection, callback) {
     // This is only for one course! It has to be changed to allow for more courses
     const courseId = courseMetadataMap["course_id"],
         currentCourseId = courseId.slice(courseId.indexOf('+') + 1, courseId.lastIndexOf('+') + 7);
@@ -916,59 +915,114 @@ export function processQuizSessions(courseMetadataMap, logFiles, index, total, c
                 courseLearnerIdSet.add(courseLearnerId);
             }
             const lines = inputFile.split('\n');
-            console.log('    with ', lines.length, 'lines');
+            if (lines.length < 2) {
+                chunk = 0;
+                toastr.info('Starting with file number ' + (index + 1));
+                callback(index, chunk, totalChunks);
+            } else {
+                console.log('    with ', lines.length, 'lines');
 
-            for (const line of lines){
-                if (line.length < 10 || !(line.includes(currentCourseId))) {continue}
-                const jsonObject = JSON.parse(line);
-                if (!('user_id' in jsonObject['context'])) {continue}
-                const global_learner_id = jsonObject['context']['user_id'],
-                    event_type = jsonObject['event_type'];
-                if (global_learner_id === '') { continue }
-                const course_id = jsonObject['context']['course_id'],
-                    course_learner_id = course_id + '_' + global_learner_id,
-                    event_time = new Date(jsonObject['time']);
-                if (course_learner_id in learnerAllEventLogs) {
-                    learnerAllEventLogs[course_learner_id].push({'event_time': event_time, 'event_type': event_type});
-                } else {
-                    learnerAllEventLogs[course_learner_id] = [{'event_time': event_time, 'event_type': event_type}];
-                }
-            }
-
-            for (const courseLearnerId in learnerAllEventLogs) {
-                if (!(learnerAllEventLogs.hasOwnProperty(courseLearnerId))){continue}
-                let eventLogs = learnerAllEventLogs[courseLearnerId];
-                eventLogs.sort(function(a, b) {
-                    return b.event_type - a.event_type;
-                });
-                eventLogs.sort(function(a, b) {
-                    return new Date(a.event_time) - new Date(b.event_time);
-                });
-                let sessionId = '',
-                    startTime = null,
-                    endTime = null,
-                    finalTime = null;
-                for (const i in eventLogs) {
-                    if (sessionId === '') {
-                        if (eventLogs[i]['event_type'].includes('problem+block') || eventLogs[i]['event_type'].includes("_problem;_") || submissionEventCollection.includes(eventLogs[i]['event_type'])) {
-                            const eventTypeArray = eventLogs[i]['event_type'].split('/');
-                            let questionId = '';
-                            if (eventLogs[i]['event_type'].includes('problem+block')) {
-                                questionId = eventTypeArray[4];
-                            }
-                            if (eventLogs[i]['event_type'].includes('_problem;_')) {
-                                questionId = eventTypeArray[6].replace(/;_/g, '/');
-                            }
-                            if (questionId in childParentMap) {
-                                sessionId = 'quiz_session_' + childParentMap[questionId] + '_' + courseLearnerId;
-                                startTime = new Date(eventLogs[i]['event_time']);
-                                endTime = new Date(eventLogs[i]['event_time']);
-                            }
-                        }
+                for (const line of lines) {
+                    if (line.length < 10 || !(line.includes(currentCourseId))) {
+                        continue
+                    }
+                    const jsonObject = JSON.parse(line);
+                    if (!('user_id' in jsonObject['context'])) {
+                        continue
+                    }
+                    const global_learner_id = jsonObject['context']['user_id'],
+                        event_type = jsonObject['event_type'];
+                    if (global_learner_id === '') {
+                        continue
+                    }
+                    const course_id = jsonObject['context']['course_id'],
+                        course_learner_id = course_id + '_' + global_learner_id,
+                        event_time = new Date(jsonObject['time']);
+                    if (course_learner_id in learnerAllEventLogs) {
+                        learnerAllEventLogs[course_learner_id].push({
+                            'event_time': event_time,
+                            'event_type': event_type
+                        });
                     } else {
-                        if (eventLogs[i]['event_type'].includes('problem+block') || eventLogs[i]['event_type'].includes('_problem;_') || submissionEventCollection.includes(eventLogs[i]['event_type'])) {
-                            let verification_time = new Date(endTime);
-                            if (new Date(eventLogs[i]['event_time']) > verification_time.setMinutes(verification_time.getMinutes() + 30)) {
+                        learnerAllEventLogs[course_learner_id] = [{'event_time': event_time, 'event_type': event_type}];
+                    }
+                }
+
+                for (const courseLearnerId in learnerAllEventLogs) {
+                    if (!(learnerAllEventLogs.hasOwnProperty(courseLearnerId))) {
+                        continue
+                    }
+                    let eventLogs = learnerAllEventLogs[courseLearnerId];
+                    eventLogs.sort(function (a, b) {
+                        return b.event_type - a.event_type;
+                    });
+                    eventLogs.sort(function (a, b) {
+                        return new Date(a.event_time) - new Date(b.event_time);
+                    });
+                    let sessionId = '',
+                        startTime = null,
+                        endTime = null,
+                        finalTime = null;
+                    for (const i in eventLogs) {
+                        if (sessionId === '') {
+                            if (eventLogs[i]['event_type'].includes('problem+block') || eventLogs[i]['event_type'].includes("_problem;_") || submissionEventCollection.includes(eventLogs[i]['event_type'])) {
+                                const eventTypeArray = eventLogs[i]['event_type'].split('/');
+                                let questionId = '';
+                                if (eventLogs[i]['event_type'].includes('problem+block')) {
+                                    questionId = eventTypeArray[4];
+                                }
+                                if (eventLogs[i]['event_type'].includes('_problem;_')) {
+                                    questionId = eventTypeArray[6].replace(/;_/g, '/');
+                                }
+                                if (questionId in childParentMap) {
+                                    sessionId = 'quiz_session_' + childParentMap[questionId] + '_' + courseLearnerId;
+                                    startTime = new Date(eventLogs[i]['event_time']);
+                                    endTime = new Date(eventLogs[i]['event_time']);
+                                }
+                            }
+                        } else {
+                            if (eventLogs[i]['event_type'].includes('problem+block') || eventLogs[i]['event_type'].includes('_problem;_') || submissionEventCollection.includes(eventLogs[i]['event_type'])) {
+                                let verification_time = new Date(endTime);
+                                if (new Date(eventLogs[i]['event_time']) > verification_time.setMinutes(verification_time.getMinutes() + 30)) {
+                                    if (sessionId in quizSessions) {
+                                        quizSessions[sessionId]['time_array'].push({
+                                            'start_time': startTime,
+                                            'end_time': endTime
+                                        });
+                                    } else {
+                                        quizSessions[sessionId] = {
+                                            'course_learner_id': courseLearnerId,
+                                            'time_array': [{'start_time': startTime, 'end_time': endTime}]
+                                        };
+                                    }
+                                    finalTime = eventLogs[i]['event_time'];
+                                    if (eventLogs[i]['event_type'].includes('problem+block') || eventLogs[i]['event_type'].includes('_problem;_') || submissionEventCollection.includes(eventLogs[i]['event_type'])) {
+                                        let event_type_array = eventLogs[i]['event_type'].split('/');
+                                        let questionId = '';
+                                        if (eventLogs[i]['event_type'].includes('problem+block')) {
+                                            questionId = event_type_array[4];
+                                        }
+                                        if (eventLogs[i]['event_type'].includes('_problem;_')) {
+                                            questionId = event_type_array[6].replace(/;_/g, '/');
+                                        }
+                                        if (questionId in childParentMap) {
+                                            sessionId = 'quiz_session_' + childParentMap[questionId] + '_' + courseLearnerId;
+                                            startTime = new Date(eventLogs[i]['event_time']);
+                                            endTime = new Date(eventLogs[i]['event_time']);
+                                        } else {
+                                            sessionId = '';
+                                            startTime = null;
+                                            endTime = null;
+                                        }
+                                    }
+                                } else {
+                                    endTime = new Date(eventLogs[i]['event_time']);
+                                }
+                            } else {
+                                let verification_time = new Date(endTime);
+                                if (eventLogs[i]['event_time'] <= verification_time.setMinutes(verification_time.getMinutes() + 30)) {
+                                    endTime = new Date(eventLogs[i]['event_time']);
+                                }
                                 if (sessionId in quizSessions) {
                                     quizSessions[sessionId]['time_array'].push({
                                         'start_time': startTime,
@@ -980,161 +1034,125 @@ export function processQuizSessions(courseMetadataMap, logFiles, index, total, c
                                         'time_array': [{'start_time': startTime, 'end_time': endTime}]
                                     };
                                 }
-                                finalTime = eventLogs[i]['event_time'];
-                                if (eventLogs[i]['event_type'].includes('problem+block') || eventLogs[i]['event_type'].includes('_problem;_') || submissionEventCollection.includes(eventLogs[i]['event_type'])) {
-                                    let event_type_array = eventLogs[i]['event_type'].split('/');
-                                    let questionId = '';
-                                    if (eventLogs[i]['event_type'].includes('problem+block')) {
-                                        questionId = event_type_array[4];
-                                    }
-                                    if (eventLogs[i]['event_type'].includes('_problem;_')) {
-                                        questionId = event_type_array[6].replace(/;_/g, '/');
-                                    }
-                                    if (questionId in childParentMap) {
-                                        sessionId = 'quiz_session_' + childParentMap[questionId] + '_' + courseLearnerId;
-                                        startTime = new Date(eventLogs[i]['event_time']);
-                                        endTime = new Date(eventLogs[i]['event_time']);
-                                    } else {
-                                        sessionId = '';
-                                        startTime = null;
-                                        endTime = null;
-                                    }
-                                }
-                            } else {
-                                endTime = new Date(eventLogs[i]['event_time']);
+                                finalTime = new Date(eventLogs[i]['event_time']);
+                                sessionId = '';
+                                startTime = null;
+                                endTime = null;
                             }
-                        } else {
-                            let verification_time = new Date(endTime);
-                            if (eventLogs[i]['event_time'] <= verification_time.setMinutes(verification_time.getMinutes() + 30)) {
-                                endTime = new Date(eventLogs[i]['event_time']);
-                            }
-                            if (sessionId in quizSessions) {
-                                quizSessions[sessionId]['time_array'].push({
-                                    'start_time': startTime,
-                                    'end_time': endTime
-                                });
-                            } else {
-                                quizSessions[sessionId] = {
-                                    'course_learner_id': courseLearnerId,
-                                    'time_array': [{'start_time': startTime, 'end_time': endTime}]
-                                };
-                            }
-                            finalTime = new Date(eventLogs[i]['event_time']);
-                            sessionId = '';
-                            startTime = null;
-                            endTime = null;
                         }
                     }
-                }
 
-                if (finalTime != null) {
-                    let new_logs = [];
-                    for (let log of eventLogs) {
-                        if (log ['event_time'] >= finalTime) {
-                            new_logs.push(log);
+                    if (finalTime != null) {
+                        let new_logs = [];
+                        for (let log of eventLogs) {
+                            if (log ['event_time'] >= finalTime) {
+                                new_logs.push(log);
+                            }
                         }
+                        updatedLearnerAllEventLogs[courseLearnerId] = new_logs;
                     }
-                    updatedLearnerAllEventLogs[courseLearnerId] = new_logs;
                 }
             }
         }
-    }
-    // } from while true
+        // } from while true
 
-    for (let session_id in quizSessions) {
-        if (!(quizSessions.hasOwnProperty(session_id))){ continue; }
-        if (Object.keys(quizSessions[session_id]['time_array']).length > 1) {
-            let start_time = null;
-            let end_time = null;
-            let updated_time_array = [];
+        for (let session_id in quizSessions) {
+            if (!(quizSessions.hasOwnProperty(session_id))) {
+                continue;
+            }
+            if (Object.keys(quizSessions[session_id]['time_array']).length > 1) {
+                let start_time = null;
+                let end_time = null;
+                let updated_time_array = [];
+                for (let i = 0; i < Object.keys(quizSessions[session_id]['time_array']).length; i++) {
+                    let verification_time = new Date(end_time);
+                    if (i === 0) {
+                        start_time = new Date(quizSessions[session_id]['time_array'][i]['start_time']);
+                        end_time = new Date(quizSessions[session_id]['time_array'][i]['end_time']);
+                    } else if (new Date(quizSessions[session_id]['time_array'][i]['start_time']) > verification_time.setMinutes(verification_time.getMinutes() + 30)) {
+                        updated_time_array.push({'start_time': start_time, 'end_time': end_time});
+                        start_time = new Date(quizSessions[session_id]['time_array'][i]['start_time']);
+                        end_time = new Date(quizSessions[session_id]['time_array'][i]['end_time']);
+                        if (i === Object.keys(quizSessions[session_id]['time_array']).length - 1) {
+                            updated_time_array.push({'start_time': start_time, 'end_time': end_time});
+                        }
+                    } else {
+                        end_time = new Date(quizSessions[session_id]['time_array'][i]['end_time']);
+                        if (i === Object.keys(quizSessions[session_id]['time_array']).length - 1) {
+                            updated_time_array.push({'start_time': start_time, 'end_time': end_time});
+                        }
+                    }
+                }
+                quizSessions[session_id]['time_array'] = updated_time_array;
+            }
+        }
+
+        let quiz_session_record = [];
+        for (let session_id in quizSessions) {
+            if (!(quizSessions.hasOwnProperty(session_id))) {
+                continue;
+            }
+            let course_learner_id = quizSessions[session_id]['course_learner_id'];
             for (let i = 0; i < Object.keys(quizSessions[session_id]['time_array']).length; i++) {
-                let verification_time = new Date(end_time);
-                if (i === 0) {
-                    start_time = new Date(quizSessions[session_id]['time_array'][i]['start_time']);
-                    end_time = new Date(quizSessions[session_id]['time_array'][i]['end_time']);
-                } else if (new Date(quizSessions[session_id]['time_array'][i]['start_time']) > verification_time.setMinutes(verification_time.getMinutes() + 30)) {
-                    updated_time_array.push({'start_time': start_time, 'end_time': end_time});
-                    start_time = new Date(quizSessions[session_id]['time_array'][i]['start_time']);
-                    end_time = new Date(quizSessions[session_id]['time_array'][i]['end_time']);
-                    if (i === Object.keys(quizSessions[session_id]['time_array']).length - 1) {
-                        updated_time_array.push({'start_time': start_time, 'end_time': end_time});
-                    }
-                }
-                else {
-                    end_time = new Date(quizSessions[session_id]['time_array'][i]['end_time']);
-                    if (i === Object.keys(quizSessions[session_id]['time_array']).length - 1) {
-                        updated_time_array.push({'start_time': start_time, 'end_time': end_time});
+                let start_time = new Date(quizSessions[session_id]['time_array'][i]['start_time']);
+                let end_time = new Date(quizSessions[session_id]['time_array'][i]['end_time']);
+                if (start_time < end_time) {
+                    let duration = (end_time - start_time) / 1000;
+                    let final_session_id = session_id + '_' + start_time + '_' + end_time;
+                    if (duration > 5) {
+                        let array = [final_session_id, course_learner_id, start_time, end_time, duration];
+                        quiz_session_record.push(array);
                     }
                 }
             }
-            quizSessions[session_id]['time_array'] = updated_time_array;
         }
-    }
 
-    let quiz_session_record = [];
-    for (let session_id in quizSessions) {
-        if (!(quizSessions.hasOwnProperty(session_id))){ continue; }
-        let course_learner_id = quizSessions[session_id]['course_learner_id'];
-        for (let i = 0; i < Object.keys(quizSessions[session_id]['time_array']).length; i++) {
-            let start_time = new Date(quizSessions[session_id]['time_array'][i]['start_time']);
-            let end_time = new Date(quizSessions[session_id]['time_array'][i]['end_time']);
-            if (start_time < end_time) {
-                let duration = (end_time - start_time)/1000;
-                let final_session_id = session_id + '_' + start_time + '_' + end_time;
-                if (duration > 5) {
-                    let array = [final_session_id, course_learner_id, start_time, end_time, duration];
-                    quiz_session_record.push(array);
+        if (quiz_session_record.length > 0) {
+            let data = [];
+            for (let array of quiz_session_record) {
+                let session_id = array[0];
+                if (chunk !== 0) {
+                    session_id = session_id + '_' + chunk
                 }
+                if (index !== 0) {
+                    session_id = session_id + '_' + index
+                }
+                let course_learner_id = array[1];
+                let start_time = array[2];
+                let end_time = array[3];
+                let duration = processNull(array[4]);
+                let values = {
+                    'session_id': session_id, 'course_learner_id': course_learner_id,
+                    'start_time': start_time, 'end_time': end_time, 'duration': duration
+                };
+                data.push(values)
             }
-        }
-    }
-
-    if (quiz_session_record.length > 0) {
-        let data = [];
-        for (let array of quiz_session_record) {
-            let session_id = array[0];
-            if (chunk !== 0) {
-                session_id = session_id + '_' + chunk
-            }
-            if (index !== 0) {
-                session_id = session_id + '_' + index
-            }
-            let course_learner_id = array[1];
-            let start_time = array[2];
-            let end_time = array[3];
-            let duration = processNull(array[4]);
-            let values = {
-                'session_id': session_id, 'course_learner_id': course_learner_id,
-                'start_time': start_time, 'end_time': end_time, 'duration': duration
-            };
-            data.push(values)
-        }
-        sqlLogInsert('quiz_sessions', data, connection);
-        progressDisplay(data.length + ' quiz interaction sessions', index);
-    } else {
-        console.log('No quiz session data')
-    }
-    chunk++;
-    if (chunk < totalChunks){
-        progressDisplay('Part\n' + (chunk + 1) + ' of ' + totalChunks, index);
-        toastr.info('Processing a new chunk of file number ' + (index + 1));
-        return [index, chunk];
-    } else {
-        index++;
-        if (index < total){
-            chunk = 0;
-            toastr.info('Starting with file number ' + (index + 1));
-            return [index, chunk];
+            sqlLogInsert('quiz_sessions', data, connection);
+            progressDisplay(data.length + ' quiz interaction sessions', index);
         } else {
-            let table = document.getElementById("progress_tab");
-            let row = table.insertRow();
-            let cell1 = row.insertCell();
-            setTimeout(function(){
-                toastr.success('Please reload the page now', 'Logfiles Processed!', {timeOut: 0});
-                cell1.innerHTML = ('Done! at ' + new Date().toLocaleString('en-GB'));
-                loader(false)
-            }, 10000);
-            return ['Finished'];
+            console.log('No quiz session data')
+        }
+        chunk++;
+        if (chunk < totalChunks) {
+            progressDisplay('Part\n' + (chunk + 1) + ' of this file', index);
+            toastr.info('Processing a new chunk of file number ' + (index + 1));
+            callback(index, chunk, totalChunks)
+        } else {
+            index++;
+            if (index < total) {
+                chunk = 0;
+                toastr.info('Starting with file number ' + (index + 1));
+                callback(index, chunk, totalChunks);
+            } else {
+                let table = document.getElementById("progress_tab");
+                let row = table.insertRow();
+                let cell1 = row.insertCell();
+                setTimeout(function () {
+                    toastr.success('Please reload the page now', 'Logfiles Processed!', {timeOut: 0});
+                    cell1.innerHTML = ('Done! at ' + new Date().toLocaleString('en-GB'));
+                    loader(false)
+                }, 10000);
+            }
         }
     }
 }

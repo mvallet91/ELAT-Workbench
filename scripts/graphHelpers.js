@@ -19,13 +19,10 @@ export function exportChartPNG(chartId) {
             a.click();
         });
     } else {
-
         SVG2PNG(element.firstElementChild, function(canvas) { // Arguments: SVG element, callback function.
             let base64 = canvas.toDataURL("image/png"); // toDataURL return DataURI as Base64 format.
             generateLink(filename + '.png', base64).click(); // Trigger the Link is made by Link Generator and download.
         });
-
-        // saveSvgAsPng(element.firstElementChild, filename + '.png');
     }
 }
 

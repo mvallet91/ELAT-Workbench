@@ -151,14 +151,47 @@ function prepareLogFiles(fileIndex, chunkIndex, totalChunks){
     const multiFileInputLogs = document.getElementById('logFilesInput'),
         files = multiFileInputLogs.files,
         totalFiles = files.length;
-    let counter = 0;
-    for (const f of files) {
-        if (counter === fileIndex){
-            const today = new Date();
-            console.log('Starting with file ' + fileIndex + ' at ' + today);
-            unzipLogfile(f, reader, fileIndex, totalFiles, chunkIndex, totalChunks, processLogfile)
+
+    if (chunkIndex < totalChunks && fileIndex < totalFiles) {
+        console.log('File', fileIndex, 'out of', totalFiles, '-----------------------------');
+        console.log('Chunk', chunkIndex, 'out of', totalChunks, '-----------------------------');
+        // progressDisplay(('Chunk ' + chunkIndex + ' of file'), (fileIndex + 1));
+        toastr.info('Processing a new chunk of file number ' + (fileIndex + 1));
+        let counter = 0;
+        for (const f of files) {
+            if (counter === fileIndex) {
+                const today = new Date();
+                console.log('Starting at', today);
+                unzipLogfile(f, reader, fileIndex, totalFiles, chunkIndex, totalChunks, processLogfile)
+            }
+            counter += 1;
         }
-        counter += 1;
+    } else {
+        fileIndex++;
+        if (fileIndex < totalFiles) {
+            toastr.info('Starting with file number ' + (fileIndex + 1));
+            chunkIndex = 0;
+            console.log('File', fileIndex, 'out of', totalFiles, '-----------------------------');
+            console.log('Chunk', chunkIndex, 'out of', totalChunks, '-----------------------------');
+            let counter = 0;
+            for (const f of files) {
+                if (counter === fileIndex) {
+                    const today = new Date();
+                    console.log('Starting at', today);
+                    unzipLogfile(f, reader, fileIndex, totalFiles, chunkIndex, totalChunks, processLogfile)
+                }
+                counter += 1;
+            }
+        } else {
+            let table = document.getElementById("progress_tab"),
+                row = table.insertRow(),
+                cell1 = row.insertCell();
+            setTimeout(function () {
+                toastr.success('Please reload the page now', 'LogFiles Processed!', {timeOut: 0});
+                cell1.innerHTML = ('Done! at ' + new Date().toLocaleString('en-GB'));
+                loader(false)
+            }, 1000);
+        }
     }
 }
 
@@ -182,11 +215,17 @@ function unzipLogfile(file, reader, fileIndex, totalFiles, chunkIndex, totalChun
                     value: stringContent.slice(stringContent.indexOf('{"username":'),
                         stringContent.lastIndexOf('\n{'))
                 });
-                if (stringContent.lastIndexOf('\n') + 2 < stringContent.length) {
-                    totalChunks++;
-                }
                 reader.abort();
-                callback(processedFiles, fileIndex, totalFiles, chunkIndex, totalChunks);
+                if (stringContent.split('\n').length > 10) {
+                    totalChunks++;
+                    callback(processedFiles, fileIndex, totalFiles, chunkIndex, totalChunks);
+                } else {
+                    fileIndex++;
+                    chunkIndex = 0;
+                    totalChunks = 1;
+                    console.log('End of file');
+                    prepareLogFiles(fileIndex, chunkIndex, totalChunks);
+                }
             } catch (error) {
                 if (error instanceof RangeError) {
                     console.log(error);
@@ -197,7 +236,6 @@ function unzipLogfile(file, reader, fileIndex, totalFiles, chunkIndex, totalChun
                     loader(false);
                 }
             }
-
         };
         reader.readAsArrayBuffer(file);
     }
@@ -1984,10 +2022,10 @@ function videoTransitions() {
                         arcData['nodes'] = nodes;
                         arcData['links'] = links;
                         let arcElements = [{'name': 'arcElements', 'object': arcData}];
-                        // connection.runSql("DELETE FROM webdata WHERE name = 'arcElements'").then(function (success) {
+                        connection.runSql("DELETE FROM webdata WHERE name = 'arcElements'").then(function (success) {
                             sqlInsert('webdata', arcElements, connection);
                             drawVideoArc();
-                        // });
+                        });
                     }
                 });
             }
@@ -2548,11 +2586,11 @@ function moduleTransitions() {
             let cycleData = {};
             cycleData['links'] = weeklyLinks;
             let cycleElements = [{'name': 'cycleElements', 'object': cycleData}];
-            // connection.runSql("DELETE FROM webdata WHERE name = 'cycleElements'").then(function (success) {
+            connection.runSql("DELETE FROM webdata WHERE name = 'cycleElements'").then(function (success) {
                 sqlInsert('webdata', cycleElements, connection);
                 drawCycles();
                 loader(false);
-            // });
+            });
         }
     })
 }

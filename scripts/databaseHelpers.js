@@ -1,5 +1,5 @@
 import {loader, downloadCsv} from "./helpers.js";
-
+let testing = false;
 /**
  * Database helper to insert values into IndexedDB in an SQL fashion, using the SqlWeb library
  * @param {string} table
@@ -36,27 +36,29 @@ export function sqlInsert(table, dataObject, connection) {
 }
 
 export function sqlLogInsert(table, rowsArray, connection) {
-    let query = new SqlWeb.Query("INSERT INTO " + table + " values='@val'");
-    for (let row of rowsArray) {
-        for (let field of Object.keys(row)) {
-            if (field.includes('_time')){
-                let date = row[field];
-                row[field] = new Date(date);
+    if (!testing) {
+        let query = new SqlWeb.Query("INSERT INTO " + table + " values='@val'");
+        for (let row of rowsArray) {
+            for (let field of Object.keys(row)) {
+                if (field.includes('_time')) {
+                    let date = row[field];
+                    row[field] = new Date(date);
+                }
             }
         }
+        query.map("@val", rowsArray);
+        connection.runSql(query)
+            .then(function (rowsAdded) {
+                if (rowsAdded > 0) {
+                    let today = new Date();
+                    let time = today.getHours() + ":" + today.getMinutes() + ":" + today.getSeconds() + '.' + today.getMilliseconds();
+                    console.log('Successfully added: ', table, ' at ', time);
+                }
+            })
+            .catch(function (err) {
+                console.log(err);
+            });
     }
-    query.map("@val", rowsArray);
-    connection.runSql(query)
-        .then(function (rowsAdded) {
-            if (rowsAdded > 0) {
-                let today = new Date();
-                let time = today.getHours() + ":" + today.getMinutes() + ":" + today.getSeconds() + '.' + today.getMilliseconds();
-                console.log('Successfully added: ', table, ' at ', time);
-            }
-        })
-        .catch(function (err) {
-            console.log(err);
-        });
 }
 
 export function populateSamples(courseId, connection){
@@ -81,11 +83,13 @@ export function populateSamples(courseId, connection){
 }
 
 export function clearStoredWebdata(connection) {
-    connection.runSql("DELETE FROM webdata WHERE name = 'graphElements'");
-    connection.runSql("DELETE FROM webdata WHERE name = 'databaseDetails'");
-    connection.runSql("DELETE FROM webdata WHERE name = 'mainIndicators'");
-    connection.runSql("DELETE FROM webdata WHERE name = 'arcElements'");
-    connection.runSql("DELETE FROM webdata WHERE name = 'cycleElements'");
+    if (!testing) {
+        connection.runSql("DELETE FROM webdata WHERE name = 'graphElements'");
+        connection.runSql("DELETE FROM webdata WHERE name = 'databaseDetails'");
+        connection.runSql("DELETE FROM webdata WHERE name = 'mainIndicators'");
+        connection.runSql("DELETE FROM webdata WHERE name = 'arcElements'");
+        connection.runSql("DELETE FROM webdata WHERE name = 'cycleElements'");
+    }
 }
 
 export function updateChart(connection) {
@@ -144,11 +148,9 @@ export async function deleteEverything(connection) {
             console.log(err);
             alert('The deletion process started but did not finish,\n please refresh and try again');
         });
-        await connection.dropDb().then(function (result) {
-            if (result === 1) {
-                loader(false);
-                toastr.success('Database has been deleted!')
-            }
+        await connection.dropDb().then(function () {
+            loader(false);
+            toastr.success('Database has been deleted!')
         }).catch(function (err) {
             console.log(err);
             alert('The deletion process started but did not finish,\n please refresh and try again');

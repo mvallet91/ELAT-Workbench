@@ -18,7 +18,6 @@ export function processGeneralSessions(courseMetadataMap, logFiles, index, total
     let current_course_id = courseMetadataMap["course_id"];
     current_course_id = current_course_id.slice(current_course_id.indexOf('+') + 1, current_course_id.lastIndexOf('+') + 7);
 
-    let zero_start = performance.now();
     // let current_date = courseMetadataMap["start_date"];
     // let end_next_date  = getNextDay(courseMetadataMap["end_date"]);
     let learner_all_event_logs = [];
@@ -29,8 +28,8 @@ export function processGeneralSessions(courseMetadataMap, logFiles, index, total
         let file_name = logFiles[f]['key'];
         let input_file = logFiles[f]['value'];
         if (file_name.includes('log')){
-            let today = new Date();
-            let start = today.getHours() + ":" + today.getMinutes() + ":" + today.getSeconds() + '.' + today.getMilliseconds();
+            // let today = new Date();
+            // let start = today.getHours() + ":" + today.getMinutes() + ":" + today.getSeconds() + '.' + today.getMilliseconds();
             learner_all_event_logs = [];
             learner_all_event_logs = JSON.parse(JSON.stringify(updated_learner_all_event_logs));
             updated_learner_all_event_logs = [];
@@ -40,8 +39,9 @@ export function processGeneralSessions(courseMetadataMap, logFiles, index, total
                 course_learner_id_set.add(course_learner_id)
             }
             let lines = input_file.split('\n');
-            console.log(lines.length + ' lines to process in file');
-
+            console.log('Starting general session processing');
+            console.log('  for file', file_name);
+            console.log('    with ', lines.length, 'lines');
             for (let line of lines){
                 if (line.length < 10 || !(line.includes(current_course_id)) ) { //
                     continue;
@@ -145,7 +145,6 @@ export function processGeneralSessions(courseMetadataMap, logFiles, index, total
                     updated_session_record.push(array);
                 }
             }
-            console.log('Session record:', session_record.length, 'session_id_set', session_id_set.length);
 
             session_record = updated_session_record;
             if (session_record.length > 0){
@@ -168,9 +167,7 @@ export function processGeneralSessions(courseMetadataMap, logFiles, index, total
                         'end_time': end_time, 'duration':duration};
                     data.push(values);
                 }
-                console.log('Send to storage at ' + new Date());
-                console.log(performance.now() - zero_start);
-
+                // console.log('Send to storage at ' + new Date());
                 sqlLogInsert('sessions', data, connection);
                 clearStoredWebdata(connection);
                 progressDisplay(data.length + ' sessions', index);
@@ -219,7 +216,6 @@ export function processForumSessions(courseMetadataMap, logFiles, index, total, 
         let file_name = log_file['key'];
         let input_file = log_file['value'];
         if (file_name.includes(current_date) || true) {
-            console.log('   for file', file_name);
             learner_all_event_logs = {};
             learner_all_event_logs = updated_learner_all_event_logs;
             updated_learner_all_event_logs = {};
@@ -230,7 +226,6 @@ export function processForumSessions(courseMetadataMap, logFiles, index, total, 
                 }
             }
             let lines = input_file.split('\n');
-            console.log('    with ', lines.length, 'lines');
             for (let line of lines){
                 if (line.length < 10 || !(line.includes(current_course_id)) ) { continue; }
                 let jsonObject = JSON.parse(line);
@@ -410,7 +405,7 @@ export function processForumSessions(courseMetadataMap, logFiles, index, total, 
             };
             data.push(values);
         }
-        console.log('Sending to storage at ' + new Date());
+        // console.log('Sending to storage at ' + new Date());
         sqlLogInsert('forum_sessions', data, connection);
         progressDisplay(data.length + ' forum interaction sessions', index);
     }
@@ -452,7 +447,6 @@ export function processVideoInteractionSessions(courseMetadataMap, logFiles, ind
         const file_name = file['key'],
             input_file = file['value'];
         if (file_name.includes(current_date) || true) {
-            console.log('   for file', file_name);
             learner_video_event_logs = {};
             learner_video_event_logs = updated_learner_video_event_logs;
             updated_learner_video_event_logs = {};
@@ -463,7 +457,6 @@ export function processVideoInteractionSessions(courseMetadataMap, logFiles, ind
                 }
             }
             let lines = input_file.split('\n');
-            console.log('    with ', lines.length, 'lines');
             for (let line of lines){
                 if (line.length < 10 || !(line.includes(current_course_id)) ) { continue; }
                 let jsonObject = JSON.parse(line);
@@ -775,7 +768,7 @@ export function processVideoInteractionSessions(courseMetadataMap, logFiles, ind
                 'duration_pause':duration_pause, 'start_time':start_time, 'end_time':end_time};
             data.push(values);
         }
-        console.log('Sending', data.length, ' values to storage at ' + new Date());
+        // console.log('Sending', data.length, ' values to storage at ' + new Date());
         sqlLogInsert('video_interaction', data, connection);
         progressDisplay(data.length + ' video interaction sessions', index);
     } else {
@@ -801,7 +794,7 @@ export function processAssessmentsSubmissions(courseMetadataMap, logFiles, index
     console.log('Starting quiz processing');
     let submission_event_collection = ['problem_check'];
     let current_date = courseMetadataMap['start_date'];
-    let end_next_date = getNextDay(new Date(courseMetadataMap['end_date']));
+    // let end_next_date = getNextDay(new Date(courseMetadataMap['end_date']));
     let submission_uni_index = chunk * 100;
     // while (true) {
     //     if (current_date == end_next_date) {
@@ -813,7 +806,6 @@ export function processAssessmentsSubmissions(courseMetadataMap, logFiles, index
             submission_data = [],
             assessment_data = [];
         if (file_name.includes(current_date) || true) {
-            console.log('   for file', file_name);
             const lines = input_file.split('\n');
             for (const line of lines) {
                 if (line.length < 10 || !(line.includes(current_course_id)) ) { continue; }
@@ -863,7 +855,6 @@ export function processAssessmentsSubmissions(courseMetadataMap, logFiles, index
     }
     // current_date = getNextDay(current_date);
     // }
-    console.log('Done with quiz questions');
 }
 
 /**
@@ -901,12 +892,11 @@ export function processQuizSessions(courseMetadataMap, logFiles, index, total, c
     //     if (current_date == end_next_date) {
     //         break;
     //     }
-
+    console.log('Starting quiz sessions');
     for (const logFile of logFiles) {
         const fileName = logFile['key'],
             inputFile = logFile['value'];
         if (fileName.includes(currentDate) || true) {
-            console.log('   for file', fileName);
             learnerAllEventLogs = {};
             learnerAllEventLogs = updatedLearnerAllEventLogs;
             updatedLearnerAllEventLogs = {};
@@ -915,114 +905,68 @@ export function processQuizSessions(courseMetadataMap, logFiles, index, total, c
                 courseLearnerIdSet.add(courseLearnerId);
             }
             const lines = inputFile.split('\n');
-            if (lines.length < 2) {
-                chunk = 0;
-                toastr.info('Starting with file number ' + (index + 1));
-                callback(index, chunk, totalChunks);
-            } else {
-                console.log('    with ', lines.length, 'lines');
-
-                for (const line of lines) {
-                    if (line.length < 10 || !(line.includes(currentCourseId))) {
-                        continue
-                    }
-                    const jsonObject = JSON.parse(line);
-                    if (!('user_id' in jsonObject['context'])) {
-                        continue
-                    }
-                    const global_learner_id = jsonObject['context']['user_id'],
-                        event_type = jsonObject['event_type'];
-                    if (global_learner_id === '') {
-                        continue
-                    }
-                    const course_id = jsonObject['context']['course_id'],
-                        course_learner_id = course_id + '_' + global_learner_id,
-                        event_time = new Date(jsonObject['time']);
-                    if (course_learner_id in learnerAllEventLogs) {
-                        learnerAllEventLogs[course_learner_id].push({
-                            'event_time': event_time,
-                            'event_type': event_type
-                        });
-                    } else {
-                        learnerAllEventLogs[course_learner_id] = [{'event_time': event_time, 'event_type': event_type}];
-                    }
+            for (const line of lines) {
+                if (line.length < 10 || !(line.includes(currentCourseId))) {
+                    continue
                 }
+                const jsonObject = JSON.parse(line);
+                if (!('user_id' in jsonObject['context'])) {
+                    continue
+                }
+                const global_learner_id = jsonObject['context']['user_id'],
+                    event_type = jsonObject['event_type'];
+                if (global_learner_id === '') {
+                    continue
+                }
+                const course_id = jsonObject['context']['course_id'],
+                    course_learner_id = course_id + '_' + global_learner_id,
+                    event_time = new Date(jsonObject['time']);
+                if (course_learner_id in learnerAllEventLogs) {
+                    learnerAllEventLogs[course_learner_id].push({
+                        'event_time': event_time,
+                        'event_type': event_type
+                    });
+                } else {
+                    learnerAllEventLogs[course_learner_id] = [{'event_time': event_time, 'event_type': event_type}];
+                }
+            }
 
-                for (const courseLearnerId in learnerAllEventLogs) {
-                    if (!(learnerAllEventLogs.hasOwnProperty(courseLearnerId))) {
-                        continue
-                    }
-                    let eventLogs = learnerAllEventLogs[courseLearnerId];
-                    eventLogs.sort(function (a, b) {
-                        return b.event_type - a.event_type;
-                    });
-                    eventLogs.sort(function (a, b) {
-                        return new Date(a.event_time) - new Date(b.event_time);
-                    });
-                    let sessionId = '',
-                        startTime = null,
-                        endTime = null,
-                        finalTime = null;
-                    for (const i in eventLogs) {
-                        if (sessionId === '') {
-                            if (eventLogs[i]['event_type'].includes('problem+block') || eventLogs[i]['event_type'].includes("_problem;_") || submissionEventCollection.includes(eventLogs[i]['event_type'])) {
-                                const eventTypeArray = eventLogs[i]['event_type'].split('/');
-                                let questionId = '';
-                                if (eventLogs[i]['event_type'].includes('problem+block')) {
-                                    questionId = eventTypeArray[4];
-                                }
-                                if (eventLogs[i]['event_type'].includes('_problem;_')) {
-                                    questionId = eventTypeArray[6].replace(/;_/g, '/');
-                                }
-                                if (questionId in childParentMap) {
-                                    sessionId = 'quiz_session_' + childParentMap[questionId] + '_' + courseLearnerId;
-                                    startTime = new Date(eventLogs[i]['event_time']);
-                                    endTime = new Date(eventLogs[i]['event_time']);
-                                }
+            for (const courseLearnerId in learnerAllEventLogs) {
+                if (!(learnerAllEventLogs.hasOwnProperty(courseLearnerId))) {
+                    continue
+                }
+                let eventLogs = learnerAllEventLogs[courseLearnerId];
+                eventLogs.sort(function (a, b) {
+                    return b.event_type - a.event_type;
+                });
+                eventLogs.sort(function (a, b) {
+                    return new Date(a.event_time) - new Date(b.event_time);
+                });
+                let sessionId = '',
+                    startTime = null,
+                    endTime = null,
+                    finalTime = null;
+                for (const i in eventLogs) {
+                    if (sessionId === '') {
+                        if (eventLogs[i]['event_type'].includes('problem+block') || eventLogs[i]['event_type'].includes("_problem;_") || submissionEventCollection.includes(eventLogs[i]['event_type'])) {
+                            const eventTypeArray = eventLogs[i]['event_type'].split('/');
+                            let questionId = '';
+                            if (eventLogs[i]['event_type'].includes('problem+block')) {
+                                questionId = eventTypeArray[4];
                             }
-                        } else {
-                            if (eventLogs[i]['event_type'].includes('problem+block') || eventLogs[i]['event_type'].includes('_problem;_') || submissionEventCollection.includes(eventLogs[i]['event_type'])) {
-                                let verification_time = new Date(endTime);
-                                if (new Date(eventLogs[i]['event_time']) > verification_time.setMinutes(verification_time.getMinutes() + 30)) {
-                                    if (sessionId in quizSessions) {
-                                        quizSessions[sessionId]['time_array'].push({
-                                            'start_time': startTime,
-                                            'end_time': endTime
-                                        });
-                                    } else {
-                                        quizSessions[sessionId] = {
-                                            'course_learner_id': courseLearnerId,
-                                            'time_array': [{'start_time': startTime, 'end_time': endTime}]
-                                        };
-                                    }
-                                    finalTime = eventLogs[i]['event_time'];
-                                    if (eventLogs[i]['event_type'].includes('problem+block') || eventLogs[i]['event_type'].includes('_problem;_') || submissionEventCollection.includes(eventLogs[i]['event_type'])) {
-                                        let event_type_array = eventLogs[i]['event_type'].split('/');
-                                        let questionId = '';
-                                        if (eventLogs[i]['event_type'].includes('problem+block')) {
-                                            questionId = event_type_array[4];
-                                        }
-                                        if (eventLogs[i]['event_type'].includes('_problem;_')) {
-                                            questionId = event_type_array[6].replace(/;_/g, '/');
-                                        }
-                                        if (questionId in childParentMap) {
-                                            sessionId = 'quiz_session_' + childParentMap[questionId] + '_' + courseLearnerId;
-                                            startTime = new Date(eventLogs[i]['event_time']);
-                                            endTime = new Date(eventLogs[i]['event_time']);
-                                        } else {
-                                            sessionId = '';
-                                            startTime = null;
-                                            endTime = null;
-                                        }
-                                    }
-                                } else {
-                                    endTime = new Date(eventLogs[i]['event_time']);
-                                }
-                            } else {
-                                let verification_time = new Date(endTime);
-                                if (eventLogs[i]['event_time'] <= verification_time.setMinutes(verification_time.getMinutes() + 30)) {
-                                    endTime = new Date(eventLogs[i]['event_time']);
-                                }
+                            if (eventLogs[i]['event_type'].includes('_problem;_')) {
+                                questionId = eventTypeArray[6].replace(/;_/g, '/');
+                            }
+                            if (questionId in childParentMap) {
+                                sessionId = 'quiz_session_' + childParentMap[questionId] + '_' + courseLearnerId;
+                                startTime = new Date(eventLogs[i]['event_time']);
+                                endTime = new Date(eventLogs[i]['event_time']);
+                            }
+                        }
+                    } else {
+                        if (eventLogs[i]['event_type'].includes('problem+block') || eventLogs[i]['event_type'].includes('_problem;_') || submissionEventCollection.includes(eventLogs[i]['event_type'])) {
+                            let verification_time = new Date(endTime);
+                            if (new Date(eventLogs[i]['event_time']) > verification_time.setMinutes(verification_time.getMinutes() + 30)) {
                                 if (sessionId in quizSessions) {
                                     quizSessions[sessionId]['time_array'].push({
                                         'start_time': startTime,
@@ -1034,125 +978,143 @@ export function processQuizSessions(courseMetadataMap, logFiles, index, total, c
                                         'time_array': [{'start_time': startTime, 'end_time': endTime}]
                                     };
                                 }
-                                finalTime = new Date(eventLogs[i]['event_time']);
-                                sessionId = '';
-                                startTime = null;
-                                endTime = null;
+                                finalTime = eventLogs[i]['event_time'];
+                                if (eventLogs[i]['event_type'].includes('problem+block') || eventLogs[i]['event_type'].includes('_problem;_') || submissionEventCollection.includes(eventLogs[i]['event_type'])) {
+                                    let event_type_array = eventLogs[i]['event_type'].split('/');
+                                    let questionId = '';
+                                    if (eventLogs[i]['event_type'].includes('problem+block')) {
+                                        questionId = event_type_array[4];
+                                    }
+                                    if (eventLogs[i]['event_type'].includes('_problem;_')) {
+                                        questionId = event_type_array[6].replace(/;_/g, '/');
+                                    }
+                                    if (questionId in childParentMap) {
+                                        sessionId = 'quiz_session_' + childParentMap[questionId] + '_' + courseLearnerId;
+                                        startTime = new Date(eventLogs[i]['event_time']);
+                                        endTime = new Date(eventLogs[i]['event_time']);
+                                    } else {
+                                        sessionId = '';
+                                        startTime = null;
+                                        endTime = null;
+                                    }
+                                }
+                            } else {
+                                endTime = new Date(eventLogs[i]['event_time']);
                             }
-                        }
-                    }
-
-                    if (finalTime != null) {
-                        let new_logs = [];
-                        for (let log of eventLogs) {
-                            if (log ['event_time'] >= finalTime) {
-                                new_logs.push(log);
+                        } else {
+                            let verification_time = new Date(endTime);
+                            if (eventLogs[i]['event_time'] <= verification_time.setMinutes(verification_time.getMinutes() + 30)) {
+                                endTime = new Date(eventLogs[i]['event_time']);
                             }
-                        }
-                        updatedLearnerAllEventLogs[courseLearnerId] = new_logs;
-                    }
-                }
-            }
-        }
-        // } from while true
-
-        for (let session_id in quizSessions) {
-            if (!(quizSessions.hasOwnProperty(session_id))) {
-                continue;
-            }
-            if (Object.keys(quizSessions[session_id]['time_array']).length > 1) {
-                let start_time = null;
-                let end_time = null;
-                let updated_time_array = [];
-                for (let i = 0; i < Object.keys(quizSessions[session_id]['time_array']).length; i++) {
-                    let verification_time = new Date(end_time);
-                    if (i === 0) {
-                        start_time = new Date(quizSessions[session_id]['time_array'][i]['start_time']);
-                        end_time = new Date(quizSessions[session_id]['time_array'][i]['end_time']);
-                    } else if (new Date(quizSessions[session_id]['time_array'][i]['start_time']) > verification_time.setMinutes(verification_time.getMinutes() + 30)) {
-                        updated_time_array.push({'start_time': start_time, 'end_time': end_time});
-                        start_time = new Date(quizSessions[session_id]['time_array'][i]['start_time']);
-                        end_time = new Date(quizSessions[session_id]['time_array'][i]['end_time']);
-                        if (i === Object.keys(quizSessions[session_id]['time_array']).length - 1) {
-                            updated_time_array.push({'start_time': start_time, 'end_time': end_time});
-                        }
-                    } else {
-                        end_time = new Date(quizSessions[session_id]['time_array'][i]['end_time']);
-                        if (i === Object.keys(quizSessions[session_id]['time_array']).length - 1) {
-                            updated_time_array.push({'start_time': start_time, 'end_time': end_time});
+                            if (sessionId in quizSessions) {
+                                quizSessions[sessionId]['time_array'].push({
+                                    'start_time': startTime,
+                                    'end_time': endTime
+                                });
+                            } else {
+                                quizSessions[sessionId] = {
+                                    'course_learner_id': courseLearnerId,
+                                    'time_array': [{'start_time': startTime, 'end_time': endTime}]
+                                };
+                            }
+                            finalTime = new Date(eventLogs[i]['event_time']);
+                            sessionId = '';
+                            startTime = null;
+                            endTime = null;
                         }
                     }
                 }
-                quizSessions[session_id]['time_array'] = updated_time_array;
-            }
-        }
 
-        let quiz_session_record = [];
-        for (let session_id in quizSessions) {
-            if (!(quizSessions.hasOwnProperty(session_id))) {
-                continue;
-            }
-            let course_learner_id = quizSessions[session_id]['course_learner_id'];
-            for (let i = 0; i < Object.keys(quizSessions[session_id]['time_array']).length; i++) {
-                let start_time = new Date(quizSessions[session_id]['time_array'][i]['start_time']);
-                let end_time = new Date(quizSessions[session_id]['time_array'][i]['end_time']);
-                if (start_time < end_time) {
-                    let duration = (end_time - start_time) / 1000;
-                    let final_session_id = session_id + '_' + start_time + '_' + end_time;
-                    if (duration > 5) {
-                        let array = [final_session_id, course_learner_id, start_time, end_time, duration];
-                        quiz_session_record.push(array);
+                if (finalTime != null) {
+                    let new_logs = [];
+                    for (let log of eventLogs) {
+                        if (log ['event_time'] >= finalTime) {
+                            new_logs.push(log);
+                        }
                     }
+                    updatedLearnerAllEventLogs[courseLearnerId] = new_logs;
                 }
-            }
-        }
-
-        if (quiz_session_record.length > 0) {
-            let data = [];
-            for (let array of quiz_session_record) {
-                let session_id = array[0];
-                if (chunk !== 0) {
-                    session_id = session_id + '_' + chunk
-                }
-                if (index !== 0) {
-                    session_id = session_id + '_' + index
-                }
-                let course_learner_id = array[1];
-                let start_time = array[2];
-                let end_time = array[3];
-                let duration = processNull(array[4]);
-                let values = {
-                    'session_id': session_id, 'course_learner_id': course_learner_id,
-                    'start_time': start_time, 'end_time': end_time, 'duration': duration
-                };
-                data.push(values)
-            }
-            sqlLogInsert('quiz_sessions', data, connection);
-            progressDisplay(data.length + ' quiz interaction sessions', index);
-        } else {
-            console.log('No quiz session data')
-        }
-        chunk++;
-        if (chunk < totalChunks) {
-            progressDisplay('Part\n' + (chunk + 1) + ' of this file', index);
-            toastr.info('Processing a new chunk of file number ' + (index + 1));
-            callback(index, chunk, totalChunks)
-        } else {
-            index++;
-            if (index < total) {
-                chunk = 0;
-                toastr.info('Starting with file number ' + (index + 1));
-                callback(index, chunk, totalChunks);
-            } else {
-                let table = document.getElementById("progress_tab");
-                let row = table.insertRow();
-                let cell1 = row.insertCell();
-                setTimeout(function () {
-                    toastr.success('Please reload the page now', 'Logfiles Processed!', {timeOut: 0});
-                    cell1.innerHTML = ('Done! at ' + new Date().toLocaleString('en-GB'));
-                    loader(false)
-                }, 10000);
             }
         }
     }
+    // } from while true
+
+    for (let session_id in quizSessions) {
+        if (!(quizSessions.hasOwnProperty(session_id))) {
+            continue;
+        }
+        if (Object.keys(quizSessions[session_id]['time_array']).length > 1) {
+            let start_time = null;
+            let end_time = null;
+            let updated_time_array = [];
+            for (let i = 0; i < Object.keys(quizSessions[session_id]['time_array']).length; i++) {
+                let verification_time = new Date(end_time);
+                if (i === 0) {
+                    start_time = new Date(quizSessions[session_id]['time_array'][i]['start_time']);
+                    end_time = new Date(quizSessions[session_id]['time_array'][i]['end_time']);
+                } else if (new Date(quizSessions[session_id]['time_array'][i]['start_time']) > verification_time.setMinutes(verification_time.getMinutes() + 30)) {
+                    updated_time_array.push({'start_time': start_time, 'end_time': end_time});
+                    start_time = new Date(quizSessions[session_id]['time_array'][i]['start_time']);
+                    end_time = new Date(quizSessions[session_id]['time_array'][i]['end_time']);
+                    if (i === Object.keys(quizSessions[session_id]['time_array']).length - 1) {
+                        updated_time_array.push({'start_time': start_time, 'end_time': end_time});
+                    }
+                } else {
+                    end_time = new Date(quizSessions[session_id]['time_array'][i]['end_time']);
+                    if (i === Object.keys(quizSessions[session_id]['time_array']).length - 1) {
+                        updated_time_array.push({'start_time': start_time, 'end_time': end_time});
+                    }
+                }
+            }
+            quizSessions[session_id]['time_array'] = updated_time_array;
+        }
+    }
+
+    let quiz_session_record = [];
+    for (let session_id in quizSessions) {
+        if (!(quizSessions.hasOwnProperty(session_id))) {
+            continue;
+        }
+        let course_learner_id = quizSessions[session_id]['course_learner_id'];
+        for (let i = 0; i < Object.keys(quizSessions[session_id]['time_array']).length; i++) {
+            let start_time = new Date(quizSessions[session_id]['time_array'][i]['start_time']);
+            let end_time = new Date(quizSessions[session_id]['time_array'][i]['end_time']);
+            if (start_time < end_time) {
+                let duration = (end_time - start_time) / 1000;
+                let final_session_id = session_id + '_' + start_time + '_' + end_time;
+                if (duration > 5) {
+                    let array = [final_session_id, course_learner_id, start_time, end_time, duration];
+                    quiz_session_record.push(array);
+                }
+            }
+        }
+    }
+
+    if (quiz_session_record.length === 0) {
+        console.log('No quiz session data')
+    } else {
+        let data = [];
+        for (let array of quiz_session_record) {
+            let session_id = array[0];
+            if (chunk !== 0) {
+                session_id = session_id + '_' + chunk
+            }
+            if (index !== 0) {
+                session_id = session_id + '_' + index
+            }
+            let course_learner_id = array[1];
+            let start_time = array[2];
+            let end_time = array[3];
+            let duration = processNull(array[4]);
+            let values = {
+                'session_id': session_id, 'course_learner_id': course_learner_id,
+                'start_time': start_time, 'end_time': end_time, 'duration': duration
+            };
+            data.push(values)
+        }
+        sqlLogInsert('quiz_sessions', data, connection);
+        progressDisplay(data.length + ' quiz interaction sessions', index);
+    }
+    chunk++;
+    callback(index, chunk, totalChunks);
 }

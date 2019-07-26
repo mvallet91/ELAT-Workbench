@@ -74,12 +74,12 @@ function showDetailsTable(connection) {
         } else {
             connection.runSql('select * from courses').then(function (courses) {
                 courses.forEach(async function (course) {
-                    let tsessionCounter = 0;
-                    let tforumSessionCounter = 0;
-                    let tvideoInteractionCounter = 0;
-                    let tsubmissionCounter = 0;
-                    let tassessmentCounter = 0;
-                    let tquizSessionCounter = 0;
+                    let totalSessionCounter = 0;
+                    let totalForumSessionCounter = 0;
+                    let totalVideoInteractionCounter = 0;
+                    let totalSubmissionCounter = 0;
+                    let totalAssessmentCounter = 0;
+                    let totalQuizSessionCounter = 0;
                     let sessionCounter = 0;
                     let forumSessionCounter = 0;
                     let videoInteractionCounter = 0;
@@ -93,7 +93,7 @@ function showDetailsTable(connection) {
                     let query = "SELECT * FROM sessions";
                     await connection.runSql(query).then(function (sessions) {
                         sessions.forEach(function (session) {
-                            tsessionCounter++;
+                            totalSessionCounter++;
                             if (session['course_learner_id'].includes(course.course_id)) {
                                 sessionCounter++;
                             }
@@ -102,7 +102,7 @@ function showDetailsTable(connection) {
                     query = "SELECT * FROM forum_sessions";
                     await connection.runSql(query).then(function (sessions) {
                         sessions.forEach(function (session) {
-                            tforumSessionCounter++;
+                            totalForumSessionCounter++;
                             if (session['course_learner_id'].includes(course.course_id)) {
                                 forumSessionCounter++;
                             }
@@ -111,7 +111,7 @@ function showDetailsTable(connection) {
                     query = "SELECT * FROM video_interaction";
                     await connection.runSql(query).then(function (sessions) {
                         sessions.forEach(function (session) {
-                            tvideoInteractionCounter++;
+                            totalVideoInteractionCounter++;
                             if (session['course_learner_id'].includes(course.course_id)) {
                                 videoInteractionCounter++;
                             }
@@ -120,7 +120,7 @@ function showDetailsTable(connection) {
                     query = "SELECT * FROM submissions";
                     await connection.runSql(query).then(function (sessions) {
                         sessions.forEach(function (session) {
-                            tsubmissionCounter++;
+                            totalSubmissionCounter++;
                             if (session['course_learner_id'].includes(course.course_id)) {
                                 submissionCounter++;
                             }
@@ -129,7 +129,7 @@ function showDetailsTable(connection) {
                     query = "SELECT * FROM assessments";
                     await connection.runSql(query).then(function (sessions) {
                         sessions.forEach(function (session) {
-                            tassessmentCounter++;
+                            totalAssessmentCounter++;
                             if (session['course_learner_id'].includes(course.course_id)) {
                                 assessmentCounter++;
                             }
@@ -138,18 +138,18 @@ function showDetailsTable(connection) {
                     query = "SELECT * FROM quiz_sessions";
                     await connection.runSql(query).then(function (sessions) {
                         sessions.forEach(function (session) {
-                            tquizSessionCounter++;
+                            totalQuizSessionCounter++;
                             if (session['course_learner_id'].includes(course.course_id)) {
                                 quizSessionCounter++;
                             }
                         });
                     });
-                    totalHtmlString += tsessionCounter.toLocaleString('en-US') + "</td><td>" +
-                        tforumSessionCounter.toLocaleString('en-US') + "</td><td>" +
-                        tvideoInteractionCounter.toLocaleString('en-US') + "</td><td>" +
-                        tsubmissionCounter.toLocaleString('en-US') + "</td><td>" +
-                        tassessmentCounter.toLocaleString('en-US') + "</td><td>" +
-                        tquizSessionCounter.toLocaleString('en-US');
+                    totalHtmlString += totalSessionCounter.toLocaleString('en-US') + "</td><td>" +
+                        totalForumSessionCounter.toLocaleString('en-US') + "</td><td>" +
+                        totalVideoInteractionCounter.toLocaleString('en-US') + "</td><td>" +
+                        totalSubmissionCounter.toLocaleString('en-US') + "</td><td>" +
+                        totalAssessmentCounter.toLocaleString('en-US') + "</td><td>" +
+                        totalQuizSessionCounter.toLocaleString('en-US');
                     HtmlString += sessionCounter.toLocaleString('en-US') + "</td><td>" +
                         forumSessionCounter.toLocaleString('en-US') + "</td><td>" +
                         videoInteractionCounter.toLocaleString('en-US') + "</td><td>" +

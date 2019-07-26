@@ -1,16 +1,15 @@
 // let connection = new JsStore.Instance(new Worker('scripts/jsstore.worker.js'));
+
 let connection = new JsStore.Instance();
 
 import {learnerMode} from './metadataProcessing.js'
 import {prepareTables} from "./prepareTables.js";
 import {populateSamples, sqlInsert, getEdxDbQuery, updateChart,
     deleteEverything, schemaMap, processTablesForDownload} from "./databaseHelpers.js";
-import {loader, progressDisplay, downloadCsv, webdataJSON,
-    cmpDatetime, processNull, cleanUnicode, escapeString,
-    getDayDiff, getNextDay, courseElementsFinder} from './helpers.js'
+import {loader, downloadForumSegmentation} from './helpers.js'
 import {processGeneralSessions, processForumSessions, processVideoInteractionSessions,
     processAssessmentsSubmissions, processQuizSessions} from "./logProcessing.js";
-import {intersection, difference, exportChartPNG, generateLink, SVG2PNG, trimByDates} from './graphHelpers.js'
+import {intersection, difference, exportChartPNG, trimByDates, getForumSegmentation} from './graphHelpers.js'
 
 window.onload = function () {
     //// PAGE INITIALIZATION  //////////////////////////////////////////////////////////////////////////////
@@ -59,6 +58,8 @@ window.onload = function () {
             } else {
                 processTablesForDownload(table, schemaMap[table], connection);
             }
+        } else if (id === 'getForumList'){
+            downloadForumSegmentation(connection)
         }
     }
 
@@ -774,8 +775,6 @@ function getGraphElementMap(callback, start, end) {
                     console.log('Metadata empty')
                 } else {
                     let course_metadata_map = result[0]['object'];
-                    let query = '';
-
                     let dailySessions = {};
                     let dailyDurations = {};
 
@@ -829,8 +828,7 @@ function getGraphElementMap(callback, start, end) {
 
                     connection.runSql("SELECT * FROM courses").then(function(courses) {
                         courses.forEach(async function (course) {
-                            $('#loading').show();
-                            $.blockUI();
+                            loader(true);
                             course_name = course['course_name'];
                             start_date = course['start_time'].toDateString();
                             end_date = course['end_time'].toDateString();
@@ -1003,64 +1001,30 @@ function getGraphElementMap(callback, start, end) {
 
                             // FORUM SEGMENTATION /////////////////////////////////////////
                             let weeklyPosters = groupWeekly(forumPosters);
-                            let posters = {};
-                            let regularPosters = [];
-                            let occasionalPosters = [];
-                            for (let week in weeklyPosters) {
-                                let weekPosters = new Set(weeklyPosters[week]);
-                                for (let poster of weekPosters) {
-                                    if (posters.hasOwnProperty(poster)) {
-                                        posters[poster] = posters[poster] + 1
-                                    } else {
-                                        posters[poster] = 1
-                                    }
-                                }
-                            }
-                            for (let p in posters) {
-                                if (posters[p] > 2) {
-                                    regularPosters.push(p)
-                                } else {
-                                    occasionalPosters.push(p)
-                                }
-                            }
-
                             let weeklyFViewers = groupWeekly(forumSessions);
-                            let fViewers = {};
-                            let regularFViewers = [];
-                            let occasionalFViewers = [];
-                            for (let week in weeklyFViewers) {
-                                let weekViewers = new Set(weeklyFViewers[week]);
-                                for (let viewer of weekViewers) {
-                                    if (fViewers.hasOwnProperty(viewer)) {
-                                        fViewers[viewer] = fViewers[viewer] + 1
-                                    } else {
-                                        fViewers[viewer] = 1
-                                    }
-                                }
-                            }
-                            for (let p in fViewers) {
-                                if (fViewers[p] > 2) {
-                                    regularFViewers.push(p)
-                                } else {
-                                    occasionalFViewers.push(p)
-                                }
-                            }
-                            let forumSegmentation = {
+                            let forumSegmentation = getForumSegmentation(weeklyPosters, weeklyFViewers, connection);
+
+                            let regularPosters = forumSegmentation.regularPosters,
+                                regularViewers = forumSegmentation.regularViewers,
+                                occasionalPosters = forumSegmentation.occasionalPosters,
+                                occasionalViewers = forumSegmentation.occasionalViewers;
+
+                            let forumSegmentationAggregate = {
                                 'regularPosters': new Set(regularPosters).size,
-                                'regularViewers': new Set(regularFViewers).size,
+                                'regularViewers': new Set(regularViewers).size,
                                 'occasionalPosters': new Set(occasionalPosters).size,
-                                'occasionalViewers': new Set(occasionalFViewers).size
+                                'occasionalViewers': new Set(occasionalViewers).size
                             };
 
-                            let regPostersRegViewers = intersection(new Set(regularPosters), new Set(regularFViewers)),
-                                regPostersOccViewers = intersection(new Set(regularPosters), new Set(occasionalFViewers)),
-                                regPostersNonViewers = difference(new Set(regularPosters), new Set([...regularFViewers, ...occasionalFViewers])),
-                                occPostersRegViewers = intersection(new Set(occasionalPosters), new Set(regularFViewers)),
-                                occPostersOccViewers = intersection(new Set(occasionalPosters), new Set(occasionalFViewers)),
-                                occPostersNonViewers = difference(new Set(occasionalPosters), new Set([...regularFViewers, ...occasionalFViewers])),
-                                nonPostersRegViewers = difference(new Set([...regularPosters, ...occasionalPosters]), new Set(regularFViewers)),
-                                nonPostersOccViewers = difference(new Set([...regularPosters, ...occasionalPosters]), new Set(occasionalFViewers)),
-                                nonPostersNonViewers = difference(idSet, new Set([...regularPosters, ...occasionalPosters, ...regularFViewers, ...occasionalFViewers]));
+                            let regPostersRegViewers = intersection(new Set(regularPosters), new Set(regularViewers)),
+                                regPostersOccViewers = intersection(new Set(regularPosters), new Set(occasionalViewers)),
+                                regPostersNonViewers = difference(new Set(regularPosters), new Set([...regularViewers, ...occasionalViewers])),
+                                occPostersRegViewers = intersection(new Set(occasionalPosters), new Set(regularViewers)),
+                                occPostersOccViewers = intersection(new Set(occasionalPosters), new Set(occasionalViewers)),
+                                occPostersNonViewers = difference(new Set(occasionalPosters), new Set([...regularViewers, ...occasionalViewers])),
+                                nonPostersRegViewers = difference(new Set([...regularPosters, ...occasionalPosters]), new Set(regularViewers)),
+                                nonPostersOccViewers = difference(new Set([...regularPosters, ...occasionalPosters]), new Set(occasionalViewers)),
+                                nonPostersNonViewers = difference(idSet, new Set([...regularPosters, ...occasionalPosters, ...regularViewers, ...occasionalViewers]));
 
                             let forumMatrixGroups = {
                                 'regPostersRegViewers': regPostersRegViewers,
@@ -1084,7 +1048,7 @@ function getGraphElementMap(callback, start, end) {
                                 for (let student of forumMatrixGroups[group]){
                                     if (gradeMap.hasOwnProperty(student)) {
                                         if (gradeMap[student]["certificate_status"] === "downloadable") {
-                                            gradeLists[group].push(gradeMap[student]["final_grade"])
+                                            gradeLists[group].push(gradeMap[student]["final_grade"]);
                                             passing++
                                         } else {
                                             notPassing++;
@@ -1095,6 +1059,7 @@ function getGraphElementMap(callback, start, end) {
                                 }
                                 counterLists[group] = {'passing': passing, 'notPassing': notPassing}
                             }
+
                             // FORUM SEGMENTATION /////////////////////////////////////////
 
                             let dateList = Object.keys(dailySessions);
@@ -1126,7 +1091,7 @@ function getGraphElementMap(callback, start, end) {
                                 if (forumSessions.hasOwnProperty(date)) {
                                     orderedForumSessions[date] = forumSessions[date].length;
                                     for (let student of forumSessions[date]) {
-                                        if (regularFViewers.includes(student)) {
+                                        if (regularViewers.includes(student)) {
                                             regulars.push(student)
                                         } else {
                                             occasionals.push(student)
@@ -1249,7 +1214,7 @@ function getGraphElementMap(callback, start, end) {
                                 'orderedForumDurations': orderedForumDurations,
                                 'orderedForumAvgDurations': orderedForumAvgDurations,
 
-                                'forumSegmentation': forumSegmentation,
+                                'forumSegmentation': forumSegmentationAggregate,
                                 'orderedForumPosts': orderedForumPosts,
                                 'orderedForumPostContent': orderedForumPostContent,
                                 'orderedForumPostContentRegulars': orderedForumPostContentRegulars,

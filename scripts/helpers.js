@@ -27,6 +27,39 @@ export function downloadCsv(filename, content) {
     downloadElement.click();
 }
 
+function replaceAt(array, index, value) {
+    const ret = array.slice(0);
+    ret[index] = value;
+    return ret;
+}
+
+export function downloadForumSegmentation(connection) {
+    connection.runSql("SELECT * FROM webdata WHERE name = 'studentsForumBehavior' ").then(function(result) {
+        if (result.length === 0){
+            loader(false);
+            toastr.error('Graph data has to be processed again, click the Update Graph Values button');
+        } else {
+            let studentList = [['studentId', 'posterGroup', 'viewerGroup']];
+            let forumSegments = result[0]['object'];
+            for (let student in forumSegments) {
+                const studentId = student.slice(student.indexOf('_')+1,);
+                let segments = [studentId, 'undefined', 'undefined'];
+                if (forumSegments[student].length > 0) {
+                    for (let group of forumSegments[student]) {
+                        if (group.includes('Poster')) {
+                            segments = replaceAt(segments, 1, group)
+                        }
+                        if (group.includes('Viewer')) {
+                            segments = replaceAt(segments, 2, group)
+                        }
+                    }
+                }
+                studentList.push(segments)
+            }
+            downloadCsv('studentsByForumGroup.csv', studentList)
+        }
+    })
+}
 
 export function progressDisplay(content, index){
     let table = document.getElementById("progress_tab");

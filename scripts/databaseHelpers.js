@@ -1,4 +1,5 @@
-import {loader, downloadCsv} from "./helpers.js";
+import {downloadCsv, loader} from "./helpers.js";
+
 let testing = false;
 /**
  * Database helper to insert values into IndexedDB in an SQL fashion, using the SqlWeb library
@@ -94,16 +95,17 @@ export function clearStoredWebdata(connection) {
 
 export function updateChart(connection) {
     loader(true);
-    connection.runSql("DELETE FROM webdata WHERE name = 'graphElements'");
-    connection.runSql("DELETE FROM webdata WHERE name = 'databaseDetails'");
-    connection.runSql("DELETE FROM webdata WHERE name = 'arcElements'");
-    connection.runSql("DELETE FROM webdata WHERE name = 'cycleElements'");
-    connection.runSql("DELETE FROM webdata WHERE name = 'databaseDetails'");
-    connection.runSql("DELETE FROM webdata WHERE name = 'mainIndicators'").then(function (e) {
+    // connection.runSql("DELETE FROM webdata WHERE name = 'mainIndicators'");
+    // connection.runSql("DELETE FROM webdata WHERE name = 'databaseDetails'");
+    // connection.runSql("DELETE FROM webdata WHERE name = 'arcElements'");
+    // connection.runSql("DELETE FROM webdata WHERE name = 'cycleElements'");
+    // connection.runSql("DELETE FROM webdata WHERE name = 'databaseDetails'");
+    connection.runSql("DELETE FROM webdata WHERE name = 'graphElements'").then(function (e) {
         loader(false);
         toastr.success('Please reload the page now', 'Updating Indicators and Charts', {timeOut: 0})
     });
 }
+
 
 export async function deleteEverything(connection) {
     let query = 'DELETE FROM sessions';

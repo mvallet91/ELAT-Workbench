@@ -95,11 +95,11 @@ export function clearStoredWebdata(connection) {
 
 export function updateChart(connection) {
     loader(true);
-    // connection.runSql("DELETE FROM webdata WHERE name = 'mainIndicators'");
-    // connection.runSql("DELETE FROM webdata WHERE name = 'databaseDetails'");
-    // connection.runSql("DELETE FROM webdata WHERE name = 'arcElements'");
-    // connection.runSql("DELETE FROM webdata WHERE name = 'cycleElements'");
-    // connection.runSql("DELETE FROM webdata WHERE name = 'databaseDetails'");
+    connection.runSql("DELETE FROM webdata WHERE name = 'mainIndicators'");
+    connection.runSql("DELETE FROM webdata WHERE name = 'databaseDetails'");
+    connection.runSql("DELETE FROM webdata WHERE name = 'arcElements'");
+    connection.runSql("DELETE FROM webdata WHERE name = 'cycleElements'");
+    connection.runSql("DELETE FROM webdata WHERE name = 'databaseDetails'");
     connection.runSql("DELETE FROM webdata WHERE name = 'graphElements'").then(function (e) {
         loader(false);
         toastr.success('Please reload the page now', 'Updating Indicators and Charts', {timeOut: 0})

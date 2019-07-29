@@ -15,6 +15,7 @@ function showCourseTable(connection) {
             document.getElementById("loading").style.display = "none";
             $('#tblGrid tbody').html(HtmlString);
         } else {
+            loader(true);
             connection.runSql('select * from courses').then(function (courses) {
                 let questionCounter = 0;
                 let forumInteractionCounter = 0;
@@ -53,6 +54,7 @@ function showCourseTable(connection) {
                     $('#tblGrid tbody').html(HtmlString);
                     let courseDetails = [{'name': 'courseDetails', 'object': {'details': HtmlString}}];
                     sqlInsert('webdata', courseDetails, connection);
+                    loader(false);
                 })
             }).catch(function (error) {
                 console.log(error);
@@ -72,6 +74,7 @@ function showDetailsTable(connection) {
             document.getElementById("loading").style.display = "none";
             $('#dbGrid tbody').html(HtmlString);
         } else {
+            loader(true);
             connection.runSql('select * from courses').then(function (courses) {
                 courses.forEach(async function (course) {
                     let totalSessionCounter = 0;
@@ -160,6 +163,7 @@ function showDetailsTable(connection) {
                     $('#dbGrid tbody').html(HtmlString);
                     let databaseDetails = [{'name': 'databaseDetails', 'object': {'details':HtmlString}}];
                     sqlInsert('webdata', databaseDetails, connection);
+                    loader(false)
                 });
             }).catch(function (error) {
                 console.log(error);
@@ -176,6 +180,7 @@ function showMainIndicatorsTable(connection) {
             HtmlString = result[0]['object']['details'];
             $('#indicatorGrid tbody').html(HtmlString);
         } else {
+            loader(true);
             connection.runSql('select * from courses').then(function (courses) {
                 courses.forEach(async function (course) {
                     let course_id = course.course_id,
@@ -236,6 +241,7 @@ function showMainIndicatorsTable(connection) {
                     $('#indicatorGrid tbody').html(HtmlString);
                     let indicators = [{'name': 'mainIndicators', 'object': {'details': HtmlString}}];
                     sqlInsert('webdata', indicators, connection);
+                    loader(false)
                 });
             }).catch(function (error) {
                 console.log(error);

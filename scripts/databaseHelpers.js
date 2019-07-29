@@ -93,6 +93,12 @@ export function clearStoredWebdata(connection) {
     }
 }
 
+export function clearMetadataTables(connection){
+    connection.runSql("DELETE FROM webdata WHERE name = 'courseDetails'");
+    connection.runSql("DELETE FROM webdata WHERE name = 'databaseDetails'");
+    connection.runSql("DELETE FROM webdata WHERE name = 'mainIndicators'");
+}
+
 export function updateChart(connection) {
     loader(true);
     connection.runSql("DELETE FROM webdata WHERE name = 'mainIndicators'");
@@ -216,7 +222,9 @@ export function getEdxDbQuery() {
         final_grade NUMBER,
         enrollment_mode STRING,
         certificate_status STRING,
-        register_time date_time
+        register_time date_time,
+        group_type STRING,
+        group_name STRING
         )
     `;
 

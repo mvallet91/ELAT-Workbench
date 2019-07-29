@@ -110,11 +110,36 @@
         </div>
         <div class="col-xs-12 col-sm-10  ">
             <div id="uploadBoxes" class="collapse">
-                Select all metadata files:<br>
-                <input type="file" id="filesInput" multiple >
-                <output id="list"></output>
-                <br><br>
-
+                <div class="row">
+                    <div class="col-lg-3 col-sm-4">
+                        <br>
+                        Select all metadata files:<br>
+                        <input type="file" id="filesInput" multiple >
+                        <output id="list"></output>
+                    </div>
+                    <div class="col-lg-3 col-sm-4">
+                        Metadata Options:
+                        <div class="form-check">
+                            <label class="form-check-label">
+                                <input type="radio" id="completedStudents" class="form-check-input" name="metaOptions" value="completed" checked>
+                                Students with Certificate Only
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <label class="form-check-label">
+                                <input type="radio" id="inRangeStudents" class="form-check-input" name="metaOptions" value="inCourseDates">
+                                Students Enrolled During Official Course Dates
+                            </label>
+                        </div>
+                        <div class="form-check" >
+                            <label class="form-check-label">
+                                <input type="radio" id="allStudents" class="form-check-input" name="metaOptions" value="allStudents">
+                                All Students
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <hr>
                 Select log files:<br>
                 <input type="file" id="logFilesInput" multiple >
                 <output id="listLogs"></output>

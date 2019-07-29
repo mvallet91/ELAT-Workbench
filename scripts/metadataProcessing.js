@@ -1,5 +1,5 @@
 import {cleanUnicode, cmpDatetime, getDayDiff, loader, processNull, escapeString} from "./helpers.js";
-import {sqlInsert} from "./databaseHelpers.js";
+import {sqlInsert, clearMetadataTables} from "./databaseHelpers.js";
 
 function ExtractCourseInformation(files) {
     let courseMetadataMap = {};
@@ -123,73 +123,172 @@ function processEnrollment(course_id, input_file, course_metadata_map){
     let learner_enrollment_time_map = {};
     let enrolled_learner_set = new Set();
     let learner_index_record = [];
+    let learner_mode_map = {};
     let lines = input_file.split('\n');
     for (let line of lines.slice(1, )) {
         let record = line.split('\t');
-        if (record.length < 2) { continue; }
+        if (record.length < 2) {continue}
+        let active = record[4];
+        if (active === '0') {continue}
         let global_learner_id = record[1],
             time = new Date(record[3]),
-            course_learner_id = course_id + '_' + global_learner_id;
+            course_learner_id = course_id + '_' + global_learner_id,
+            mode = record[5];
         if (cmpDatetime(course_metadata_map['end_time'], new Date(time)) === 1) {
             enrolled_learner_set.add(global_learner_id);
             let array = [global_learner_id, course_id, course_learner_id];
             learner_index_record.push(array);
             course_learner_map[global_learner_id] = course_learner_id;
             learner_enrollment_time_map[global_learner_id] = time;
+            learner_mode_map[global_learner_id] = mode;
         }
     }
+    console.log(learner_index_record.length);
     return {'courseLearnerMap': course_learner_map,
         'learnerEnrollmentTimeMap': learner_enrollment_time_map,
         'enrolledLearnerSet': enrolled_learner_set,
-        'learnerIndexRecord': learner_index_record
+        'learnerIndexRecord': learner_index_record,
+        'learnerModeMap': learner_mode_map
     }
 }
 
 
-function processCertificates(inputFile, enrollmentValues) {
+function processCertificates(inputFile, enrollmentValues, courseMetadataMap) {
     let uncertifiedLearners = 0,
         certifiedLearners = 0,
         courseLearnerRecord = [];
+
+    let radioValue = $("input[name='metaOptions']:checked").val();
+
+    let certificateMap = {};
+
     for (let line of inputFile.split('\n')) {
         let record = line.split('\t');
         if (record.length < 10) { continue; }
         let global_learner_id = record[1],
             final_grade = record[3],
-            enrollment_mode = record[14].replace(/\n/g, ''),
-            certificate_status = record[7],
-            register_time = '';
+            certificate_status = record[7];
         if (global_learner_id in enrollmentValues.courseLearnerMap) {
-            register_time =  enrollmentValues.learnerEnrollmentTimeMap[global_learner_id];
-        }
-        if (global_learner_id in  enrollmentValues.courseLearnerMap) {
-            certifiedLearners++;
-            let array = [ enrollmentValues.courseLearnerMap[global_learner_id], final_grade, enrollment_mode, certificate_status, register_time];
-            courseLearnerRecord.push(array);
-        }
-        else {
-            uncertifiedLearners++;
+            certificateMap[global_learner_id] = {'final_grade': final_grade,
+                'certificate_status': certificate_status}
         }
     }
-    return {'certifiedLearners': certifiedLearners,
-        'uncertifiedLearners': uncertifiedLearners,
-        'courseLearnerRecord': courseLearnerRecord
+    if (radioValue) {
+        if (radioValue === 'completed') {
+            for (let global_learner_id in certificateMap) {
+                if (certificateMap[global_learner_id]['certificate_status'] === 'downloadable') {
+                    let course_learner_id = enrollmentValues.courseLearnerMap[global_learner_id],
+                        final_grade = certificateMap[global_learner_id]['final_grade'],
+                        enrollment_mode = enrollmentValues.learnerModeMap[global_learner_id],
+                        certificate_status = certificateMap[global_learner_id]['certificate_status'],
+                        register_time = enrollmentValues.learnerEnrollmentTimeMap[global_learner_id];
+                    let array = [course_learner_id, final_grade, enrollment_mode, certificate_status, register_time];
+                    courseLearnerRecord.push(array);
+                    certifiedLearners++;
+                } else {
+                    uncertifiedLearners++;
+                }
+            }
+        } else {
+            for (let global_learner_id in enrollmentValues.courseLearnerMap) {
+                let course_learner_id = enrollmentValues.courseLearnerMap[global_learner_id],
+                    final_grade = null,
+                    enrollment_mode = enrollmentValues.learnerModeMap[global_learner_id],
+                    certificate_status = null,
+                    register_time = enrollmentValues.learnerEnrollmentTimeMap[global_learner_id];
+                if (global_learner_id in certificateMap) {
+                    final_grade = certificateMap[global_learner_id]['final_grade'];
+                    certificate_status = certificateMap[global_learner_id]['certificate_status'];
+                }
+                if (certificate_status === 'downloadable'){ certifiedLearners++ }
+
+                let array = [course_learner_id, final_grade, enrollment_mode, certificate_status, register_time];
+
+                if (radioValue === 'allStudents') {
+                    uncertifiedLearners++;
+                    courseLearnerRecord.push(array)
+                } else if (radioValue === 'inRangeStudents') {
+                    if (new Date(register_time) <= new Date(courseMetadataMap.end_time)){
+                        uncertifiedLearners++;
+                        courseLearnerRecord.push(array)
+                    } else {
+                        console.log(array)
+                    }
+                }
+            }
+        }
+        return {
+            'certifiedLearners': certifiedLearners,
+            'uncertifiedLearners': uncertifiedLearners,
+            'courseLearnerRecord': courseLearnerRecord
+        }
     }
 }
 
+// function processCertificates(inputFile, enrollmentValues) {
+//     let uncertifiedLearners = 0,
+//         certifiedLearners = 0,
+//         courseLearnerRecord = [];
+//     for (let line of inputFile.split('\n')) {
+//         let record = line.split('\t');
+//         if (record.length < 10) { continue; }
+//         let global_learner_id = record[1],
+//             final_grade = record[3],
+//             enrollment_mode = record[14].replace(/\n/g, ''),
+//             certificate_status = record[7],
+//             register_time = '';
+//         if (global_learner_id in enrollmentValues.courseLearnerMap) {
+//             register_time =  enrollmentValues.learnerEnrollmentTimeMap[global_learner_id];
+//         }
+//         if (global_learner_id in  enrollmentValues.courseLearnerMap) {
+//             certifiedLearners++;
+//             let array = [ enrollmentValues.courseLearnerMap[global_learner_id], final_grade, enrollment_mode, certificate_status, register_time];
+//             courseLearnerRecord.push(array);
+//         }
+//         else {
+//             uncertifiedLearners++;
+//         }
+//     }
+//     return {'certifiedLearners': certifiedLearners,
+//         'uncertifiedLearners': uncertifiedLearners,
+//         'courseLearnerRecord': courseLearnerRecord
+//     }
+// }
 
-function processMailMap(inputFile, enrollmentValues) {
-    let learnerMailMap = {};
+
+function processAuthMap(inputFile, enrollmentValues) {
+    let learnerAuthMap = {};
     for (let line of inputFile.split('\n')) {
         let record = line.split('\t');
         if (enrollmentValues.enrolledLearnerSet.has(record[0])) {
-            learnerMailMap[record[0]] = record[4];
+            learnerAuthMap[record[0]] = {
+                'mail':record[4],
+                'staff': record[6]
+            }
         }
     }
-    return learnerMailMap
+    return learnerAuthMap
 }
 
 
-function processDemographics(courseId, inputFile, enrollmentValues, learnerMailMap) {
+function processGroups(courseId, inputFile, enrollmentValues){
+    let groupMap = {};
+    for (let line of inputFile.split('\n')){
+        let record = line.split('\t');
+        if (record.length < 3) { continue; }
+        let global_learner_id = record[0],
+            group_type = record[2],
+            group_name = record[3],
+            course_learner_id = courseId + '_' + global_learner_id;
+        if (enrollmentValues.enrolledLearnerSet.has(global_learner_id)) {
+            groupMap[course_learner_id] = [group_type, group_name]
+        }
+    }
+    return groupMap
+}
+
+
+function processDemographics(courseId, inputFile, enrollmentValues, learnerAuthMap) {
     let learnerDemographicRecord = [];
     for (let line of inputFile.split('\n')) {
         let record = line.split('\t');
@@ -201,7 +300,7 @@ function processDemographics(courseId, inputFile, enrollmentValues, learnerMailM
             country = record[13],
             course_learner_id = courseId + '_' + global_learner_id;
         if (enrollmentValues.enrolledLearnerSet.has(global_learner_id)) {
-            let array = [course_learner_id, gender, year_of_birth, level_of_education, country, learnerMailMap[global_learner_id]];
+            let array = [course_learner_id, gender, year_of_birth, level_of_education, country, learnerAuthMap[global_learner_id]['mail']];
             learnerDemographicRecord.push(array);
         }
     }
@@ -216,6 +315,7 @@ export function learnerMode(files, connection) {
     if (Object.keys(courseMetadataMap).length < 1) {
         loader(false);
     } else {
+        clearMetadataTables(connection);
         let courseRecord = [],
             course_id = courseMetadataMap.course_id,
             fileMap = {};
@@ -248,11 +348,16 @@ export function learnerMode(files, connection) {
 
             let enrollmentValues = processEnrollment(course_id, fileMap['student_courseenrollment-prod-analytics'], courseMetadataMap);
 
-            let learnerMailMap = processMailMap(fileMap['auth_user-prod-analytics'], enrollmentValues);
+            let learnerAuthMap = processAuthMap(fileMap['auth_user-prod-analytics'], enrollmentValues);
 
-            let certificateValues = processCertificates(fileMap['certificates_generatedcertificate-prod-analytics'], enrollmentValues);
+            let certificateValues = processCertificates(fileMap['certificates_generatedcertificate-prod-analytics'], enrollmentValues, courseMetadataMap);
 
-            let demographicValues = processDemographics(course_id, fileMap['auth_userprofile-prod-analytics'], enrollmentValues, learnerMailMap);
+            let demographicValues = processDemographics(course_id, fileMap['auth_userprofile-prod-analytics'], enrollmentValues, learnerAuthMap);
+
+            let groupMap = {};
+            if ('course_groups_cohortmembership-prod-analytics' in fileMap) {
+                groupMap = processGroups(course_id, fileMap['course_groups_cohortmembership-prod-analytics'], enrollmentValues);
+            }
 
             let forumInteractionRecords = forum_interaction(fileMap['prod'], courseMetadataMap);
 
@@ -323,8 +428,12 @@ export function learnerMode(files, connection) {
                         values = {
                             'course_learner_id': course_learner_id, 'final_grade': final_grade,
                             'enrollment_mode': enrollment_mode, 'certificate_status': certificate_status,
-                            'register_time': register_time
+                            'register_time': register_time, 'group_type': '', 'group_name':''
                         };
+                    if (course_learner_id in groupMap){
+                        values['group_type'] = groupMap[course_learner_id][0];
+                        values['group_name'] = groupMap[course_learner_id][1];
+                    }
                     data.push(values);
                 }
                 sqlInsert('course_learner', data, connection);

@@ -106,7 +106,7 @@ export function updateChart(connection) {
     connection.runSql("DELETE FROM webdata WHERE name = 'arcElements'");
     connection.runSql("DELETE FROM webdata WHERE name = 'cycleElements'");
     connection.runSql("DELETE FROM webdata WHERE name = 'databaseDetails'");
-    connection.runSql("DELETE FROM webdata WHERE name = 'graphElements'").then(function (e) {
+    connection.runSql("DELETE FROM webdata WHERE name = 'graphElements'").then(function () {
         loader(false);
         toastr.success('Please reload the page now', 'Updating Indicators and Charts', {timeOut: 0})
     });

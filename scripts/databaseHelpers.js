@@ -204,7 +204,10 @@ export let schemaMap = {'sessions': ['session_id', 'course_learner_id', 'start_t
         'times_speed_up','times_speed_down','times_pause','duration_pause','start_time','end_time'],
     'submissions': ['submission_id', 'course_learner_id', 'question_id', 'submission_timestamp'],
     'assessments': ['assessment_id', 'course_learner_id', 'max_grade', 'grade'],
-    'quiz_sessions': ['session_id', 'course_learner_id', 'start_time', 'end_time', 'duration']};
+    'quiz_sessions': ['session_id', 'course_learner_id', 'start_time', 'end_time', 'duration'],
+    'forum_interaction': ['post_id', 'course_learner_id', 'post_type', 'post_title', 'post_content',
+        'post_timestamp', 'post_parent_id', 'post_thread_id']
+};
 
 export function getEdxDbQuery() {
     let db = "DEFINE DB edxdb;";

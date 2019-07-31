@@ -254,13 +254,13 @@
                         <h6>Date Range (time-series charts only)</h6>
                         <div class="form-check" >
                             <label class="form-check-label">
-                                <input type="radio" id="allDatesRadio" class="form-check-input" name="optradio" value="allDates" >
+                                <input type="radio" id="allDatesRadio" class="form-check-input" name="processedOrInRange" value="allDates" >
                                 All Processed Logs
                             </label>
                         </div>
                         <div class="form-check">
                             <label class="form-check-label">
-                                <input type="radio" id="courseDatesRadio" class="form-check-input" name="optradio" value="courseDates" checked>
+                                <input type="radio" id="courseDatesRadio" class="form-check-input" name="processedOrInRange" value="courseDates" checked>
                                 Official Course Dates
                             </label>
                         </div>
@@ -274,13 +274,15 @@
                         <h6>Week vs Day</h6>
                         <div class="form-check" >
                             <label class="form-check-label">
-                                <input type="radio" id="weeklyRadio" class="form-check-input" name="dayVSweekRadio" value="weekly" checked >
+                                <input type="radio" id="weeklyRadio" class="form-check-input" name="dailyOrWeekly"
+                                       value="weekly" checked >
                                 Weekly Values
                             </label>
                         </div>
                         <div class="form-check">
                             <label class="form-check-label">
-                                    <input type="radio" id="dailyRadio" class="form-check-input" name="dayVSweekRadio" value="daily">
+                                <input type="radio" id="dailyRadio" class="form-check-input" name="dailyOrWeekly"
+                                       value="daily">
                                 Daily Values
                             </label>
                         </div>
@@ -292,9 +294,9 @@
                     </div>
                 </div>
                 <br>
-                <h6>Update Graph Values</h6>
+                <h6>Reprocess Graph Values</h6>
                 <div class="col ">
-                    <button type="button" class="btn btn-danger btn-sm" id="updateChartValues">Update</button>
+                    <button type="button" class="btn btn-danger btn-sm" id="updateChartValues">Delete and Update</button>
                 </div>
             </div>
         </div>
@@ -369,7 +371,7 @@
                             </div>
                         </div>
                         <label for="links" style="float:right;"> - Number of Links</label>
-                        <input  type="range" min=10 max=500 step=10 id="links" value=30 style="float:right;">
+                        <input type="range" min=10 max=500 step=10 id="links" value=50 style="float:right;">
                         <label style="float:left;" for="arcType">Student Status - </label>
                         <select name="type" id="arcType" style="float:left;">
                             <option value="general">Everyone</option>
@@ -443,15 +445,15 @@
         let mixedChart = null;
         let arcChart = null;
         let heatChart = null;
-        $(function() {
-            $('input[name="daterange"]').daterangepicker({
-                opens: 'left'
-            }, function(start, end, label) {
-                document.getElementById('allDatesRadio').checked = false;
-                document.getElementById('courseDatesRadio').checked = false;
-                getGraphElementMap(drawCharts, start.format('YYYY-MM-DD'), end.format('YYYY-MM-DD'));
-            });
-        });
+        // $(function() {
+        //     $('input[name="daterange"]').daterangepicker({
+        //         opens: 'left'
+        //     }, function(start, end, label) {
+        //         document.getElementById('allDatesRadio').checked = false;
+        //         document.getElementById('courseDatesRadio').checked = false;
+        //         getGraphElementMap(connection, drawCharts(), start.format('YYYY-MM-DD'), end.format('YYYY-MM-DD'));
+        //     });
+        // });
     </script>
 
 </body>

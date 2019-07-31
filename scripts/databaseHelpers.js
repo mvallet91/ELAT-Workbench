@@ -1,6 +1,33 @@
 import {downloadCsv, loader} from "./helpers.js";
+import {prepareTables} from "./prepareTables.js";
 
 let testing = false;
+
+export function initiateEdxDb(connection) {
+    let dbName = "edxdb";
+    connection.runSql('ISDBEXIST ' + dbName).then(function (isExist) {
+        if (isExist) {
+            connection.runSql('OPENDB ' + dbName).then(function () {
+                loader(false);
+                toastr.success('Database ready', 'ELAT',  {timeOut: 1500});
+                prepareTables(connection);
+            });
+        } else {
+            toastr.info('Welcome! If this is your first time here, visit ELAT Home for more info', 'ELAT',  {timeOut: 7000});
+            let dbQuery = getEdxDbQuery();
+            connection.runSql(dbQuery).then(function (tables) {
+                toastr.success('Database generated, please reload the page', 'ELAT',  {timeOut: 5000});
+                console.log(tables);
+                loader(false)
+            });
+        }
+    }).catch(function (err) {
+        console.log(err);
+        alert(err.message);
+    });
+}
+
+
 /**
  * Database helper to insert values into IndexedDB in an SQL fashion, using the SqlWeb library
  * @param {string} table
@@ -32,7 +59,8 @@ export function sqlInsert(table, dataObject, connection) {
             }
         }
     }).catch(function (err) {
-        console.log(err);
+        loader(false);
+        console.log(err, table);
     });
 }
 
@@ -99,7 +127,7 @@ export function clearMetadataTables(connection){
     connection.runSql("DELETE FROM webdata WHERE name = 'mainIndicators'");
 }
 
-export function updateChart(connection) {
+export function clearWebdataForUpdate(connection) {
     loader(true);
     connection.runSql("DELETE FROM webdata WHERE name = 'mainIndicators'");
     connection.runSql("DELETE FROM webdata WHERE name = 'databaseDetails'");
@@ -157,11 +185,13 @@ export async function deleteEverything(connection) {
             alert('The deletion process started but did not finish,\n please refresh and try again');
         });
         await connection.dropDb().then(function () {
+            toastr.success('Database has been deleted!');
             loader(false);
-            toastr.success('Database has been deleted!')
+            return true
         }).catch(function (err) {
             console.log(err);
             alert('The deletion process started but did not finish,\n please refresh and try again');
+            loader(false);
         });
     }
 }

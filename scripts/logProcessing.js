@@ -1,23 +1,21 @@
 import {sqlLogInsert, clearStoredWebdata} from "./databaseHelpers.js";
-
-import {loader, progressDisplay, downloadCsv, webdataJSON,
-    cmpDatetime, processNull, cleanUnicode, escapeString,
-    getDayDiff, getNextDay, courseElementsFinder} from './helpers.js'
+import {progressDisplay, processNull, getNextDay, courseElementsFinder} from './helpers.js'
 
 /**
  * This function will read the records in the logfile and extract all interactions from students with the course,
  * process their values, like start, end and duration, and finally store them in the database
  * @param {object} courseMetadataMap Object with the basic course metadata information
  * @param {array} logFiles Array of objects with name and file content
- * @param {number} index Current file number
- * @param {number} total Total files to process
- * @param {number} chunk Current chunk to process
+ * @param {number} fileIndex Current file number
+ * @param {number} totalFiles Total files to process
+ * @param {number} chunkIndex Current chunk to process
  * @param {JsStoreWorker} connection Main JsStore worker that handles the connection to SqlWeb
  */
-export function processGeneralSessions(courseMetadataMap, logFiles, index, total, chunk, connection){
+export function processGeneralSessions(courseMetadataMap, logFiles, fileIndex, totalFiles, chunkIndex, connection){
     let current_course_id = courseMetadataMap["course_id"];
     current_course_id = current_course_id.slice(current_course_id.indexOf('+') + 1, current_course_id.lastIndexOf('+') + 7);
 
+    // let current_date = courseMetadataMap["start_date"];
     // let current_date = courseMetadataMap["start_date"];
     // let end_next_date  = getNextDay(courseMetadataMap["end_date"]);
     let learner_all_event_logs = [];
@@ -152,11 +150,11 @@ export function processGeneralSessions(courseMetadataMap, logFiles, index, total
                 for (let x in session_record){
                     let array = session_record[x];
                     let session_id = array[0];
-                    if (chunk !== 0) {
-                        session_id = session_id + '_' + chunk
+                    if (chunkIndex !== 0) {
+                        session_id = session_id + '_' + chunkIndex
                     }
-                    if (index !== 0) {
-                        session_id = session_id + '_' + index
+                    if (fileIndex !== 0) {
+                        session_id = session_id + '_' + fileIndex
                     }
                     let course_learner_id = array[1];
                     let start_time = array[2];
@@ -170,9 +168,9 @@ export function processGeneralSessions(courseMetadataMap, logFiles, index, total
                 // console.log('Send to storage at ' + new Date());
                 sqlLogInsert('sessions', data, connection);
                 clearStoredWebdata(connection);
-                progressDisplay(data.length + ' sessions', index);
+                progressDisplay(data.length + ' sessions', fileIndex);
             } else {
-                console.log('no session info', index, total);
+                console.log('no session info', fileIndex, totalFiles);
             }
         }
     }

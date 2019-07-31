@@ -63,6 +63,7 @@ export function downloadForumSegmentation(connection) {
 
 export function progressDisplay(content, index){
     let table = document.getElementById("progress_tab");
+    table.insertRow();
     let row = table.rows[index];
     let cell1 = row.insertCell();
     cell1.innerHTML = '  ' + content + '  ';

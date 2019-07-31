@@ -143,7 +143,6 @@ function processEnrollment(course_id, input_file, course_metadata_map){
             learner_mode_map[global_learner_id] = mode;
         }
     }
-    console.log(learner_index_record.length);
     return {'courseLearnerMap': course_learner_map,
         'learnerEnrollmentTimeMap': learner_enrollment_time_map,
         'enrolledLearnerSet': enrolled_learner_set,
@@ -516,7 +515,6 @@ export function learnerMode(files, connection) {
                 quizData.push(values);
             }
             sqlInsert('quiz_questions', quizData, connection);
-
             sqlInsert('metadata', [{'name': 'metadata_map', 'object': courseMetadataMap}], connection);
         }
     }

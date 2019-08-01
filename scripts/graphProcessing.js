@@ -37,6 +37,8 @@ export async function drawCharts(connection, start, end) {
     drawCycles(connection);
 
     drawVideoTransitionArcChart(connection);
+
+    drawAreaAbandonChart(graphElementMap, connection, startDate, endDate, weekly);
 }
 
 export async function updateCharts(connection, start, end) {
@@ -68,9 +70,10 @@ export async function updateCharts(connection, start, end) {
     drawBoxChart(graphElementMap, startDate, endDate, weekly);
     drawLineChart(graphElementMap, startDate, endDate, weekly);
     drawAreaChart(graphElementMap, startDate, endDate, weekly);
-    drawMixedChart(graphElementMap, startDate, endDate, weekly)
-}
+    drawMixedChart(graphElementMap, startDate, endDate, weekly);
 
+    drawAreaAbandonChart(graphElementMap, connection, startDate, endDate, weekly);
+}
 
 
 function drawChartJS(graphElementMap, startDate, endDate, weekly) {
@@ -388,6 +391,193 @@ function drawAreaChart(graphElementMap, startDate, endDate, weekly){
         areaChart.destroy();
     }
     areaChart = new Chart(areaCtx, areaOptions);
+}
+
+
+function drawAreaAbandonChart(graphElementMap, connection, startDate, endDate, weekly){
+    let canvas = document.getElementById('areaAbandonChart'),
+        areaCtx = canvas.getContext('2d');
+    areaCtx.clearRect(0, 0, canvas.width, canvas.height);
+
+    connection.runSql("SELECT * FROM webdata WHERE name = 'abandonElements' ").then(function (result) {
+        if (result.length !== 1) {
+            console.log('empty')
+        } else {
+            let abandonElements = result[0]['object'];
+
+            console.log('');
+
+            let lastSessions = abandonElements.lastSession;
+            lastSessions.sort(function (a, b) {
+                return new Date(a.time) - new Date(b.time)
+            });
+
+            let orderedDropouts = {};
+            let orderedDropoutsByType = {};
+            let dates = new Set();
+
+            for (let session of lastSessions){
+                let sessionTime = new Date(session['time'].toDateString());
+                if (orderedDropouts.hasOwnProperty(sessionTime)){
+                    orderedDropouts[sessionTime].push(session.elementId);
+                    orderedDropoutsByType[sessionTime].push(session.type);
+                } else {
+                    orderedDropouts[sessionTime] = [session.elementId];
+                    orderedDropoutsByType[sessionTime] = [session.type];
+                }
+            }
+
+
+            let dateList = Object.keys(orderedDropouts);
+            graphElementMap['orderedDropouts'] = orderedDropouts;
+
+            for (let date of dateList){
+                orderedDropouts[date] = orderedDropouts[date].length;
+            }
+
+            let weeklyDropouts = groupWeeklyMapped(graphElementMap, 'orderedDropouts');
+            //     weeklyVideoSessions = groupWeeklyMapped(graphElementMap, 'orderedVideoSessions'),
+            //     weeklyQuizSessions = groupWeeklyMapped(graphElementMap, 'orderedQuizSessions'),
+            //     weeklyForumSessions = groupWeeklyMapped(graphElementMap, 'orderedForumSessions');
+            //
+            let sessionData = [],
+            //     videoData = [],
+            //     quizData = [],
+            //     forumData = [],
+                dateLabels = [];
+            //
+            if (weekly === true) {
+                for (let date in weeklyDropouts['weeklySum']){
+                    dateLabels.push(new Date(date))
+                }
+                sessionData = Object.values(weeklyDropouts['weeklySum']);
+            //     videoData = Object.values(weeklyVideoSessions['weeklySum']);
+            //     quizData = Object.values(weeklyQuizSessions['weeklySum']);
+            //     forumData = Object.values(weeklyForumSessions['weeklySum']);
+            } else {
+                for (let date of dateList){
+                    dateLabels.push(date)
+                }
+                sessionData =  Object.values(orderedDropouts);
+            //     videoData = Object.values(graphElementMap['orderedVideoSessions']);
+            //     quizData = Object.values(graphElementMap['orderedQuizSessions']);
+            //     forumData = Object.values(graphElementMap['orderedForumSessions']);
+            }
+
+            let areaData = {
+                labels: dateLabels,
+                datasets: [{
+                    fill: false,
+                    label: 'Dropouts',
+                    yAxisID: 'A',
+                    data: sessionData,
+                    borderColor: '#6EC5FB',
+                    backgroundColor: '#6EC5FB',
+                    lineTension: 0,
+                // }, {
+                //     fill: true,
+                //     label: 'Video Sessions',
+                //     yAxisID: 'B',
+                //     data: videoData,
+                //     borderColor: '#753599',
+                //     backgroundColor: '#753599',
+                //     lineTension: 0,
+                // }, {
+                //     fill: true,
+                //     label: 'Quiz Sessions',
+                //     yAxisID: 'B',
+                //     data: quizData,
+                //     borderColor: '#13c70e',
+                //     backgroundColor: '#13c70e',
+                //     lineTension: 0,
+                // }, {
+                //     fill: true,
+                //     label: 'Forum Sessions',
+                //     yAxisID: 'B',
+                //     data: forumData,
+                //     borderColor: '#992425',
+                //     backgroundColor: '#992425',
+                //     lineTension: 0,
+                }]
+            };
+
+            let areaOptions = {
+                type: 'line',
+                data: areaData,
+                options: {
+                    legend: {
+                        position: 'top',
+                        labels: {
+                            usePointStyle: true
+                        }
+                    },
+                    title: {
+                        display: true,
+                        text: 'Session Count Comparison',
+                        position: 'top',
+                        fontSize:  16,
+                        color:  '#263238',
+                        fontFamily: 'Helvetica'
+                    },
+                    fill: false,
+                    responsive: true,
+                    scales: {
+                        xAxes: [{
+                            type: 'time',
+                            display: true,
+                            time: {
+                                unit: 'week',
+                                min: startDate,
+                                max: endDate
+                            },
+                            scaleLabel: {
+                                display: false,
+                                labelString: "Date",
+                            }
+                        }],
+                        yAxes: [{
+                            id: 'A',
+                            ticks: {
+                                beginAtZero: true,
+                                callback: function(value) {
+                                    return value.toLocaleString();
+                                },
+                                fontColor: '#6EC5FB',
+                            },
+                            position: 'left',
+                            display: true,
+                            scaleLabel: {
+                                display: true,
+                                labelString: "Dropouts",
+                                fontColor: '#6EC5FB',
+                                fontStyle: 'bold'
+                            }
+                        // }, {
+                        //     id: 'B',
+                        //     stacked: true,
+                        //     ticks: {
+                        //         beginAtZero: true,
+                        //         callback: function(value) {
+                        //             return value.toLocaleString();
+                        //         },
+                        //     },
+                        //     position: 'right',
+                        //     display: true,
+                        //     scaleLabel: {
+                        //         display: true,
+                        //         labelString: "Total Sessions",
+                        //         fontStyle: 'bold'
+                        //     }
+                        }]
+                    }
+                }
+            };
+            if (areaChart !== null) {
+                areaChart.destroy();
+            }
+            areaChart = new Chart(areaCtx, areaOptions);
+        }
+    })
 }
 
 
@@ -1400,9 +1590,9 @@ function calculateModuleCycles(connection) {
                 if (elementId.includes('video+') ||
                     elementId.includes('problem+') ||
                     elementId.includes('discussion+')) {
-                    let parentId = course_metadata_map.child_parent_map[elementId];
-                    let parent2Id = course_metadata_map.child_parent_map[parentId];
-                    let parent3Id = course_metadata_map.child_parent_map[parent2Id];
+                    const parentId = course_metadata_map.child_parent_map[elementId],
+                        parent2Id = course_metadata_map.child_parent_map[parentId],
+                        parent3Id = course_metadata_map.child_parent_map[parent2Id];
                     unorderedElements.push({
                         'elementId': elementId,
                         'chapter': course_metadata_map.order_map[parent3Id],
@@ -1428,13 +1618,9 @@ function calculateModuleCycles(connection) {
                 elementIdsD[elementId] = []; //Designed
             }
 
-            let learningPaths = {};
-            let passingPaths = {};
-            let failingPaths = {};
-            let counter = 0;
-
-            let designedPath = [];
-            let currentElement = '';
+            let learningPaths = {},
+                designedPath = [],
+                currentElement = '';
 
             for (let element of orderedElements) {
                 if (element.chapter === 1 || element.chapter === 2) {
@@ -1448,8 +1634,8 @@ function calculateModuleCycles(connection) {
             learningPaths['designed'] = designedPath;
             for (let learner in learningPaths) {
                 for (let i = 0; i < learningPaths[learner].length - 1; i++) {
-                    let currentElement = learningPaths[learner][i];
-                    let followingElement = learningPaths[learner][i + 1];
+                    let currentElement = learningPaths[learner][i],
+                        followingElement = learningPaths[learner][i + 1];
                     elementIdsD[currentElement].push(followingElement);
                 }
             }
@@ -1472,10 +1658,10 @@ function calculateModuleCycles(connection) {
                         'problem': 'QUIZ START',
                         'video': 'VIDEO'
                     };
-                    let sourceType = course_metadata_map.element_type_map[currentElement];
-                    let targetType = course_metadata_map.element_type_map[followingElement];
-                    let sourceNode = nodeMap[sourceType];
-                    let targetNode = nodeMap[targetType];
+                    const sourceType = course_metadata_map.element_type_map[currentElement],
+                        targetType = course_metadata_map.element_type_map[followingElement],
+                        sourceNode = nodeMap[sourceType],
+                        targetNode = nodeMap[targetType];
 
                     let link = {
                         'sourceElement': currentElement,
@@ -1498,7 +1684,9 @@ function calculateModuleCycles(connection) {
             let totalLearners = 0,
                 passingLearners = 0,
                 failingLearners = 0;
-            let allSessions = {};
+            const allSessions = {},
+                lastElement = [],
+                lastSession = [];
             for (let learnerId of learnerIds) {
                 totalLearners++;
                 allSessions[learnerId] = [];
@@ -1510,7 +1698,11 @@ function calculateModuleCycles(connection) {
                         forumStartSession['type'] = 'forum';
                         forumStartSession['time'] = forumStartSession.start_time;
                         let elementId = forumStartSession.relevent_element_id;
-                        forumStartSession['elementId'] = elementId.slice(elementId.lastIndexOf('@') + 1,);
+                        if (elementId.length < 10) {
+                            forumStartSession['elementId'] = 'forum_visit'
+                        } else {
+                            forumStartSession['elementId'] = elementId.slice(elementId.lastIndexOf('@') + 1,);
+                        }
                         forumStartSession['status'] = status;
                         allSessions[learnerId].push(forumStartSession);
 
@@ -1573,15 +1765,32 @@ function calculateModuleCycles(connection) {
                 allSessions[learnerId].sort(function (a, b) {
                     return new Date(a.time) - new Date(b.time)
                 });
-
                 if (learnerIds.length / totalLearners === 4 ){toastr.info('25% done');}
                 if (learnerIds.length / totalLearners === 2 ){toastr.info('Halfway there...');}
+
+                // TESTING ABANDONMENT
+                lastElement.push(allSessions[learnerId][allSessions[learnerId].length - 1]['elementId']);
+                lastSession.push(allSessions[learnerId][allSessions[learnerId].length - 1])
+                // TESTING ABANDONMENT
             }
 
-            let week = 0;
-            let weekStart = new Date(course_metadata_map.start_date.toDateString());
-            let weekEnd = new Date();
-            let weeklyData = {};
+            // TESTING ABANDONMENT
+            let abandonFreq = _.countBy(lastElement);
+            let elements = Object.keys(abandonFreq);
+            elements.sort(function (a, b) { return abandonFreq[b] - abandonFreq[a] });
+
+            let abandonElements = [{'name': 'abandonElements', 'object': {
+                'abandonFreq': abandonFreq, 'lastElement': lastElement, 'lastSession': lastSession }}];
+
+            connection.runSql("DELETE FROM webdata WHERE name = 'abandonElements'").then(function (success) {
+                sqlInsert('webdata', abandonElements, connection);
+            });
+            // TESTING ABANDONMENT
+
+            let weekStart = new Date(course_metadata_map.start_date.toDateString()),
+                weekEnd = new Date(),
+                week = 0,
+                weeklyData = {};
             do {
                 learningPaths = {
                     'downloadable': {},

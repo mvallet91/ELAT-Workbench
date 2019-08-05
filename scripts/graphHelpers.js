@@ -162,11 +162,11 @@ export function groupWeeklyMapped(graphElementMap, orderedElements) {
     let grouped = _.groupBy(graphElementMap['dateListChart'], (result) => moment(result, 'DD/MM/YYYY').startOf('isoWeek'));
     let weeklySum = {};
     let weeklyAvg = {};
+    let weekType = 'number';
     for (let week in grouped) {
         let weekDays = grouped[week];
         let weekTotal = 0;
         let weekList = [];
-        let weekType = 'number';
         for (let day of weekDays) {
             if (graphElementMap[orderedElements].hasOwnProperty(day)) {
                 if (! isNaN(Number(graphElementMap[orderedElements][day]))) {

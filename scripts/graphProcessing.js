@@ -35,12 +35,22 @@ export async function drawCharts(connection, start, end) {
 
     drawChartJS(graphElementMap, startDate, endDate, weekly);
 
-    drawCycles(connection);
-
     drawVideoTransitionArcChart(connection);
 
+    drawCycles(connection);
+
     drawAreaDropoutChart(graphElementMap, connection, startDate, endDate, weekly);
+
 }
+
+
+function drawChartJS(graphElementMap, startDate, endDate, weekly) {
+    drawLineChart(graphElementMap, startDate, endDate, weekly);
+    drawAreaChart(graphElementMap, startDate, endDate, weekly);
+    drawBoxChart(graphElementMap, startDate, endDate, weekly);
+    drawMixedChart(graphElementMap, startDate, endDate, weekly);
+}
+
 
 export async function updateCharts(connection, start, end) {
     let graphElementMap = await getGraphElementMap(connection);
@@ -74,14 +84,6 @@ export async function updateCharts(connection, start, end) {
     drawMixedChart(graphElementMap, startDate, endDate, weekly);
 
     drawAreaDropoutChart(graphElementMap, connection, startDate, endDate, weekly);
-}
-
-
-function drawChartJS(graphElementMap, startDate, endDate, weekly) {
-    drawLineChart(graphElementMap, startDate, endDate, weekly);
-    drawAreaChart(graphElementMap, startDate, endDate, weekly);
-    drawBoxChart(graphElementMap, startDate, endDate, weekly);
-    drawMixedChart(graphElementMap, startDate, endDate, weekly);
 }
 
 
@@ -500,7 +502,6 @@ function calculateDropoutValues(courseMetadataMap, lastSessions, lastElements, c
     connection.runSql("DELETE FROM webdata WHERE name = 'dropoutElements'").then(function (success) {
         sqlInsert('webdata', dropoutElements, connection);
     });
-
 }
 
 
@@ -511,8 +512,9 @@ function drawAreaDropoutChart(graphElementMap, connection, startDate, endDate, w
 
     connection.runSql("SELECT * FROM webdata WHERE name = 'dropoutElements' ").then(function (result) {
         if (result.length !== 1) {
-            calculateModuleCycles(connection);
+            console.log('empty')
         } else {
+
             let dropoutValues = result[0]['object'],
                 orderedDropoutsByElementValue = dropoutValues.orderedDropoutsByElementValue,
                 orderedDropoutsByElementWeeklyValue = dropoutValues.orderedDropoutsByElementWeeklyValue,
@@ -651,6 +653,7 @@ function drawBoxChart(graphElementMap, startDate, endDate, weekly){
     let postContentData = [];
     let regPostContentData = [];
     let occPostContentData = [];
+
 
     if (weekly === true){
         for (let date in weeklyPostContents['weeklySum']){

@@ -3,6 +3,10 @@ import {prepareTables} from "./prepareTables.js";
 
 let testing = false;
 
+/**
+ *
+ * @param connection Main JsStore worker that handles the connection to SqlWeb
+ */
 export function initiateEdxDb(connection) {
     let dbName = "edxdb";
     connection.runSql('ISDBEXIST ' + dbName).then(function (isExist) {
@@ -32,7 +36,7 @@ export function initiateEdxDb(connection) {
  * Database helper to insert values into IndexedDB in an SQL fashion, using the SqlWeb library
  * @param {string} table
  * @param {array} dataObject
- * @param {JsStoreWorker} connection
+ * @param connection Main JsStore worker that handles the connection to SqlWeb
  */
 export function sqlInsert(table, dataObject, connection) {
     if (!(['forum_interaction', 'webdata'].includes(table))){
@@ -64,6 +68,12 @@ export function sqlInsert(table, dataObject, connection) {
     });
 }
 
+/**
+ *
+ * @param table
+ * @param rowsArray
+ * @param connection Main JsStore worker that handles the connection to SqlWeb
+ */
 export function sqlLogInsert(table, rowsArray, connection) {
     if (!testing) {
         let query = new SqlWeb.Query("INSERT INTO " + table + " values='@val'");
@@ -90,12 +100,18 @@ export function sqlLogInsert(table, rowsArray, connection) {
     }
 }
 
+/**
+ *
+ * @param courseId
+ * @param connection
+ */
 export function populateSamples(courseId, connection){
     let courseMap = {'FP101x': "DelftX+FP101x+3T2015.json",
         'TW3421x': "DelftX+TW3421x+3T2016.json",
         'AE1110x':"DelftX+AE1110x+2T2017.json",
         "Visual101x":"DelftX+Visual101x+1T2016",
-        "Mind101x":"DelftX+MIND101x+1T2018.json"
+        "Mind101x":"DelftX+MIND101x+1T2018.json",
+        "Frame101x": "DelftX+Frame101x+1T2016.json"
     };
     let courseFile = 'samples/' + courseMap[courseId];
     connection.runSql("SELECT * FROM webdata").then(function(metadata) {
@@ -111,6 +127,10 @@ export function populateSamples(courseId, connection){
     })
 }
 
+/**
+ *
+ * @param connection Main JsStore worker that handles the connection to SqlWeb
+ */
 export function clearStoredWebdata(connection) {
     if (!testing) {
         connection.runSql("DELETE FROM webdata WHERE name = 'graphElements'");
@@ -118,15 +138,24 @@ export function clearStoredWebdata(connection) {
         connection.runSql("DELETE FROM webdata WHERE name = 'mainIndicators'");
         connection.runSql("DELETE FROM webdata WHERE name = 'arcElements'");
         connection.runSql("DELETE FROM webdata WHERE name = 'cycleElements'");
+        connection.runSql("DELETE FROM webdata WHERE name = 'dropoutElements'");
     }
 }
 
+/**
+ *
+ * @param connection Main JsStore worker that handles the connection to SqlWeb
+ */
 export function clearMetadataTables(connection){
     connection.runSql("DELETE FROM webdata WHERE name = 'courseDetails'");
     connection.runSql("DELETE FROM webdata WHERE name = 'databaseDetails'");
     connection.runSql("DELETE FROM webdata WHERE name = 'mainIndicators'");
 }
 
+/**
+ *
+ * @param connection
+ */
 export function clearWebdataForUpdate(connection) {
     loader(true);
     connection.runSql("DELETE FROM webdata WHERE name = 'mainIndicators'");
@@ -134,13 +163,18 @@ export function clearWebdataForUpdate(connection) {
     connection.runSql("DELETE FROM webdata WHERE name = 'arcElements'");
     connection.runSql("DELETE FROM webdata WHERE name = 'cycleElements'");
     connection.runSql("DELETE FROM webdata WHERE name = 'databaseDetails'");
+    connection.runSql("DELETE FROM webdata WHERE name = 'dropoutElements'");
     connection.runSql("DELETE FROM webdata WHERE name = 'graphElements'").then(function () {
         loader(false);
         toastr.success('Please reload the page now', 'Updating Indicators and Charts', {timeOut: 0})
     });
 }
 
-
+/**
+ *
+ * @param connection
+ * @returns {Promise<void>}
+ */
 export async function deleteEverything(connection) {
     let query = 'DELETE FROM sessions';
     let r = confirm("WARNING!\nTHIS WILL DELETE EVERYTHING IN THE DATABASE");
@@ -196,6 +230,12 @@ export async function deleteEverything(connection) {
     }
 }
 
+/**
+ *
+ * @param tablename
+ * @param headers
+ * @param connection
+ */
 export function processTablesForDownload(tablename, headers, connection) {
     connection.runSql('select * from courses').then(function (courses) {
         courses.forEach(function(course){
@@ -239,6 +279,10 @@ export let schemaMap = {'sessions': ['session_id', 'course_learner_id', 'start_t
         'post_timestamp', 'post_parent_id', 'post_thread_id']
 };
 
+/**
+ * Generates the schema for the edX database
+ * @returns {string} SQL-style query to be processed by the SqlWeb library
+ */
 export function getEdxDbQuery() {
     let db = "DEFINE DB edxdb;";
 

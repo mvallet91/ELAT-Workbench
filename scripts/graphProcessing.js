@@ -1,4 +1,5 @@
-import {groupWeeklyMapped, trimByDates, zeroIfEmptyArray, calculateArc, getGraphElementMap} from "./graphHelpers.js";
+import {groupWeeklyMapped, trimByDates, zeroIfEmptyArray, calculateArc,
+    getGraphElementMap, groupWeekly } from "./graphHelpers.js";
 import {sqlInsert} from "./databaseHelpers.js";
 import {loader} from "./helpers.js";
 
@@ -38,7 +39,7 @@ export async function drawCharts(connection, start, end) {
 
     drawVideoTransitionArcChart(connection);
 
-    drawAreaAbandonChart(graphElementMap, connection, startDate, endDate, weekly);
+    drawAreaDropoutChart(graphElementMap, connection, startDate, endDate, weekly);
 }
 
 export async function updateCharts(connection, start, end) {
@@ -72,7 +73,7 @@ export async function updateCharts(connection, start, end) {
     drawAreaChart(graphElementMap, startDate, endDate, weekly);
     drawMixedChart(graphElementMap, startDate, endDate, weekly);
 
-    drawAreaAbandonChart(graphElementMap, connection, startDate, endDate, weekly);
+    drawAreaDropoutChart(graphElementMap, connection, startDate, endDate, weekly);
 }
 
 
@@ -394,111 +395,167 @@ function drawAreaChart(graphElementMap, startDate, endDate, weekly){
 }
 
 
-function drawAreaAbandonChart(graphElementMap, connection, startDate, endDate, weekly){
-    let canvas = document.getElementById('areaAbandonChart'),
-        areaCtx = canvas.getContext('2d');
-    areaCtx.clearRect(0, 0, canvas.width, canvas.height);
+function calculateDropoutValues(courseMetadataMap, lastSessions, lastElements, connection){
+    let dropoutFreq = _.countBy(lastElements);
 
-    connection.runSql("SELECT * FROM webdata WHERE name = 'abandonElements' ").then(function (result) {
-        if (result.length !== 1) {
-            console.log('empty')
+    let elements = Object.keys(dropoutFreq);
+    elements.sort(function (a, b) { return dropoutFreq[b] - dropoutFreq[a] });
+
+    let topElements = {};
+    for (let element of elements.slice(0,11)){
+        if (element.includes('forum')){
+            topElements['elementName'] = 'forum_visit'
         } else {
-            let abandonElements = result[0]['object'];
+            for (let fullElement in courseMetadataMap.child_parent_map) {
+                if (fullElement.includes(element)) {
+                    let parentId = courseMetadataMap.child_parent_map[fullElement],
+                        elementName = courseMetadataMap.element_name_map[fullElement],
+                        parentName = courseMetadataMap.element_name_map[parentId];
+                    topElements[element] = {'elementName': elementName, 'parentName': parentName};
+                    if (courseMetadataMap.child_parent_map.hasOwnProperty(parentId)) {
+                        let parent2Id = courseMetadataMap.child_parent_map[parentId],
+                            parent2Name = courseMetadataMap.element_name_map[parent2Id];
+                        topElements[element]['parent2Name'] = parent2Name;
+                    }
+                }
+            }
+        }
+    }
 
-            console.log('');
+    lastSessions.sort(function (a, b) {
+        return new Date(a.time) - new Date(b.time)
+    });
 
-            let lastSessions = abandonElements.lastSession;
-            lastSessions.sort(function (a, b) {
-                return new Date(a.time) - new Date(b.time)
-            });
+    const orderedDropouts = {},
+        orderedDropoutsByType = {},
+        dateLabelsSet = new Set();
 
-            let orderedDropouts = {};
-            let orderedDropoutsByType = {};
-            let dates = new Set();
+    for (let session of lastSessions){
+        let sessionTime = session['time'].toDateString();
+        dateLabelsSet.add(sessionTime);
+        if (orderedDropouts.hasOwnProperty(sessionTime)){
+            orderedDropouts[sessionTime].push(session.elementId);
+            orderedDropoutsByType[sessionTime].push(session.type);
+        } else {
+            orderedDropouts[sessionTime] = [session.elementId];
+            orderedDropoutsByType[sessionTime] = [session.type];
+        }
+    }
 
-            for (let session of lastSessions){
-                let sessionTime = new Date(session['time'].toDateString());
-                if (orderedDropouts.hasOwnProperty(sessionTime)){
-                    orderedDropouts[sessionTime].push(session.elementId);
-                    orderedDropoutsByType[sessionTime].push(session.type);
+    let topN = 5;
+    let slicedTopElements = {};
+    for (let element of Object.keys(topElements).slice(0, topN)){
+        slicedTopElements[element] = topElements[element]
+    }
+    slicedTopElements['Others'] = {'elementName': 'Other course elements'};
+
+    let orderedDropoutsByElement = {};
+    for (let topElement in slicedTopElements){
+        let stringId = topElement.toString();
+        let dropoutsByCurrentElement = {};
+        for (let session of lastSessions){
+            let sessionTime = session['time'].toDateString();
+            if (session.elementId === topElement) {
+                if (dropoutsByCurrentElement.hasOwnProperty(sessionTime)) {
+                    dropoutsByCurrentElement[sessionTime].push(session.elementId);
                 } else {
-                    orderedDropouts[sessionTime] = [session.elementId];
-                    orderedDropoutsByType[sessionTime] = [session.type];
+                    dropoutsByCurrentElement[sessionTime] = [session.elementId];
                 }
             }
-
-
-            let dateList = Object.keys(orderedDropouts);
-            graphElementMap['orderedDropouts'] = orderedDropouts;
-
-            for (let date of dateList){
-                orderedDropouts[date] = orderedDropouts[date].length;
-            }
-
-            let weeklyDropouts = groupWeeklyMapped(graphElementMap, 'orderedDropouts');
-            //     weeklyVideoSessions = groupWeeklyMapped(graphElementMap, 'orderedVideoSessions'),
-            //     weeklyQuizSessions = groupWeeklyMapped(graphElementMap, 'orderedQuizSessions'),
-            //     weeklyForumSessions = groupWeeklyMapped(graphElementMap, 'orderedForumSessions');
-            //
-            let sessionData = [],
-            //     videoData = [],
-            //     quizData = [],
-            //     forumData = [],
-                dateLabels = [];
-            //
-            if (weekly === true) {
-                for (let date in weeklyDropouts['weeklySum']){
-                    dateLabels.push(new Date(date))
+            if (topElement === 'Others'){
+                if (!Object.keys(slicedTopElements).includes(session.elementId)){
+                    if (dropoutsByCurrentElement.hasOwnProperty(sessionTime)) {
+                        dropoutsByCurrentElement[sessionTime].push(session.elementId);
+                    } else {
+                        dropoutsByCurrentElement[sessionTime] = [session.elementId];
+                    }
                 }
-                sessionData = Object.values(weeklyDropouts['weeklySum']);
-            //     videoData = Object.values(weeklyVideoSessions['weeklySum']);
-            //     quizData = Object.values(weeklyQuizSessions['weeklySum']);
-            //     forumData = Object.values(weeklyForumSessions['weeklySum']);
+            }
+        }
+        orderedDropoutsByElement[stringId] = dropoutsByCurrentElement;
+    }
+
+    let orderedDropoutsByElementValue = {},
+        orderedDropoutsByElementWeeklyValue = {};
+    let dateList = Array.from(dateLabelsSet);
+    for (let topElement in slicedTopElements){
+        orderedDropoutsByElementValue[topElement] = {};
+        for (let dateString of dateList){
+            let date = new Date(dateString);
+            if (dateString in orderedDropoutsByElement[topElement]) {
+                orderedDropoutsByElementValue[topElement][date] = orderedDropoutsByElement[topElement][dateString].length;
             } else {
-                for (let date of dateList){
-                    dateLabels.push(date)
+                orderedDropoutsByElementValue[topElement][date] = 0;
+            }
+        }
+        orderedDropoutsByElementWeeklyValue[topElement] = groupWeekly(orderedDropoutsByElementValue[topElement])
+    }
+
+
+    let dropoutElements = [{'name': 'dropoutElements', 'object': {
+            'orderedDropoutsByElementValue': orderedDropoutsByElementValue,
+            'orderedDropoutsByElementWeeklyValue': orderedDropoutsByElementWeeklyValue,
+            'slicedTopElements': slicedTopElements}}];
+
+    connection.runSql("DELETE FROM webdata WHERE name = 'dropoutElements'").then(function (success) {
+        sqlInsert('webdata', dropoutElements, connection);
+    });
+
+}
+
+
+function drawAreaDropoutChart(graphElementMap, connection, startDate, endDate, weekly){
+    let areaDropoutCanvas = document.getElementById('areaDropoutChart'),
+        areaDropoutCtx = areaDropoutCanvas.getContext('2d');
+    areaDropoutCtx.clearRect(0, 0, areaDropoutCanvas.width, areaDropoutCanvas.height);
+
+    connection.runSql("SELECT * FROM webdata WHERE name = 'dropoutElements' ").then(function (result) {
+        if (result.length !== 1) {
+            calculateModuleCycles(connection);
+        } else {
+            let dropoutValues = result[0]['object'],
+                orderedDropoutsByElementValue = dropoutValues.orderedDropoutsByElementValue,
+                orderedDropoutsByElementWeeklyValue = dropoutValues.orderedDropoutsByElementWeeklyValue,
+                slicedTopElements = dropoutValues.slicedTopElements;
+
+            let datasets = [];
+            let dateLabels = [];
+            for (let element in orderedDropoutsByElementValue) {
+                let label = '';
+                if (slicedTopElements[element]['parent2Name']) {
+                    label = label + slicedTopElements[element]['parent2Name'] + ' - '
+                } if (slicedTopElements[element]['parentName']){
+                    label = label + slicedTopElements[element]['parentName'] + ' - '
                 }
-                sessionData =  Object.values(orderedDropouts);
-            //     videoData = Object.values(graphElementMap['orderedVideoSessions']);
-            //     quizData = Object.values(graphElementMap['orderedQuizSessions']);
-            //     forumData = Object.values(graphElementMap['orderedForumSessions']);
+                label = label + slicedTopElements[element]['elementName'];
+                let data = [];
+                if (weekly === true) {
+                    data = Object.values(orderedDropoutsByElementWeeklyValue[element]);
+                    dateLabels = Object.keys(orderedDropoutsByElementWeeklyValue[element]);
+                } else {
+                    data = Object.values(orderedDropoutsByElementValue[element]);
+                    dateLabels = Object.keys(orderedDropoutsByElementValue[element]);
+                }
+                let color = "#000000".replace(/0/g,function(){return (~~(Math.random()*16)).toString(16);});
+                datasets.push({
+                    fill: true,
+                    label: label,
+                    yAxisID: 'A',
+                    data: data,
+                    borderColor: color,
+                    backgroundColor: color,
+                    lineTension: 0
+                });
+            }
+
+            let graphLabels = [];
+            for (let date of dateLabels) {
+                graphLabels.push(new Date(date))
             }
 
             let areaData = {
-                labels: dateLabels,
-                datasets: [{
-                    fill: false,
-                    label: 'Dropouts',
-                    yAxisID: 'A',
-                    data: sessionData,
-                    borderColor: '#6EC5FB',
-                    backgroundColor: '#6EC5FB',
-                    lineTension: 0,
-                // }, {
-                //     fill: true,
-                //     label: 'Video Sessions',
-                //     yAxisID: 'B',
-                //     data: videoData,
-                //     borderColor: '#753599',
-                //     backgroundColor: '#753599',
-                //     lineTension: 0,
-                // }, {
-                //     fill: true,
-                //     label: 'Quiz Sessions',
-                //     yAxisID: 'B',
-                //     data: quizData,
-                //     borderColor: '#13c70e',
-                //     backgroundColor: '#13c70e',
-                //     lineTension: 0,
-                // }, {
-                //     fill: true,
-                //     label: 'Forum Sessions',
-                //     yAxisID: 'B',
-                //     data: forumData,
-                //     borderColor: '#992425',
-                //     backgroundColor: '#992425',
-                //     lineTension: 0,
-                }]
+                labels: graphLabels,
+                datasets: datasets
             };
 
             let areaOptions = {
@@ -513,7 +570,7 @@ function drawAreaAbandonChart(graphElementMap, connection, startDate, endDate, w
                     },
                     title: {
                         display: true,
-                        text: 'Session Count Comparison',
+                        text: 'Dropout by Main Component (last student interaction)',
                         position: 'top',
                         fontSize:  16,
                         color:  '#263238',
@@ -537,6 +594,7 @@ function drawAreaAbandonChart(graphElementMap, connection, startDate, endDate, w
                         }],
                         yAxes: [{
                             id: 'A',
+                            stacked: true,
                             ticks: {
                                 beginAtZero: true,
                                 callback: function(value) {
@@ -572,10 +630,10 @@ function drawAreaAbandonChart(graphElementMap, connection, startDate, endDate, w
                     }
                 }
             };
-            if (areaChart !== null) {
-                areaChart.destroy();
+            if (areaDropoutChart !== null) {
+                areaDropoutChart.destroy();
             }
-            areaChart = new Chart(areaCtx, areaOptions);
+            areaDropoutChart = new Chart(areaDropoutCtx, areaOptions);
         }
     })
 }
@@ -1685,8 +1743,8 @@ function calculateModuleCycles(connection) {
                 passingLearners = 0,
                 failingLearners = 0;
             const allSessions = {},
-                lastElement = [],
-                lastSession = [];
+                lastElements = [],
+                lastSessions = [];
             for (let learnerId of learnerIds) {
                 totalLearners++;
                 allSessions[learnerId] = [];
@@ -1709,7 +1767,11 @@ function calculateModuleCycles(connection) {
                         let forumEndSession = $.extend({}, session);
                         forumEndSession['type'] = 'forum-end';
                         forumEndSession['time'] = forumEndSession.end_time;
-                        forumEndSession['elementId'] = elementId.slice(elementId.lastIndexOf('@') + 1,);
+                        if (elementId.length < 10) {
+                            forumEndSession['elementId'] = 'forum_visit'
+                        } else {
+                            forumEndSession['elementId'] = elementId.slice(elementId.lastIndexOf('@') + 1,);
+                        }
                         forumEndSession['status'] = status;
                         allSessions[learnerId].push(forumEndSession)
                     })
@@ -1768,24 +1830,15 @@ function calculateModuleCycles(connection) {
                 if (learnerIds.length / totalLearners === 4 ){toastr.info('25% done');}
                 if (learnerIds.length / totalLearners === 2 ){toastr.info('Halfway there...');}
 
-                // TESTING ABANDONMENT
-                lastElement.push(allSessions[learnerId][allSessions[learnerId].length - 1]['elementId']);
-                lastSession.push(allSessions[learnerId][allSessions[learnerId].length - 1])
-                // TESTING ABANDONMENT
+                // FOR DROPOUT VALUES
+                if (allSessions[learnerId].length > 2) {
+                    lastElements.push(allSessions[learnerId][allSessions[learnerId].length - 1]['elementId']);
+                    lastSessions.push(allSessions[learnerId][allSessions[learnerId].length - 1])
+                }
             }
 
-            // TESTING ABANDONMENT
-            let abandonFreq = _.countBy(lastElement);
-            let elements = Object.keys(abandonFreq);
-            elements.sort(function (a, b) { return abandonFreq[b] - abandonFreq[a] });
+            calculateDropoutValues(course_metadata_map, lastSessions, lastElements, connection);
 
-            let abandonElements = [{'name': 'abandonElements', 'object': {
-                'abandonFreq': abandonFreq, 'lastElement': lastElement, 'lastSession': lastSession }}];
-
-            connection.runSql("DELETE FROM webdata WHERE name = 'abandonElements'").then(function (success) {
-                sqlInsert('webdata', abandonElements, connection);
-            });
-            // TESTING ABANDONMENT
 
             let weekStart = new Date(course_metadata_map.start_date.toDateString()),
                 weekEnd = new Date(),

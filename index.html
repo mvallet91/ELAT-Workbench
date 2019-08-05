@@ -118,7 +118,7 @@
                         <output id="list"></output>
                     </div>
                     <div class="col-lg-3 col-sm-4">
-                        Metadata Options:
+                        Metadata Options (Select before Uploading):
                         <div class="form-check">
                             <label class="form-check-label">
                                 <input type="radio" id="completedStudents" class="form-check-input" name="metaOptions" value="completed" checked>
@@ -302,18 +302,6 @@
         </div>
     </div>
 
-    <div class="container-fluid " id="areaAbandonChartBox">
-        <div class="dropdown">
-            <button type="button" class="btn btn-sm dropdown-toggle" data-toggle="dropdown" style="float:right;">
-                <i class="fas fa-download"></i>
-            </button>
-            <div class="dropdown-menu">
-                <a class="dropdown-item" id="png_areaAbandonChart">Download PNG</a>
-            </div>
-        </div>
-        <canvas style = "position:relative; top:-10px;" id="areaAbandonChart"></canvas>
-    </div>
-
     <div class="gridster">
         <ul>
             <li id="mixedTile" data-row="1" data-col="1" data-sizex="8" data-sizey="4">
@@ -368,6 +356,20 @@
                         </div>
                     </div>
                     <canvas style = "position:relative; top:-10px;" id="areaChart"></canvas>
+                </div>
+            </li>
+            <li id="areaDropoutTile" data-row="9" data-col="1" data-sizex="8" data-sizey="4">
+                <header>|||</header>
+                <div class="container-fluid " id="areaDropoutChartBox">
+                    <div class="dropdown">
+                        <button type="button" class="btn btn-sm dropdown-toggle" data-toggle="dropdown" style="float:right;">
+                            <i class="fas fa-download"></i>
+                        </button>
+                        <div class="dropdown-menu">
+                            <a class="dropdown-item" id="png_areaDropoutChart">Download PNG</a>
+                        </div>
+                    </div>
+                    <canvas style = "position:relative; top:-10px;" id="areaDropoutChart"></canvas>
                 </div>
             </li>
             <li id="arcTile" data-row="9" data-col="9" data-sizex="8" data-sizey="4">
@@ -453,19 +455,11 @@
     <script>
         let lineChart = null;
         let areaChart = null;
+        let areaDropoutChart = null;
         let boxChart = null;
         let mixedChart = null;
         let arcChart = null;
         let heatChart = null;
-        // $(function() {
-        //     $('input[name="daterange"]').daterangepicker({
-        //         opens: 'left'
-        //     }, function(start, end, label) {
-        //         document.getElementById('allDatesRadio').checked = false;
-        //         document.getElementById('courseDatesRadio').checked = false;
-        //         getGraphElementMap(connection, drawCharts(), start.format('YYYY-MM-DD'), end.format('YYYY-MM-DD'));
-        //     });
-        // });
     </script>
 
 </body>

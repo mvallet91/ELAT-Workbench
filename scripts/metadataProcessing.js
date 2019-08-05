@@ -328,6 +328,8 @@ export function learnerMode(files, connection) {
             fileMap[shortName] = file['value'];
         }
 
+        console.log(fileMap);
+
         let requiredFiles = ['student_courseenrollment-prod-analytics', 'auth_user-prod-analytics',
             'certificates_generatedcertificate-prod-analytics', 'auth_userprofile-prod-analytics',
             'prod'];

@@ -126,7 +126,7 @@ export function generateForumBehaviorTable(forumSegmentation, connection) {
 }
 
 
-function groupWeekly(elementObject) {
+export function groupWeekly(elementObject) {
     let grouped = _.groupBy(Object.keys(elementObject), (result) => moment(new Date(result), 'DD/MM/YYYY').startOf('isoWeek'));
     let weeklySum = {};
     for (let week in grouped) {

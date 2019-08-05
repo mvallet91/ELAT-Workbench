@@ -1,3 +1,7 @@
+/**
+ * Function for development, used to download all processed dashboard data for Samples
+ * @param connection Main JsStore worker that handles the connection to SqlWeb
+ */
 export function webdataJSON(connection){
     connection.runSql("SELECT * FROM webdata").then(function(webElements) {
         let jsonString = '[';
@@ -8,6 +12,10 @@ export function webdataJSON(connection){
     });
 }
 
+/**
+ *  Show or hide the loader and block the screen
+ * @param {boolean} on
+ */
 export function loader(on){
     if (on){
         $('#loading').show();
@@ -18,6 +26,11 @@ export function loader(on){
     }
 }
 
+/**
+ * Process the text contents of a table into a csv-formatted file and download it
+ * @param {string} filename String with the name of the file
+ * @param {array} content Array of lines
+ */
 export function downloadCsv(filename, content) {
     let downloadElement = document.createElement('a');
     let joinedContent = content.map(e=>e.join(",")).join("\n");

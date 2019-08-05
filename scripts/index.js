@@ -1,12 +1,12 @@
 import {learnerMode} from './metadataProcessing.js'
 import {populateSamples, initiateEdxDb, clearWebdataForUpdate,
     deleteEverything, schemaMap, processTablesForDownload} from "./databaseHelpers.js";
-import {loader, downloadForumSegmentation, progressDisplay} from './helpers.js'
+import {loader, downloadForumSegmentation, progressDisplay, webdataJSON} from './helpers.js'
 import {processGeneralSessions, processForumSessions, processVideoInteractionSessions,
     processAssessmentsSubmissions, processQuizSessions} from "./logProcessing.js";
-import {exportChartPNG, getGraphElementMap} from './graphHelpers.js'
+import {exportChartPNG} from './graphHelpers.js'
 import {drawCharts, updateCharts} from "./graphProcessing.js";
-let connection = new JsStore.Instance();
+var connection = new JsStore.Instance();
 
 window.onload = function () {
     //// PAGE INITIALIZATION  //////////////////////////////////////////////////////////////////////////////
@@ -59,6 +59,8 @@ window.onload = function () {
             }
         } else if (id === 'getForumList'){
             downloadForumSegmentation(connection)
+        } else if (id === 'getWebdata'){
+            webdataJSON(connection)
         }
     }
 

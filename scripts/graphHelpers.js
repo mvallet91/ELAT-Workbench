@@ -1,15 +1,31 @@
 import {sqlInsert} from "./databaseHelpers.js";
 import {loader} from "./helpers.js";
 
-
+/**
+ * Finds the intersecting elements between two sets
+ * @param set1
+ * @param set2
+ * @returns {Set}
+ */
 export function intersection(set1, set2){
     return new Set([...set1].filter(x => set2.has(x)));
 }
 
+/**
+ * Finds the difference elements between two sets
+ * @param set1
+ * @param set2
+ * @returns {Set}
+ */
 export function difference(set1, set2){
     return new Set([...set1].filter(x => !set2.has(x)));
 }
 
+/**
+ * Process the div where a chart was drawn. If it was drawn using chart.js, it will transform to PNG and download,
+ * if it was drawn with d3.js, it will call the SVG2PNG function to process the svg object
+ * @param {string} chartId Corresponding chart identifier
+ */
 export function exportChartPNG(chartId) {
     let filename = chartId;
     let element = document.getElementById(chartId);
@@ -28,23 +44,38 @@ export function exportChartPNG(chartId) {
     }
 }
 
+/**
+ *
+ * @param svg
+ * @param callback
+ */
 export function SVG2PNG(svg, callback) {
     let canvas = document.createElement('canvas'); // Create a Canvas element.
-    let ctx = canvas.getContext('2d'); // For Canvas returns 2D graphic.
     let data = svg.outerHTML; // Get SVG element as HTML code.
     canvg(canvas, data); // Render SVG on Canvas.
     callback(canvas); // Execute callback function.
 }
 
-
- export function generateLink(fileName, data) {
+/**
+ *
+ * @param fileName
+ * @param data
+ * @returns {HTMLElement}
+ */
+export function generateLink(fileName, data) {
     let link = document.createElement('a');
     link.download = fileName;
     link.href = data;
     return link;
 }
 
-
+/**
+ *
+ * @param values
+ * @param start
+ * @param end
+ * @returns {Array}
+ */
 export function trimByDates(values, start, end){
     let trimmed = [];
     for (let date in values){
@@ -55,6 +86,13 @@ export function trimByDates(values, start, end){
     return trimmed
 }
 
+/**
+ *
+ * @param weeklyPosters
+ * @param weeklyViewers
+ * @param connection
+ * @returns {{regularPosters: Array, occasionalViewers: Array, regularViewers: Array, occasionalPosters: Array}}
+ */
 export function getForumSegmentation(weeklyPosters, weeklyViewers, connection) {
     let posters = {};
     let regularPosters = [];
@@ -107,6 +145,11 @@ export function getForumSegmentation(weeklyPosters, weeklyViewers, connection) {
     return forumSegmentation;
 }
 
+/**
+ *
+ * @param forumSegmentation
+ * @param connection
+ */
 export function generateForumBehaviorTable(forumSegmentation, connection) {
     let resultMatrix = {};
     for (let group in forumSegmentation){
@@ -162,11 +205,11 @@ export function groupWeeklyMapped(graphElementMap, orderedElements) {
     let grouped = _.groupBy(graphElementMap['dateListChart'], (result) => moment(result, 'DD/MM/YYYY').startOf('isoWeek'));
     let weeklySum = {};
     let weeklyAvg = {};
+    let weekType = 'number';
     for (let week in grouped) {
         let weekDays = grouped[week];
         let weekTotal = 0;
         let weekList = [];
-        let weekType = 'number';
         for (let day of weekDays) {
             if (graphElementMap[orderedElements].hasOwnProperty(day)) {
                 if (! isNaN(Number(graphElementMap[orderedElements][day]))) {

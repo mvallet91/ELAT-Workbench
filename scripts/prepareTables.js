@@ -1,12 +1,21 @@
 import {sqlInsert} from "./databaseHelpers.js";
 import {loader} from "./helpers.js";
 
+
+/**
+ * Handles the 3 main tables that are displayed on the ELAT dashboard
+ * @param connection Main JsStore worker that handles the connection to SqlWeb
+ */
 export function prepareTables(connection){
     showCourseTable(connection);
     showDetailsTable(connection);
     showMainIndicatorsTable(connection);
 }
 
+/**
+ * Function to generate, or obtain the data from the database if available, and display it on the Course Details table
+ * @param connection Main JsStore worker that handles the connection to SqlWeb
+ */
 function showCourseTable(connection) {
     let HtmlString = "";
     connection.runSql("SELECT * FROM webdata WHERE name = 'courseDetails' ").then(function(result) {
@@ -64,7 +73,10 @@ function showCourseTable(connection) {
     })
 }
 
-
+/**
+ * Function to generate, or obtain the data from the database if available, and display it on the Database Details table
+ * @param connection Main JsStore worker that handles the connection to SqlWeb
+ */
 function showDetailsTable(connection) {
     let HtmlString = "";
     let totalHtmlString = "";
@@ -172,7 +184,10 @@ function showDetailsTable(connection) {
     })
 }
 
-
+/**
+ * Function to generate, or obtain the data from the database if available, and display it on the Main Indicators table
+ * @param connection Main JsStore worker that handles the connection to SqlWeb
+ */
 function showMainIndicatorsTable(connection) {
     let HtmlString = "";
     connection.runSql("SELECT * FROM webdata WHERE name = 'mainIndicators' ").then(function(result) {

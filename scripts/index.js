@@ -6,7 +6,7 @@ import {processGeneralSessions, processForumSessions, processVideoInteractionSes
     processAssessmentsSubmissions, processQuizSessions} from "./logProcessing.js";
 import {exportChartPNG} from './graphHelpers.js'
 import {drawCharts, updateCharts} from "./graphProcessing.js";
-let connection = new JsStore.Instance();
+var connection = new JsStore.Instance();
 
 window.onload = function () {
     //// PAGE INITIALIZATION  //////////////////////////////////////////////////////////////////////////////

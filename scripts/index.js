@@ -3,7 +3,7 @@ import {populateSamples, initiateEdxDb, clearWebdataForUpdate,
     deleteEverything, schemaMap, processTablesForDownload} from "./databaseHelpers.js";
 import {loader, downloadForumSegmentation, progressDisplay, webdataJSON} from './helpers.js'
 import {processGeneralSessions, processForumSessions, processVideoInteractionSessions,
-    processAssessmentsSubmissions, processQuizSessions} from "./logProcessing.js";
+    processAssessmentsSubmissions, processQuizSessions, processORASessions} from "./logProcessing.js";
 import {exportChartPNG} from './graphHelpers.js'
 import {drawCharts, updateCharts} from "./graphProcessing.js";
 var connection = new JsStore.Instance();
@@ -294,6 +294,8 @@ function processUnzippedChunk(processedFiles, fileIndex, totalFiles, chunkIndex,
             processVideoInteractionSessions(courseMetadataMap, processedFiles, fileIndex, totalFiles, chunkIndex, connection);
             processAssessmentsSubmissions(courseMetadataMap, processedFiles, fileIndex, totalFiles, chunkIndex, connection);
             processQuizSessions(courseMetadataMap, processedFiles, fileIndex, totalFiles, chunkIndex, totalChunks, connection, prepareLogFiles);
+            //
+            // processORASessions(courseMetadataMap, processedFiles, fileIndex, totalFiles, chunkIndex, totalChunks, connection, prepareLogFiles);
         }
     });
 }

@@ -547,12 +547,12 @@ export function processVideoInteractionSessions(courseMetadataMap, logFiles, ind
                 }
             }
             for (let course_learner_id in learner_video_event_logs) {
-                let video_id = '';
                 let event_logs = learner_video_event_logs[course_learner_id];
                 event_logs.sort(function(a, b) {
                     return new Date(a.event_time) - new Date(b.event_time) ;
                 });
-                let video_start_time = null,
+                let video_id = '',
+                    video_start_time = null,
                     final_time = null,
                     times_forward_seek = 0,
                     duration_forward_seek = 0,
@@ -1113,6 +1113,122 @@ export function processQuizSessions(courseMetadataMap, logFiles, index, total, c
         sqlLogInsert('quiz_sessions', data, connection);
         progressDisplay(data.length + ' quiz interaction sessions', index);
     }
+    chunk++;
+    callback(index, chunk, totalChunks);
+}
+
+
+
+export function processORASessions(courseMetadataMap, logFiles, index, total, chunk, totalChunks, connection, callback) {
+    // This is only for one course! It has to be changed to allow for more courses
+    const courseId = courseMetadataMap["course_id"],
+        currentCourseId = courseId.slice(courseId.indexOf('+') + 1, courseId.lastIndexOf('+') + 7);
+
+    const currentDate = courseMetadataMap['start_date'];
+    // let end_next_date = getNextDay(new Date(courseMetadataMap['end_date']));
+
+    let childParentMap = courseMetadataMap['child_parent_map'],
+        learnerAllEventLogs = {},
+        updatedLearnerAllEventLogs = {};
+
+    // while (true) {
+    //     if (current_date == end_next_date) {
+    //         break;
+    //     }
+    console.log('Starting ORA sessions');
+    for (const logFile of logFiles) {
+        const fileName = logFile['key'],
+            inputFile = logFile['value'];
+        if (fileName.includes(currentDate) || true) {
+            learnerAllEventLogs = {};
+            learnerAllEventLogs = updatedLearnerAllEventLogs;
+            updatedLearnerAllEventLogs = {};
+            let courseLearnerIdSet = new Set();
+            for (const courseLearnerId in learnerAllEventLogs) {
+                courseLearnerIdSet.add(courseLearnerId);
+            }
+            const lines = inputFile.split('\n');
+            for (const line of lines) {
+                if (line.length < 10 || !(line.includes(currentCourseId))) {
+                    continue
+                }
+                const jsonObject = JSON.parse(line);
+                if (!('user_id' in jsonObject['context'])) {
+                    continue
+                }
+                const global_learner_id = jsonObject['context']['user_id'],
+                    event_type = jsonObject['event_type'];
+                if (global_learner_id === '') {
+                    continue
+                }
+                const course_id = jsonObject['context']['course_id'],
+                    course_learner_id = course_id + '_' + global_learner_id,
+                    event_time = new Date(jsonObject['time']);
+                if (course_learner_id in learnerAllEventLogs) {
+                    learnerAllEventLogs[course_learner_id].push({
+                        'event_time': event_time,
+                        'event_type': event_type,
+                        'full_event': jsonObject
+                    });
+                } else {
+                    learnerAllEventLogs[course_learner_id] = [{
+                        'event_time': event_time,
+                        'event_type': event_type,
+                        'full_event': jsonObject
+                    }];
+                }
+            }
+
+            for (const courseLearnerId in learnerAllEventLogs) {
+
+                if (!(learnerAllEventLogs.hasOwnProperty(courseLearnerId))) {
+                    continue
+                }
+                let eventLogs = learnerAllEventLogs[courseLearnerId];
+                eventLogs.sort(function (a, b) {
+                    return b.event_type - a.event_type;
+                });
+                eventLogs.sort(function (a, b) {
+                    return new Date(a.event_time) - new Date(b.event_time);
+                });
+                let sessionId = '',
+                    startTime = null,
+                    endTime = null,
+                    finalTime = null,
+                    eventType = '',
+                    currentStatus = '';
+                let oraEvents = [];
+                for (const i in eventLogs) {
+                    if (sessionId === '') {
+                        if (eventLogs[i]['event_type'].includes('openassessmentblock')) {
+                            eventType = eventLogs[i]['event_type'];
+                            eventType = eventType.slice(eventType.indexOf('.') + 1,);
+                            let assessmentId = eventLogs[i]['full_event']['context']['module']['usage_key'];
+                            assessmentId = assessmentId.slice(assessmentId.lastIndexOf('@') + 1, );
+                            if (assessmentId.includes('openassessment+block')) {
+                                sessionId = 'assessment_session_' + assessmentId + '_' + courseLearnerId;
+                                startTime = new Date(eventLogs[i]['event_time']);
+                                endTime = new Date(eventLogs[i]['event_time']);
+                            }
+                            oraEvents.push('True: ' + assessmentId + '_' + eventType)
+                        }
+                        if (eventLogs[i]['event_type'].includes('openassessment+block')) {
+                            eventType = eventLogs[i]['event_type'];
+                            eventType = eventType.slice(eventType.lastIndexOf('/') + 1,);
+                            let assessmentId = eventLogs[i]['full_event']['event_type'];
+                            assessmentId = assessmentId.slice(assessmentId.lastIndexOf('@') + 1, );
+                            assessmentId = assessmentId.slice(0, assessmentId.indexOf('/'));
+                            oraEvents.push('Meta: ' + assessmentId + '_' + eventType)
+                        }
+                    }
+                }
+                if (oraEvents.length > 0){
+                    console.log(courseLearnerId, oraEvents)
+                }
+            }
+        }
+    }
+
     chunk++;
     callback(index, chunk, totalChunks);
 }

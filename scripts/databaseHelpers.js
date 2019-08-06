@@ -106,7 +106,9 @@ export function sqlLogInsert(table, rowsArray, connection) {
  * @param connection
  */
 export function populateSamples(courseId, connection){
+    loader(true);
     let courseMap = {'FP101x': "DelftX+FP101x+3T2015.json",
+        'FP101x_All': "DelftX+FP101x_All+3T2015.json",
         'TW3421x': "DelftX+TW3421x+3T2016.json",
         'AE1110x':"DelftX+AE1110x+2T2017.json",
         "Visual101x":"DelftX+Visual101x+1T2016",
@@ -122,6 +124,7 @@ export function populateSamples(courseId, connection){
             $.getJSON(courseFile, function(json) {
                 sqlInsert('webdata', json, connection);
                 toastr.success('Please reload the page now', 'Sample data ready', {timeOut: 0})
+                loader(false)
             })
         }
     })

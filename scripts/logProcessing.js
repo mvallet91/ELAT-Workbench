@@ -1183,10 +1183,6 @@ export function processORASessions(courseMetadataMap, logFiles, index, total, ch
             let oraEvents = {};
 
             for (const courseLearnerId in learnerAllEventLogs) {
-
-                if (!(learnerAllEventLogs.hasOwnProperty(courseLearnerId))) {
-                    continue
-                }
                 let eventLogs = learnerAllEventLogs[courseLearnerId];
                 eventLogs.sort(function (a, b) {
                     return b.event_type - a.event_type;
@@ -1199,7 +1195,12 @@ export function processORASessions(courseMetadataMap, logFiles, index, total, ch
                     endTime = null,
                     finalTime = null,
                     eventType = '',
-                    currentStatus = '';
+                    currentStatus = '',
+                    currentElement = '',
+                    saveCount = 0,
+                    peerAssessmentCount = 0,
+                    selfAssessed = false,
+                    submitted = false;
                 let learnerOraEvents = [];
                 for (const i in eventLogs) {
                     if (sessionId === '') {
@@ -1298,8 +1299,8 @@ export function processORASessions(courseMetadataMap, logFiles, index, total, ch
                     oraEvents[courseLearnerId] = learnerOraEvents;
                 }
             }
-            console.log(' ')
         }
+        console.log(' ')
     }
     chunk++;
     callback(index, chunk, totalChunks);

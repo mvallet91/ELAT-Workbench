@@ -428,6 +428,20 @@ export function getEdxDbQuery() {
         )
     `;
 
+    let ora_sessions = `DEFINE TABLE ora_sessions (
+        session_id PRIMARYKEY STRING,
+        course_learner_id NOTNULL STRING,
+        times_save NUMBER,
+        times_peer_assess NUMBER,
+        submitted BOOLEAN,
+        self_assessed BOOLEAN,
+        start_time date_time,
+        end_time date_time,
+        duration NUMBER,
+        assessment_id STRING
+        )
+    `;
+
     let survey_descriptions = `DEFINE TABLE survey_descriptions (
         question_id PRIMARYKEY STRING,
         course_id STRING,
@@ -446,6 +460,6 @@ export function getEdxDbQuery() {
 
     return (db + metadata + courses + demographic + elements + learners + learner_index +
         sessions + quiz_questions + submissions + assessments + quiz_sessions + video_interaction +
-        forum_interaction + forum_sessions + survey_descriptions + survey_responses + webdata )
+        forum_interaction + forum_sessions + survey_descriptions + survey_responses + webdata +ora_sessions )
         ;
 }

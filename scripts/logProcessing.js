@@ -1129,7 +1129,8 @@ export function processORASessions(courseMetadataMap, logFiles, index, total, ch
 
     let childParentMap = courseMetadataMap['child_parent_map'],
         learnerAllEventLogs = {},
-        updatedLearnerAllEventLogs = {};
+        updatedLearnerAllEventLogs = {},
+        oraSessions = {};
 
     // while (true) {
     //     if (current_date == end_next_date) {
@@ -1179,6 +1180,8 @@ export function processORASessions(courseMetadataMap, logFiles, index, total, ch
                 }
             }
 
+            let oraEvents = {};
+
             for (const courseLearnerId in learnerAllEventLogs) {
 
                 if (!(learnerAllEventLogs.hasOwnProperty(courseLearnerId))) {
@@ -1197,7 +1200,7 @@ export function processORASessions(courseMetadataMap, logFiles, index, total, ch
                     finalTime = null,
                     eventType = '',
                     currentStatus = '';
-                let oraEvents = [];
+                let learnerOraEvents = [];
                 for (const i in eventLogs) {
                     if (sessionId === '') {
                         if (eventLogs[i]['event_type'].includes('openassessmentblock')) {
@@ -1209,8 +1212,9 @@ export function processORASessions(courseMetadataMap, logFiles, index, total, ch
                                 sessionId = 'assessment_session_' + assessmentId + '_' + courseLearnerId;
                                 startTime = new Date(eventLogs[i]['event_time']);
                                 endTime = new Date(eventLogs[i]['event_time']);
+                                currentStatus = assessmentId + '_' + eventType;
                             }
-                            oraEvents.push('True: ' + assessmentId + '_' + eventType)
+                            learnerOraEvents.push('True: ' + assessmentId + '_' + eventType)
                         }
                         if (eventLogs[i]['event_type'].includes('openassessment+block')) {
                             eventType = eventLogs[i]['event_type'];
@@ -1218,17 +1222,85 @@ export function processORASessions(courseMetadataMap, logFiles, index, total, ch
                             let assessmentId = eventLogs[i]['full_event']['event_type'];
                             assessmentId = assessmentId.slice(assessmentId.lastIndexOf('@') + 1, );
                             assessmentId = assessmentId.slice(0, assessmentId.indexOf('/'));
-                            oraEvents.push('Meta: ' + assessmentId + '_' + eventType)
+                            learnerOraEvents.push('Meta: ' + assessmentId + '_' + eventType)
                         }
+                    } else {
+                    //     if (eventLogs[i]['event_type'].includes('openassessmentblock')) {
+                    //         let currentEventType = eventLogs[i]['event_type'];
+                    //         currentEventType = currentEventType.slice(currentEventType.indexOf('.') + 1,);
+                    //         let currentAssessmentId = eventLogs[i]['full_event']['context']['module']['usage_key'];
+                    //         currentAssessmentId = currentAssessmentId.slice(currentAssessmentId.lastIndexOf('@') + 1, );
+                    //
+                    //         let verification_time = new Date(endTime);
+                    //         if (new Date(eventLogs[i]['event_time']) > verification_time.setMinutes(verification_time.getMinutes() + 30)) {
+                    //             if (sessionId in oraSessions) {
+                    //                 oraSessions[sessionId]['time_array'].push({
+                    //                     'start_time': startTime,
+                    //                     'end_time': endTime
+                    //                 });
+                    //             } else {
+                    //                 oraSessions[sessionId] = {
+                    //                     'course_learner_id': courseLearnerId,
+                    //                     'time_array': [{'start_time': startTime, 'end_time': endTime}]
+                    //                 };
+                    //             }
+                    //             finalTime = eventLogs[i]['event_time'];
+                    //             if (eventLogs[i]['event_type'].includes('problem+block') || eventLogs[i]['event_type'].includes('_problem;_') || submissionEventCollection.includes(eventLogs[i]['event_type'])) {
+                    //                 let event_type_array = eventLogs[i]['event_type'].split('/');
+                    //                 let questionId = '';
+                    //                 if (eventLogs[i]['event_type'].includes('problem+block')) {
+                    //                     questionId = event_type_array[4];
+                    //                 }
+                    //                 if (eventLogs[i]['event_type'].includes('_problem;_')) {
+                    //                     questionId = event_type_array[6].replace(/;_/g, '/');
+                    //                 }
+                    //                 if (questionId in childParentMap) {
+                    //                     sessionId = 'quiz_session_' + childParentMap[questionId] + '_' + courseLearnerId;
+                    //                     startTime = new Date(eventLogs[i]['event_time']);
+                    //                     endTime = new Date(eventLogs[i]['event_time']);
+                    //                 } else {
+                    //                     sessionId = '';
+                    //                     startTime = null;
+                    //                     endTime = null;
+                    //                     eventType = '';
+                    //                     currentStatus = '';
+                    //                 }
+                    //             }
+                    //         } else {
+                    //             endTime = new Date(eventLogs[i]['event_time']);
+                    //         }
+                    //     } else {
+                    //         let verification_time = new Date(endTime);
+                    //         if (eventLogs[i]['event_time'] <= verification_time.setMinutes(verification_time.getMinutes() + 30)) {
+                    //             endTime = new Date(eventLogs[i]['event_time']);
+                    //         }
+                    //         if (sessionId in oraSessions) {
+                    //             oraSessions[sessionId]['time_array'].push({
+                    //                 'start_time': startTime,
+                    //                 'end_time': endTime
+                    //             });
+                    //         } else {
+                    //             oraSessions[sessionId] = {
+                    //                 'course_learner_id': courseLearnerId,
+                    //                 'time_array': [{'start_time': startTime, 'end_time': endTime}]
+                    //             };
+                    //         }
+                    //         finalTime = new Date(eventLogs[i]['event_time']);
+                    //         sessionId = '';
+                    //         startTime = null;
+                    //         endTime = null;
+                    //         eventType = '';
+                    //         currentStatus = '';
+                    //     }
                     }
                 }
-                if (oraEvents.length > 0){
-                    console.log(courseLearnerId, oraEvents)
+                if (learnerOraEvents.length > 0){
+                    oraEvents[courseLearnerId] = learnerOraEvents;
                 }
             }
+            console.log(' ')
         }
     }
-
     chunk++;
     callback(index, chunk, totalChunks);
 }

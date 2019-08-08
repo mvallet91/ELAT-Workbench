@@ -1130,7 +1130,8 @@ export function processORASessions(courseMetadataMap, logFiles, index, total, ch
     let childParentMap = courseMetadataMap['child_parent_map'],
         learnerAllEventLogs = {},
         updatedLearnerAllEventLogs = {},
-        oraSessions = {};
+        oraSessions = {},
+        oraEvents = {};
 
     // while (true) {
     //     if (current_date == end_next_date) {
@@ -1165,22 +1166,19 @@ export function processORASessions(courseMetadataMap, logFiles, index, total, ch
                 const course_id = jsonObject['context']['course_id'],
                     course_learner_id = course_id + '_' + global_learner_id,
                     event_time = new Date(jsonObject['time']);
+
+                let event = {
+                    'event_time': event_time,
+                    'event_type': event_type,
+                    'full_event': jsonObject
+                    };
+                if (! event.event_type.includes('openassessment')){continue}
                 if (course_learner_id in learnerAllEventLogs) {
-                    learnerAllEventLogs[course_learner_id].push({
-                        'event_time': event_time,
-                        'event_type': event_type,
-                        'full_event': jsonObject
-                    });
+                    learnerAllEventLogs[course_learner_id].push(event);
                 } else {
-                    learnerAllEventLogs[course_learner_id] = [{
-                        'event_time': event_time,
-                        'event_type': event_type,
-                        'full_event': jsonObject
-                    }];
+                    learnerAllEventLogs[course_learner_id] = [event];
                 }
             }
-
-            let oraEvents = {};
 
             for (const courseLearnerId in learnerAllEventLogs) {
                 let eventLogs = learnerAllEventLogs[courseLearnerId];
@@ -1194,7 +1192,6 @@ export function processORASessions(courseMetadataMap, logFiles, index, total, ch
                     startTime = null,
                     endTime = null,
                     finalTime = null,
-                    eventType = '',
                     currentStatus = '',
                     currentElement = '',
                     saveCount = 0,
@@ -1203,48 +1200,51 @@ export function processORASessions(courseMetadataMap, logFiles, index, total, ch
                     submitted = false;
                 let learnerOraEvents = [];
                 for (const i in eventLogs) {
+                    let eventType = '';
                     if (sessionId === '') {
+                        startTime = new Date(eventLogs[i]['event_time']);
+                        endTime = new Date(eventLogs[i]['event_time']);
                         if (eventLogs[i]['event_type'].includes('openassessmentblock')) {
                             eventType = eventLogs[i]['event_type'];
                             eventType = eventType.slice(eventType.indexOf('.') + 1,);
-                            let assessmentId = eventLogs[i]['full_event']['context']['module']['usage_key'];
-                            assessmentId = assessmentId.slice(assessmentId.lastIndexOf('@') + 1, );
-                            if (assessmentId.includes('openassessment+block')) {
-                                sessionId = 'assessment_session_' + assessmentId + '_' + courseLearnerId;
-                                startTime = new Date(eventLogs[i]['event_time']);
-                                endTime = new Date(eventLogs[i]['event_time']);
-                                currentStatus = assessmentId + '_' + eventType;
-                            }
-                            learnerOraEvents.push('True: ' + assessmentId + '_' + eventType)
+                            currentElement = eventLogs[i]['full_event']['context']['module']['usage_key'];
+                            currentElement = currentElement.slice(currentElement.lastIndexOf('@') + 1, );
+                            sessionId = currentElement + '_' + courseLearnerId + '_' + startTime;
+                            // currentStatus = currentElement + '_' + eventType;
+                            // learnerOraEvents.push('True: ' + currentStatus)
+                            if (eventType === 'save_submission') {saveCount++}
                         }
                         if (eventLogs[i]['event_type'].includes('openassessment+block')) {
                             eventType = eventLogs[i]['event_type'];
                             eventType = eventType.slice(eventType.lastIndexOf('/') + 1,);
-                            let assessmentId = eventLogs[i]['full_event']['event_type'];
-                            assessmentId = assessmentId.slice(assessmentId.lastIndexOf('@') + 1, );
-                            assessmentId = assessmentId.slice(0, assessmentId.indexOf('/'));
-                            learnerOraEvents.push('Meta: ' + assessmentId + '_' + eventType)
+                            currentElement = eventLogs[i]['full_event']['event_type'];
+                            currentElement = currentElement.slice(currentElement.lastIndexOf('@') + 1, );
+                            currentElement = currentElement.slice(0, currentElement.indexOf('/'));
+                            sessionId = currentElement + '_' + courseLearnerId + '_' + startTime;
+                            // currentStatus = currentElement + '_' + eventType;
+                            // learnerOraEvents.push('Meta: ' + currentStatus)
                         }
                     } else {
-                    //     if (eventLogs[i]['event_type'].includes('openassessmentblock')) {
+                        if (eventLogs[i]['event_type'].includes('openassessmentblock')) {
                     //         let currentEventType = eventLogs[i]['event_type'];
                     //         currentEventType = currentEventType.slice(currentEventType.indexOf('.') + 1,);
                     //         let currentAssessmentId = eventLogs[i]['full_event']['context']['module']['usage_key'];
                     //         currentAssessmentId = currentAssessmentId.slice(currentAssessmentId.lastIndexOf('@') + 1, );
-                    //
-                    //         let verification_time = new Date(endTime);
-                    //         if (new Date(eventLogs[i]['event_time']) > verification_time.setMinutes(verification_time.getMinutes() + 30)) {
-                    //             if (sessionId in oraSessions) {
-                    //                 oraSessions[sessionId]['time_array'].push({
-                    //                     'start_time': startTime,
-                    //                     'end_time': endTime
-                    //                 });
-                    //             } else {
-                    //                 oraSessions[sessionId] = {
-                    //                     'course_learner_id': courseLearnerId,
-                    //                     'time_array': [{'start_time': startTime, 'end_time': endTime}]
-                    //                 };
-                    //             }
+                            let verification_time = new Date(endTime);
+                            if (new Date(eventLogs[i]['event_time']) > verification_time.setMinutes(verification_time.getMinutes() + 30)) {
+                                if (sessionId in oraSessions) {
+                                    oraSessions[sessionId]['time_array'].push({
+                                        'start_time': startTime,
+                                        'end_time': endTime
+                                    });
+                                } else {
+                                    oraSessions[sessionId] = {
+                                        'course_learner_id': courseLearnerId,
+                                        'time_array': [{'start_time': startTime, 'end_time': endTime}]
+                                    };
+                                }
+
+                            }
                     //             finalTime = eventLogs[i]['event_time'];
                     //             if (eventLogs[i]['event_type'].includes('problem+block') || eventLogs[i]['event_type'].includes('_problem;_') || submissionEventCollection.includes(eventLogs[i]['event_type'])) {
                     //                 let event_type_array = eventLogs[i]['event_type'].split('/');
@@ -1270,7 +1270,7 @@ export function processORASessions(courseMetadataMap, logFiles, index, total, ch
                     //         } else {
                     //             endTime = new Date(eventLogs[i]['event_time']);
                     //         }
-                    //     } else {
+                        } else {
                     //         let verification_time = new Date(endTime);
                     //         if (eventLogs[i]['event_time'] <= verification_time.setMinutes(verification_time.getMinutes() + 30)) {
                     //             endTime = new Date(eventLogs[i]['event_time']);
@@ -1292,7 +1292,7 @@ export function processORASessions(courseMetadataMap, logFiles, index, total, ch
                     //         endTime = null;
                     //         eventType = '';
                     //         currentStatus = '';
-                    //     }
+                        }
                     }
                 }
                 if (learnerOraEvents.length > 0){
@@ -1300,7 +1300,7 @@ export function processORASessions(courseMetadataMap, logFiles, index, total, ch
                 }
             }
         }
-        console.log(' ')
+        console.log(oraEvents)
     }
     chunk++;
     callback(index, chunk, totalChunks);

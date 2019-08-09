@@ -185,3 +185,28 @@ function coucourseElementsFinder_string(eventlog_item, course_id) {
     }
     return elementsID;
 }
+
+
+export function getORAEventTypeAndElement(full_event) {
+    let eventType = '',
+        element = '',
+        meta = false;
+    if (full_event['event_type'].includes('openassessmentblock')) {
+        eventType = full_event['event_type'];
+        eventType = eventType.slice(eventType.indexOf('.') + 1,);
+        element = full_event['context']['module']['usage_key'];
+        element = element.slice(element.lastIndexOf('@') + 1,);
+    }
+    if (full_event['event_type'].includes('openassessment+block')) {
+        eventType = full_event['event_type'];
+        eventType = eventType.slice(eventType.lastIndexOf('/') + 1, );
+        element = full_event['event_type'];
+        element = element.slice(element.lastIndexOf('@') + 1,);
+        element = element.slice(0, element.indexOf('/'));
+        meta = true;
+    }
+    return {'eventType': eventType,
+        'element': element,
+        'meta': meta
+        }
+}

@@ -403,16 +403,20 @@ function calculateDropoutValues(courseMetadataMap, lastSessions, lastElements, c
     let elements = Object.keys(dropoutFreq);
     elements.sort(function (a, b) { return dropoutFreq[b] - dropoutFreq[a] });
 
+    console.log(elements)
+
     let topElements = {};
-    for (let element of elements.slice(0,11)){
-        if (element.includes('forum')){
+    for (let elementId of elements.slice(0,11)){
+        if (elementId.includes('forum')){
             topElements['elementName'] = 'forum_visit'
         } else {
+            let element = elementId.split('_')[0];
             for (let fullElement in courseMetadataMap.child_parent_map) {
                 if (fullElement.includes(element)) {
                     let parentId = courseMetadataMap.child_parent_map[fullElement],
                         elementName = courseMetadataMap.element_name_map[fullElement],
                         parentName = courseMetadataMap.element_name_map[parentId];
+                    if ( elementId.split('_').length > 1){elementName = elementName + '_' + elementId.split('_')[1]}
                     topElements[element] = {'elementName': elementName, 'parentName': parentName};
                     if (courseMetadataMap.child_parent_map.hasOwnProperty(parentId)) {
                         let parent2Id = courseMetadataMap.child_parent_map[parentId],
@@ -423,6 +427,9 @@ function calculateDropoutValues(courseMetadataMap, lastSessions, lastElements, c
             }
         }
     }
+
+    console.log(topElements);
+
 
     lastSessions.sort(function (a, b) {
         return new Date(a.time) - new Date(b.time)
@@ -1827,6 +1834,21 @@ function calculateModuleCycles(connection) {
                         allSessions[learnerId].push(session)
                     })
                 });
+
+                //////////////////////// ORA//////////////////////// ORA//////////////////////// ORA//////////////////////// ORA
+                await connection.runSql("SELECT * FROM ora_sessions WHERE course_learner_id = '" + learnerId + "' ").then(function (sessions) {
+                    sessions.forEach(function(session) {
+                        session['type'] = 'ora';
+                        session['time'] = session.start_time;
+                        let element = session.assessment_id;
+                        if (session.submitted === false) {element = element + '_unfinished'}
+                        session['elementId'] = element;
+                        session['status'] = status;
+                        allSessions[learnerId].push(session)
+                    })
+                });
+                //////////////////////// ORA//////////////////////// ORA//////////////////////// ORA//////////////////////// ORA
+
                 allSessions[learnerId].sort(function (a, b) {
                     return new Date(a.time) - new Date(b.time)
                 });

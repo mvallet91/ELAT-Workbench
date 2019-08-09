@@ -1172,7 +1172,6 @@ export function processORASessions(courseMetadataMap, logFiles, index, total, ch
                     'event_type': event_type,
                     'full_event': jsonObject
                     };
-                if (! event.event_type.includes('openassessment')){continue}
                 if (course_learner_id in learnerAllEventLogs) {
                     learnerAllEventLogs[course_learner_id].push(event);
                 } else {
@@ -1202,34 +1201,49 @@ export function processORASessions(courseMetadataMap, logFiles, index, total, ch
                 for (const i in eventLogs) {
                     let eventType = '';
                     if (sessionId === '') {
-                        startTime = new Date(eventLogs[i]['event_time']);
-                        endTime = new Date(eventLogs[i]['event_time']);
-                        if (eventLogs[i]['event_type'].includes('openassessmentblock')) {
-                            eventType = eventLogs[i]['event_type'];
-                            eventType = eventType.slice(eventType.indexOf('.') + 1,);
-                            currentElement = eventLogs[i]['full_event']['context']['module']['usage_key'];
-                            currentElement = currentElement.slice(currentElement.lastIndexOf('@') + 1, );
-                            sessionId = currentElement + '_' + courseLearnerId + '_' + startTime;
-                            // currentStatus = currentElement + '_' + eventType;
-                            // learnerOraEvents.push('True: ' + currentStatus)
-                            if (eventType === 'save_submission') {saveCount++}
-                        }
-                        if (eventLogs[i]['event_type'].includes('openassessment+block')) {
-                            eventType = eventLogs[i]['event_type'];
-                            eventType = eventType.slice(eventType.lastIndexOf('/') + 1,);
-                            currentElement = eventLogs[i]['full_event']['event_type'];
-                            currentElement = currentElement.slice(currentElement.lastIndexOf('@') + 1, );
-                            currentElement = currentElement.slice(0, currentElement.indexOf('/'));
-                            sessionId = currentElement + '_' + courseLearnerId + '_' + startTime;
-                            // currentStatus = currentElement + '_' + eventType;
-                            // learnerOraEvents.push('Meta: ' + currentStatus)
+                        if (eventLogs[i]['event_type'].includes('openassessment')) {
+                            startTime = new Date(eventLogs[i]['event_time']);
+                            endTime = new Date(eventLogs[i]['event_time']);
+                            if (eventLogs[i]['event_type'].includes('openassessmentblock')) {
+                                eventType = eventLogs[i]['event_type'];
+                                eventType = eventType.slice(eventType.indexOf('.') + 1,);
+                                currentElement = eventLogs[i]['full_event']['context']['module']['usage_key'];
+                                currentElement = currentElement.slice(currentElement.lastIndexOf('@') + 1,);
+                                sessionId = currentElement + '_' + courseLearnerId + '_' + startTime;
+                                // currentStatus = currentElement + '_' + eventType;
+                                // learnerOraEvents.push('True: ' + currentStatus)
+                                if (eventType === 'save_submission') {
+                                    saveCount++
+                                }
+                            }
+                            if (eventLogs[i]['event_type'].includes('openassessment+block')) {
+                                eventType = eventLogs[i]['event_type'];
+                                eventType = eventType.slice(eventType.lastIndexOf('/') + 1,);
+                                currentElement = eventLogs[i]['full_event']['event_type'];
+                                currentElement = currentElement.slice(currentElement.lastIndexOf('@') + 1,);
+                                currentElement = currentElement.slice(0, currentElement.indexOf('/'));
+                                sessionId = currentElement + '_' + courseLearnerId + '_' + startTime;
+                                // currentStatus = currentElement + '_' + eventType;
+                                // learnerOraEvents.push('Meta: ' + currentStatus)
+                            }
                         }
                     } else {
-                        if (eventLogs[i]['event_type'].includes('openassessmentblock')) {
-                    //         let currentEventType = eventLogs[i]['event_type'];
-                    //         currentEventType = currentEventType.slice(currentEventType.indexOf('.') + 1,);
-                    //         let currentAssessmentId = eventLogs[i]['full_event']['context']['module']['usage_key'];
-                    //         currentAssessmentId = currentAssessmentId.slice(currentAssessmentId.lastIndexOf('@') + 1, );
+                        if (eventLogs[i]['event_type'].includes('openassessment')) {
+                            let previousElement = currentElement;
+                            if (eventLogs[i]['event_type'].includes('openassessmentblock')) {
+                                eventType = eventLogs[i]['event_type'];
+                                eventType = eventType.slice(eventType.indexOf('.') + 1,);
+                                currentElement = eventLogs[i]['full_event']['context']['module']['usage_key'];
+                                currentElement = currentElement.slice(currentElement.lastIndexOf('@') + 1,);
+                            }
+                            if (eventLogs[i]['event_type'].includes('openassessment+block')) {
+                                eventType = eventLogs[i]['event_type'];
+                                eventType = eventType.slice(eventType.lastIndexOf('/') + 1,);
+                                currentElement = eventLogs[i]['full_event']['event_type'];
+                                currentElement = currentElement.slice(currentElement.lastIndexOf('@') + 1,);
+                                currentElement = currentElement.slice(0, currentElement.indexOf('/'));
+                            }
+
                             let verification_time = new Date(endTime);
                             if (new Date(eventLogs[i]['event_time']) > verification_time.setMinutes(verification_time.getMinutes() + 30)) {
                                 if (sessionId in oraSessions) {
@@ -1244,37 +1258,38 @@ export function processORASessions(courseMetadataMap, logFiles, index, total, ch
                                     };
                                 }
 
-                            }
-                    //             finalTime = eventLogs[i]['event_time'];
-                    //             if (eventLogs[i]['event_type'].includes('problem+block') || eventLogs[i]['event_type'].includes('_problem;_') || submissionEventCollection.includes(eventLogs[i]['event_type'])) {
-                    //                 let event_type_array = eventLogs[i]['event_type'].split('/');
-                    //                 let questionId = '';
-                    //                 if (eventLogs[i]['event_type'].includes('problem+block')) {
-                    //                     questionId = event_type_array[4];
-                    //                 }
-                    //                 if (eventLogs[i]['event_type'].includes('_problem;_')) {
-                    //                     questionId = event_type_array[6].replace(/;_/g, '/');
-                    //                 }
-                    //                 if (questionId in childParentMap) {
-                    //                     sessionId = 'quiz_session_' + childParentMap[questionId] + '_' + courseLearnerId;
-                    //                     startTime = new Date(eventLogs[i]['event_time']);
-                    //                     endTime = new Date(eventLogs[i]['event_time']);
-                    //                 } else {
-                    //                     sessionId = '';
-                    //                     startTime = null;
-                    //                     endTime = null;
-                    //                     eventType = '';
-                    //                     currentStatus = '';
-                    //                 }
-                    //             }
-                    //         } else {
-                    //             endTime = new Date(eventLogs[i]['event_time']);
-                    //         }
+                                }
+                        //             finalTime = eventLogs[i]['event_time'];
+                        //             if (eventLogs[i]['event_type'].includes('problem+block') || eventLogs[i]['event_type'].includes('_problem;_') || submissionEventCollection.includes(eventLogs[i]['event_type'])) {
+                        //                 let event_type_array = eventLogs[i]['event_type'].split('/');
+                        //                 let questionId = '';
+                        //                 if (eventLogs[i]['event_type'].includes('problem+block')) {
+                        //                     questionId = event_type_array[4];
+                        //                 }
+                        //                 if (eventLogs[i]['event_type'].includes('_problem;_')) {
+                        //                     questionId = event_type_array[6].replace(/;_/g, '/');
+                        //                 }
+                        //                 if (questionId in childParentMap) {
+                        //                     sessionId = 'quiz_session_' + childParentMap[questionId] + '_' + courseLearnerId;
+                        //                     startTime = new Date(eventLogs[i]['event_time']);
+                        //                     endTime = new Date(eventLogs[i]['event_time']);
+                        //                 } else {
+                        //                     sessionId = '';
+                        //                     startTime = null;
+                        //                     endTime = null;
+                        //                     eventType = '';
+                        //                     currentStatus = '';
+                        //                 }
+                        //             }
+                        //         } else {
+                        //             endTime = new Date(eventLogs[i]['event_time']);
+                        //         }
                         } else {
-                    //         let verification_time = new Date(endTime);
-                    //         if (eventLogs[i]['event_time'] <= verification_time.setMinutes(verification_time.getMinutes() + 30)) {
-                    //             endTime = new Date(eventLogs[i]['event_time']);
-                    //         }
+                            let verification_time = new Date(endTime);
+                            if (eventLogs[i]['event_time'] <= verification_time.setMinutes(verification_time.getMinutes() + 30)) {
+                                endTime = new Date(eventLogs[i]['event_time']);
+                            }
+
                     //         if (sessionId in oraSessions) {
                     //             oraSessions[sessionId]['time_array'].push({
                     //                 'start_time': startTime,

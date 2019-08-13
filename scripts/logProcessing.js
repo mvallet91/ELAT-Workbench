@@ -864,12 +864,10 @@ export function processAssessmentsSubmissions(courseMetadataMap, logFiles, index
  * @param {number} index Current file number
  * @param {number} total Total files to process
  * @param {number} chunk Current chunk to process
- * @param {number} totalChunks Total chunks to process in the current file
  * @param {JsStoreWorker} connection Main JsStore worker that handles the connection to SqlWeb
- * @param {function} callback Callback to prepareLogFiles function, providing the file index and chunk index to continue
  * @returns {array} processingCheck Array with the values for next index and chunk, or to end processing
  */
-export function processQuizSessions(courseMetadataMap, logFiles, index, total, chunk, totalChunks, connection, callback) {
+export function processQuizSessions(courseMetadataMap, logFiles, index, total, chunk, connection) {
     // This is only for one course! It has to be changed to allow for more courses
     const courseId = courseMetadataMap["course_id"],
         currentCourseId = courseId.slice(courseId.indexOf('+') + 1, courseId.lastIndexOf('+') + 7);
@@ -1114,12 +1112,22 @@ export function processQuizSessions(courseMetadataMap, logFiles, index, total, c
         sqlLogInsert('quiz_sessions', data, connection);
         progressDisplay(data.length + ' quiz interaction sessions', index);
     }
-    chunk++;
-    callback(index, chunk, totalChunks);
 }
 
 
-
+/**
+ * This function will read the records in the logfile and extract all events related to Open Response Assessments,
+ * (openassessment in the logs), such as saves, submissions and peer reviews, to finally store them in the database.
+ * @param {object} courseMetadataMap Object with the basic course metadata information
+ * @param {array} logFiles Array of objects with name and file content
+ * @param {number} index Current file number
+ * @param {number} total Total files to process
+ * @param {number} chunk Current chunk to process
+ * @param {number} totalChunks Total chunks to process in the current file
+ * @param {JsStoreWorker} connection Main JsStore worker that handles the connection to SqlWeb
+ * @param {function} callback Callback to prepareLogFiles function, providing the file index and chunk index to continue
+ * @returns {array} processingCheck Array with the values for next index and chunk, or to end processing
+ */
 export function processORASessions(courseMetadataMap, logFiles, index, total, chunk, totalChunks, connection, callback) {
     // This is only for one course! It has to be changed to allow for more courses
     const courseId = courseMetadataMap["course_id"],
@@ -1153,6 +1161,7 @@ export function processORASessions(courseMetadataMap, logFiles, index, total, ch
             }
             const lines = inputFile.split('\n');
             for (const line of lines) {
+                // if (line.length < 10 || !(line.includes(currentCourseId))) {
                 if (line.length < 10 || !(line.includes(currentCourseId))) {
                     continue
                 }
@@ -1180,8 +1189,6 @@ export function processORASessions(courseMetadataMap, logFiles, index, total, ch
                     learnerAllEventLogs[course_learner_id] = [event];
                 }
             }
-
-
 
             for (const courseLearnerId in learnerAllEventLogs) {
 
@@ -1329,7 +1336,6 @@ export function processORASessions(courseMetadataMap, logFiles, index, total, ch
                 }
             }
         }
-        // console.log(oraEvents);
     }
 
     if (oraSessionsRecord.length === 0) {
@@ -1360,11 +1366,47 @@ export function processORASessions(courseMetadataMap, logFiles, index, total, ch
             };
             data.push(values);
         }
-        // console.log('Sending to storage at ' + new Date());
+        console.log('Sending ORA sessions to storage at ' + new Date());
         sqlLogInsert('ora_sessions', data, connection);
         progressDisplay(data.length + ' ORA interaction sessions', index);
     }
 
+    chunk++;
+    callback(index, chunk, totalChunks);
+}
+
+
+
+
+export function findORASessions(courseMetadataMap, logFiles, index, total, chunk, totalChunks, connection, callback) {
+    let courses = [];
+    console.log('Starting ORA sessions');
+    for (const logFile of logFiles) {
+        const fileName = logFile['key'],
+            inputFile = logFile['value'];
+
+        const lines = inputFile.split('\n');
+        for (const line of lines) {
+            if (line.length < 10) {
+                continue
+            }
+            if (line.includes('openassessment')) {
+                const jsonObject = JSON.parse(line);
+                if (!('user_id' in jsonObject['context'])) {
+                    continue
+                }
+                const global_learner_id = jsonObject['context']['user_id'],
+                    event_type = jsonObject['event_type'];
+                if (global_learner_id === '') {
+                    continue
+                }
+                const course_id = jsonObject['context']['course_id'];
+                courses.push(course_id)
+            }
+        }
+    }
+    let courseCount = _.countBy(courses);
+    console.log(courseCount);
     chunk++;
     callback(index, chunk, totalChunks);
 }

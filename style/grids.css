@@ -32,7 +32,7 @@
     color: white;
 }
 .gridster .gs-w {
-    background: rgba(42, 252, 254, 0.08);
+    background: rgba(102, 252, 254, 0.08);
     cursor: pointer;
     -webkit-box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
     box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
@@ -62,7 +62,7 @@
     line-height: 100%;
 }
 .gridster li header {
-    background: #999;
+    background: #00A6D6;
     display: block;
     font-size: 20px;
     line-height: normal;

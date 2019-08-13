@@ -417,11 +417,11 @@ function calculateDropoutValues(courseMetadataMap, lastSessions, lastElements, c
                         elementName = courseMetadataMap.element_name_map[fullElement],
                         parentName = courseMetadataMap.element_name_map[parentId];
                     if ( elementId.split('_').length > 1){elementName = elementName + '_' + elementId.split('_')[1]}
-                    topElements[element] = {'elementName': elementName, 'parentName': parentName};
+                    topElements[elementId] = {'elementName': elementName, 'parentName': parentName};
                     if (courseMetadataMap.child_parent_map.hasOwnProperty(parentId)) {
                         let parent2Id = courseMetadataMap.child_parent_map[parentId],
                             parent2Name = courseMetadataMap.element_name_map[parent2Id];
-                        topElements[element]['parent2Name'] = parent2Name;
+                        topElements[elementId]['parent2Name'] = parent2Name;
                     }
                 }
             }
@@ -579,7 +579,7 @@ function drawAreaDropoutChart(graphElementMap, connection, startDate, endDate, w
                     },
                     title: {
                         display: true,
-                        text: 'Dropout by Main Component (last student interaction)',
+                        text: 'Dropout by Course Component (last student interaction)',
                         position: 'top',
                         fontSize:  16,
                         color:  '#263238',
@@ -1390,6 +1390,9 @@ function calculateVideoTransitions(connection) {
     });
 }
 
+function getTargets(node){
+
+}
 
 function drawVideoTransitionArcChart(connection){ // https://www.d3-graph-gallery.com/graph/arc_template.html
     connection.runSql("SELECT * FROM webdata WHERE name = 'arcElements' ").then(function(result) {
@@ -1539,7 +1542,6 @@ function drawVideoTransitionArcChart(connection){ // https://www.d3-graph-galler
                 .attr("x", 0)
                 .attr("y", 0)
                 .text(function (d) {
-                    // return (d.name)
                     return d.chapter;
                 })
                 .style("text-anchor", "end")
@@ -1578,14 +1580,20 @@ function drawVideoTransitionArcChart(connection){ // https://www.d3-graph-galler
                             return link_d.source === d.id || link_d.target === d.id ? 1 : .2;
                         })
                         .style('stroke-width', function (link_d) {
-                            return link_d.source === d.id || link_d.target === d.id ? 10 * (d.value) : 5;
+                            return link_d.source === d.id || link_d.target === d.id ? 10 * (d.value) : 5 * (d.value);
                         });
                     labels
                         .text(function (d) {
                             return d.name;
                         })
                         .style("font-size", function (label_d) {
-                            return label_d.name === d.name ? 12 : 2
+                            // getTargets(d)
+                            if (label_d.name === d.name) {
+                                return 12
+                            } else {
+                                return 2
+                            }
+                            // return label_d.name === d.name ? 12 : 2
                         })
                         .attr("y", function (label_d) {
                             return label_d.name === d.name ? 10 : 0
@@ -1936,7 +1944,8 @@ function calculateModuleCycles(connection) {
                 'quiz-start': 'QUIZ START',
                 'quiz-end': 'QUIZ END',
                 'submission': 'QUIZ SUBMIT',
-                'video': 'VIDEO'
+                'video': 'VIDEO',
+                'ora': 'ORA'
             };
 
             let weeklyLinks = {};
@@ -2002,9 +2011,9 @@ function drawCycles(connection){
             let yUnit = height/7;
             let r = 10;
             linkData['nodes'] = [{ "name": "PROGRESS", 'cx': xUnit, 'cy':yUnit*2, 'r':r },
-                { "name": "FORUM START", 'cx': xUnit*3, 'cy':yUnit, 'r':r }, { "name": "FORUM SUBMIT", 'cx': xUnit*5, 'cy':yUnit*2, 'r':r }, { "name": "FORUM END", 'cx': xUnit*5, 'cy':yUnit*5, 'r':r },
-                { "name": "QUIZ START", 'cx': xUnit*3, 'cy':yUnit*6, 'r':r }, { "name": "QUIZ SUBMIT", 'cx': xUnit*2, 'cy':yUnit*5, 'r':r }, { "name": "QUIZ END", 'cx': xUnit, 'cy':yUnit*5, 'r':r },
-                { "name": "VIDEO", 'cx': xUnit*2, 'cy':yUnit, 'r':r }];
+                { "name": "FORUM START", 'cx': xUnit*3, 'cy': yUnit, 'r': r }, { "name": "FORUM SUBMIT", 'cx': xUnit*5, 'cy':yUnit*2, 'r':r }, { "name": "FORUM END", 'cx': xUnit*5, 'cy':yUnit*5, 'r':r },
+                { "name": "QUIZ START", 'cx': xUnit*3, 'cy': yUnit*6, 'r': r }, { "name": "QUIZ SUBMIT", 'cx': xUnit*2, 'cy':yUnit*5, 'r':r }, { "name": "QUIZ END", 'cx': xUnit, 'cy':yUnit*5, 'r':r },
+                { "name": "VIDEO", 'cx': xUnit*2, 'cy': yUnit, 'r':r }, { "name": "ORA", 'cx': xUnit*4, 'cy': yUnit*6, 'r':r }];
 
             let linkWeek = d3.select('#cycleWeek');
             linkWeek.on('change', function() {

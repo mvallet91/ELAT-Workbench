@@ -3,7 +3,7 @@ import {populateSamples, initiateEdxDb, clearWebdataForUpdate,
     deleteEverything, schemaMap, processTablesForDownload} from "./databaseHelpers.js";
 import {loader, downloadForumSegmentation, progressDisplay, webdataJSON} from './helpers.js'
 import {processGeneralSessions, processForumSessions, processVideoInteractionSessions,
-    processAssessmentsSubmissions, processQuizSessions, processORASessions} from "./logProcessing.js";
+    processAssessmentsSubmissions, processQuizSessions, processORASessions, findORASessions} from "./logProcessing.js";
 import {exportChartPNG} from './graphHelpers.js'
 import {drawCharts, updateCharts} from "./graphProcessing.js";
 var connection = new JsStore.Instance();
@@ -289,13 +289,13 @@ function processUnzippedChunk(processedFiles, fileIndex, totalFiles, chunkIndex,
                 cell1.innerHTML = ('Processing file ' + (fileIndex + 1) + '/' + totalFiles +
                     '\n at ' + new Date().toLocaleString('en-GB'));
             }
-            // processGeneralSessions(courseMetadataMap, processedFiles, fileIndex, totalFiles, chunkIndex, connection);
-            // processForumSessions(courseMetadataMap, processedFiles, fileIndex, totalFiles, chunkIndex, connection);
-            // processVideoInteractionSessions(courseMetadataMap, processedFiles, fileIndex, totalFiles, chunkIndex, connection);
-            // processAssessmentsSubmissions(courseMetadataMap, processedFiles, fileIndex, totalFiles, chunkIndex, connection);
-            // processQuizSessions(courseMetadataMap, processedFiles, fileIndex, totalFiles, chunkIndex, totalChunks, connection, prepareLogFiles);
-
+            processGeneralSessions(courseMetadataMap, processedFiles, fileIndex, totalFiles, chunkIndex, connection);
+            processForumSessions(courseMetadataMap, processedFiles, fileIndex, totalFiles, chunkIndex, connection);
+            processVideoInteractionSessions(courseMetadataMap, processedFiles, fileIndex, totalFiles, chunkIndex, connection);
+            processAssessmentsSubmissions(courseMetadataMap, processedFiles, fileIndex, totalFiles, chunkIndex, connection);
+            processQuizSessions(courseMetadataMap, processedFiles, fileIndex, totalFiles, chunkIndex, connection);
             processORASessions(courseMetadataMap, processedFiles, fileIndex, totalFiles, chunkIndex, totalChunks, connection, prepareLogFiles);
+            // findORASessions(courseMetadataMap, processedFiles, fileIndex, totalFiles, chunkIndex, totalChunks, connection, prepareLogFiles);
         }
     });
 }
@@ -319,11 +319,12 @@ function prepareDashboard() {
                 });
             });
         } else {
-            let defaultOrder = [{"id":"arcTile","col":1,"row":1,"size_x":12,"size_y":4},
-                {"id":"cycleTile","col":3,"row":5,"size_x":8,"size_y":4},
-                {"id":"areaTile","col":1,"row":9,"size_x":6,"size_y":3}, {"id":"lineTile","col":7,"row":9,"size_x":6,"size_y":3},
-                {"id":"heatTile","col":1,"row":13,"size_x":5,"size_y":4}, {"id":"mixedTile","col":6,"row":13,"size_x":7,"size_y":4},
-                {"id":"boxTile","col":1,"row":17,"size_x":6,"size_y":3}];
+            let defaultOrder = [
+                {"id":"areaTile","col":1,"row":1,"size_x":6,"size_y":3}, {"id":"lineTile",       "col":7,"row":1,"size_x":6,"size_y":3},
+                {"id":"heatTile","col":1,"row":4,"size_x":5,"size_y":4}, {"id":"mixedTile",      "col":6,"row":4,"size_x":7,"size_y":4},
+                {"id":"boxTile", "col":1,"row":9,"size_x":6,"size_y":4}, {"id":"areaDropoutTile","col":7,"row":9,"size_x":6,"size_y":4},
+                                    {"id":"arcTile","col":1,"row":14,"size_x":12,"size_y":4},
+                                    {"id":"cycleTile","col":1,"row":19,"size_x":12,"size_y":6}];
             $.each(defaultOrder, function (i, value) {
                 let id_name = "#";
                 id_name = id_name + value.id;

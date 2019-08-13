@@ -113,7 +113,8 @@ export function populateSamples(courseId, connection){
         'AE1110x':"DelftX+AE1110x+2T2017.json",
         "Visual101x":"DelftX+Visual101x+1T2016",
         "Mind101x":"DelftX+MIND101x+1T2018.json",
-        "Frame101x": "DelftX+Frame101x+1T2016.json"
+        "Frame101x": "DelftX+Frame101x+1T2016.json",
+        "RI101x": "DelftX+RI101x+1T2016.json"
     };
     let courseFile = 'samples/' + courseMap[courseId];
     connection.runSql("SELECT * FROM webdata").then(function(metadata) {

@@ -166,6 +166,10 @@
                 <div class="col ">
                     <button type="button" class="btn btn-secondary btn-sm" id="populate-Frame101x">Framing: Creating powerful political messages</button>
                 </div>
+                <br>
+                <div class="col ">
+                    <button type="button" class="btn btn-secondary btn-sm" id="populate-RI101x">Responsible Innovation: Ethics, Safety and Technology</button>
+                </div>
                 <!--<br>-->
                 <!--<div class="col ">-->
                     <!--<button type="button" class="btn btn-secondary btn-sm" id="populate-TW3421x">Credit Risk Management</button>-->
@@ -316,19 +320,22 @@
 
     <div class="gridster">
         <ul>
-            <li id="mixedTile" data-row="1" data-col="1" data-sizex="8" data-sizey="4">
+            <li id="mixedTile" >
+<!--            <li id="mixedTile" data-row="1" data-col="1" data-sizex="8" data-sizey="4">-->
                 <header>|||</header>
                 <div class="container-fluid" id="mixedChartBox">
                     <div id="mixedChart"></div>
                 </div>
             </li>
-            <li id="heatTile" data-row="1" data-col="9" data-sizex="8" data-sizey="4">
+            <li id="heatTile" >
+<!--            <li id="heatTile" data-row="1" data-col="9" data-sizex="8" data-sizey="4">-->
                 <header>|||</header>
                 <div class="container-fluid" id="heatChartBox">
                     <div id="heatChart"></div>
                 </div>
             </li>
-            <li id="lineTile" data-row="5" data-col="1" data-sizex="8" data-sizey="4">
+            <li id="lineTile" >
+<!--            <li id="lineTile" data-row="5" data-col="1" data-sizex="8" data-sizey="4">-->
                 <header>|||</header>
                 <div class="container-fluid" id="lineChartBox" >
                     <div class="dropdown">
@@ -342,7 +349,8 @@
                     <canvas style = "position:relative; top:-10px;" id="lineChart"></canvas>
                 </div>
             </li>
-            <li id="boxTile" data-row="5" data-col="9" data-sizex="8" data-sizey="4">
+            <li id="boxTile" >
+<!--            <li id="boxTile" data-row="5" data-col="9" data-sizex="8" data-sizey="4">-->
                 <header>|||</header>
                 <div class="container-fluid " id="boxChartBox">
                     <div class="dropdown">
@@ -356,7 +364,8 @@
                     <canvas style = "position:relative; top:-10px;" id="boxChart"></canvas>
                 </div>
             </li>
-            <li id="areaTile" data-row="9" data-col="1" data-sizex="8" data-sizey="4">
+<!--            <li id="areaTile" data-row="9" data-col="1" data-sizex="8" data-sizey="4">-->
+            <li id="areaTile" >
                 <header>|||</header>
                 <div class="container-fluid " id="areaChartBox">
                     <div class="dropdown">
@@ -370,7 +379,7 @@
                     <canvas style = "position:relative; top:-10px;" id="areaChart"></canvas>
                 </div>
             </li>
-            <li id="areaDropoutTile" data-row="9" data-col="1" data-sizex="8" data-sizey="4">
+            <li id="areaDropoutTile" >
                 <header>|||</header>
                 <div class="container-fluid " id="areaDropoutChartBox">
                     <div class="dropdown">
@@ -384,9 +393,21 @@
                     <canvas style = "position:relative; top:-10px;" id="areaDropoutChart"></canvas>
                 </div>
             </li>
-            <li id="arcTile" data-row="9" data-col="9" data-sizex="8" data-sizey="4">
+            <li id="arcTile" >
                 <header>|||</header>
                 <div class="container-fluid " id="arcChartBox">
+                    <button type="button" class="btn btn-primary btn-sm float-right" data-toggle="collapse" data-target="#videoInfo">
+                        Hide
+                    </button>
+                    <div id="videoInfo" class="collapse show">
+                        <div style="border: 1px solid blue; padding: 2px">
+                            The <a href="http://www.educationaldatamining.org/EDM2016/proceedings/paper_63.pdf">Video Interactions</a>
+                            chart shows the average learner's sequential watching activity across videos. Each node (circle)
+                            represents a <i>video</i>, and they are ordered according to the course structure. Each link (arc) shows the
+                            the following video watched, and the thickness is proportional to the amount of students going to that video.
+                        </div>
+                    </div>
+                    <br>
                     <form>
                         <div class="dropdown">
                             <button type="button" class="btn btn-sm dropdown-toggle" data-toggle="dropdown" style="float:right;">
@@ -396,7 +417,7 @@
                                 <a class="dropdown-item" id="png_arcChart">Download PNG</a>
                             </div>
                         </div>
-                        <label for="links" style="float:right;"> - Number of Links</label>
+                        <label for="links" style="float:right;"> - Level of Detail</label>
                         <input type="range" min=10 max=500 step=10 id="links" value=50 style="float:right;">
                         <label style="float:left;" for="arcType">Student Status - </label>
                         <select name="type" id="arcType" style="float:left;">
@@ -412,9 +433,23 @@
                     </div>
                 </div>
             </li>
-            <li id="cycleTile" data-row="13" data-col="1" data-sizex="9" data-sizey="4">
+            <li id="cycleTile" >
                 <header>|||</header>
                 <div class="container-fluid  " id="cycleChartBox">
+                    <button type="button" class="btn btn-primary btn-sm float-right" data-toggle="collapse" data-target="#transitionInfo">
+                        Hide
+                    </button>
+                    <div id="transitionInfo" class="collapse show">
+                        <div style="border: 1px solid blue; padding: 2px">
+                            The <a href="http://www.educationaldatamining.org/EDM2016/proceedings/paper_63.pdf">Learning Path</a>
+                            chart shows the average learner's sequential movement between course components during a given week.
+                            Each node (circle) is a <i>type</i> of course component, and each link (arrow) shows the
+                            <i>likelihood</i> that a student will transition from one event type to another.
+                            The paths are calculated as a <a href="https://en.wikipedia.org/wiki/Markov_chain">Markov Chain</a>,
+                            so the probability that a student goes to a given component type depends only on the previous component.
+                        </div>
+                    </div>
+                    <br>
                     <form>
                         <div class="dropdown">
                             <button type="button" class="btn btn-sm dropdown-toggle" data-toggle="dropdown" style="float:right;">
@@ -424,7 +459,7 @@
                                 <a class="dropdown-item" id="png_cycleChart">Download PNG</a>
                             </div>
                         </div>
-                        <label for="linksCycle" style="float:right;"> - Number of Links</label>
+                        <label for="linksCycle" style="float:right;"> - Level of Detail</label>
                         <input type="range" min=0 max=100 step=10 id="linksCycle" value=30 style="float:right;">
                         <label style="float:left;" for="cycleType">Student Status - </label>
                         <select name="type" id="cycleType" style="float:left;">

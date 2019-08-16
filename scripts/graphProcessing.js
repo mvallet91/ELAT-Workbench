@@ -1209,7 +1209,9 @@ function calculateVideoTransitions(connection) {
                     for (let session of learnerSessions) {
                         if (session.video_id !== currentVideo) {
                             currentVideo = session.video_id;
-                            videoChain.push(currentVideo);
+                            if (currentVideo in videoIds) {
+                                videoChain.push(currentVideo);
+                            }
                         }
                     }
                     if (videoChain.length > 1) {

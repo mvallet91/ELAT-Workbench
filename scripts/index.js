@@ -1,4 +1,4 @@
-import {learnerMode} from './metadataProcessing.js'
+import {processMetadataFiles} from './metadataProcessing.js'
 import {populateSamples, initiateEdxDb, clearWebdataForUpdate,
     deleteEverything, schemaMap, processTablesForDownload} from "./databaseHelpers.js";
 import {loader, downloadForumSegmentation, progressDisplay, webdataJSON} from './helpers.js'
@@ -17,7 +17,7 @@ window.onload = function () {
         console.log(error)
     });
 
-    //// MULTI FILE SYSTEMS  ///////////////////////////////////////////////////////////////////////////
+    //// MULTI-FILE INPUTS INITIALIZATION //////////////////////////////////////////////////////////////////
     let  multiFileInputMetadata = document.getElementById('filesInput');
     multiFileInputMetadata.value = '';
     multiFileInputMetadata.addEventListener('change', function () {
@@ -32,7 +32,7 @@ window.onload = function () {
         prepareLogFiles(0, 0, 1);
     });
 
-    //// BUTTONS /////////////////////////////////////////////////////////////////////////////////////////
+    //// BUTTONS INITIALIZATION /////////////////////////////////////////////////////////////////////////////
 
     let buttons = document.querySelectorAll('button');
     buttons.forEach( btn => {
@@ -64,7 +64,7 @@ window.onload = function () {
         }
     }
 
-    // RADIO INPUT ////////////////////////////////////////////////////////////////////////////////////////////
+    // RADIO INPUT INITIALIZATION //////////////////////////////////////////////////////////////////////////////
     let inputs = document.querySelectorAll('input');
     inputs.forEach( input => {
         input.addEventListener('change', inputHandler);
@@ -77,12 +77,11 @@ window.onload = function () {
         }
     }
 
-    //  ANCHOR ELEMENTS
+    //  ANCHOR ELEMENTS INITIALIZATION ////////////////////////////////////////////////////////////////////////
     let anchors = document.querySelectorAll('a');
     anchors.forEach( a => {
         a.addEventListener('click', anchorHandler);
     });
-
     function anchorHandler(ev) {
         const id = ev.currentTarget.id;
         if (id.startsWith('png')) {
@@ -90,6 +89,7 @@ window.onload = function () {
             exportChartPNG(chartId)
         }
     }
+
 };
 
 let reader = new FileReader();
@@ -97,9 +97,10 @@ let reader = new FileReader();
 // METADATA FILE PROCESSING /////////////////////////////////////////////////////////////////////////////////////////
 
 /**
- *
- * @param files
- * @param callback
+ * Initial processing of metadata files, creates an object with the file names as keys and contents as values,
+ * to then execute the processing via callback
+ * @param {FileList} files List of files uploaded by user to file input
+ * @param {function} callback Function to process the prepared files
  */
 function readMetadataFiles(files, callback){
     loader(true);
@@ -132,7 +133,8 @@ function readMetadataFiles(files, callback){
                 });
                 fileNames = fileNames + f.name + ' size: ' + content.length + ' bytes \n';
                 if (counter === files.length) {
-                    callback(processedFiles, output);
+                    document.getElementById('list').innerHTML = '<ul>' + output.join('') + '</ul>';
+                    processMetadataFiles(processedFiles, connection);
                 }
                 counter++;
                 reader.abort();
@@ -144,23 +146,16 @@ function readMetadataFiles(files, callback){
     }
 }
 
-/**
- *
- * @param processedFiles
- * @param output
- */
-function processMetadataFiles(processedFiles, output){
-    document.getElementById('list').innerHTML = '<ul>' + output.join('') + '</ul>';
-    learnerMode(processedFiles, connection);
-}
 
 // LOGFILE PROCESSING /////////////////////////////////////////////////////////////////////////////////////////
 
 /**
- *
- * @param fileIndex
- * @param chunkIndex
- * @param totalChunks
+ * Function to handle and read the ordered log files. It iterates through the files uploaded by the user into the input,
+ * and if the file number, and chunk number match the current values to process, it will call the unzipAndChunkLogfile
+ * function with the file. This function also finishes the process when the files are over.
+ * @param {number} fileIndex Current file to process
+ * @param {number} chunkIndex Current chunk to process
+ * @param {number} totalChunks Total chunks to process in current file
  */
 function prepareLogFiles(fileIndex, chunkIndex, totalChunks){
     const multiFileInputLogs = document.getElementById('logFilesInput'),
@@ -213,14 +208,16 @@ function prepareLogFiles(fileIndex, chunkIndex, totalChunks){
 let chunkSize = 500 * 1024 * 1024;
 
 /**
- *
- * @param file
- * @param reader
- * @param fileIndex
- * @param totalFiles
- * @param chunkIndex
- * @param totalChunks
- * @param callback
+ * This function is always called by the prepareLogFiles function, and it will inflate the gzipped file between
+ * the byte number indicated by the chunkIndex and the chunkSize, then decode the byteArray with a TextDecoder,
+ * and find the actual line to start the JSON object, and the end of the final line.
+ * @param {File} file File object for the current file to process
+ * @param {FileReader} reader FileReader instance
+ * @param {number} fileIndex Current file to process
+ * @param {number} totalFiles Total number of files to process
+ * @param {number} chunkIndex Current chunk to process
+ * @param {number} totalChunks Total chunks to process in current file
+ * @param {function} callback Function to process the records of the unzipped chunk
  */
 function unzipAndChunkLogfile(file, reader, fileIndex, totalFiles, chunkIndex, totalChunks, callback){
     let output = [];
@@ -267,13 +264,15 @@ function unzipAndChunkLogfile(file, reader, fileIndex, totalFiles, chunkIndex, t
     }
 }
 
+
 /**
- *
- * @param processedFiles
- * @param fileIndex
- * @param totalFiles
- * @param chunkIndex
- * @param totalChunks
+ * This will first get the Metadata map from the database, and then process the current chunk for all the types of log
+ * activities that ELAT can currently handle.
+ * @param {array} processedFiles Array with file objects of name and content, currently only with the unzipped chunk
+ * @param {number} fileIndex Current file to process
+ * @param {number} totalFiles Total number of files to process
+ * @param {number} chunkIndex Current chunk to process
+ * @param {number} totalChunks Total chunks to process in current file
  */
 function processUnzippedChunk(processedFiles, fileIndex, totalFiles, chunkIndex, totalChunks){
     connection.runSql("SELECT * FROM metadata WHERE name = 'metadata_map' ").then(function(result) {
@@ -300,8 +299,10 @@ function processUnzippedChunk(processedFiles, fileIndex, totalFiles, chunkIndex,
     });
 }
 
+// DASHBOARD PROCESSING //////////////////////////////////////////////////////////////////////////////////////
 /**
- *
+ * Initializes the gridster object that contains the interactive dashboard with default order, or it saves and
+ * initializes the custom order edited by the user.
  */
 function prepareDashboard() {
     $(function () {
@@ -323,7 +324,7 @@ function prepareDashboard() {
                 {"id":"areaTile","col":1,"row":1,"size_x":6,"size_y":3}, {"id":"lineTile",       "col":7,"row":1,"size_x":6,"size_y":3},
                 {"id":"heatTile","col":1,"row":4,"size_x":5,"size_y":4}, {"id":"mixedTile",      "col":6,"row":4,"size_x":7,"size_y":4},
                 {"id":"boxTile", "col":1,"row":9,"size_x":6,"size_y":4}, {"id":"areaDropoutTile","col":7,"row":9,"size_x":6,"size_y":4},
-                                    {"id":"arcTile","col":1,"row":14,"size_x":12,"size_y":4},
+                                    {"id":"arcTile","col":1,"row":14,"size_x":12,"size_y":5},
                                     {"id":"cycleTile","col":1,"row":19,"size_x":12,"size_y":6}];
             $.each(defaultOrder, function (i, value) {
                 let id_name = "#";

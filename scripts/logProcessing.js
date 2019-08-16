@@ -23,7 +23,7 @@ export function processGeneralSessions(courseMetadataMap, logFiles, fileIndex, t
     let updated_learner_all_event_logs = {};
     let session_record = [];
 
-    for (let f in logFiles){
+    for (let f in logFiles) {
         let file_name = logFiles[f]['key'];
         let input_file = logFiles[f]['value'];
         if (file_name.includes('log')){

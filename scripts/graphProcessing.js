@@ -403,8 +403,6 @@ function calculateDropoutValues(courseMetadataMap, lastSessions, lastElements, c
     let elements = Object.keys(dropoutFreq);
     elements.sort(function (a, b) { return dropoutFreq[b] - dropoutFreq[a] });
 
-    console.log(elements)
-
     let topElements = {};
     for (let elementId of elements.slice(0,11)){
         if (elementId.includes('forum')){
@@ -427,8 +425,6 @@ function calculateDropoutValues(courseMetadataMap, lastSessions, lastElements, c
             }
         }
     }
-
-    console.log(topElements);
 
 
     lastSessions.sort(function (a, b) {
@@ -1207,7 +1203,7 @@ function calculateVideoTransitions(connection) {
                     let videoChain = [];
                     let currentVideo = '';
                     for (let session of learnerSessions) {
-                        if (session.video_id !== currentVideo) {
+                        if (session.video_id !== currentVideo && session.video_id in videoIds) {
                             currentVideo = session.video_id;
                             videoChain.push(currentVideo);
                         }

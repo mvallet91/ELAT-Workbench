@@ -230,7 +230,7 @@ function showMainIndicatorsTable(connection) {
                     });
                     await connection.runSql("SELECT [avg(final_grade)] from course_learner WHERE certificate_status = 'downloadable' GROUP BY enrollment_mode").then(function (results) {
                         results.forEach(function (result) {
-                            avgGrades[result.enrollment_mode] = result.final_grade * 100;
+                            avgGrades[result.enrollment_mode] = (result.final_grade * 100).toFixed(1);
                         });
                     });
                     await connection.runSql("SELECT [sum(duration)] from video_interaction GROUP BY course_learner_id").then(function (watchers) {

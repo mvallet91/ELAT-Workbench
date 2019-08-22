@@ -97,15 +97,15 @@
     </div>
     <!-- FILE SYSTEM FIELDS /////////////////////////////////////////////////////////////////////// -->
     <div class="row justify-content-md-center " style="margin-top:10px; ">
-        <div class="col-xs-12 col-sm-10  ">
+        <div id="buttons" class="col-xs-12 col-sm-10  ">
             <button type="button" class="btn btn-primary" data-toggle="collapse" data-target="#uploadBoxes" aria-expanded="false"  aria-controls="uploadBoxes">
                 Upload Files
             </button>
-            <button id="clearDB" type="button" class="btn btn-secondary float-right" >
-                Clear Database
-            </button>
             <button type="button" class="btn btn-primary " data-toggle="collapse" data-target="#sampleData" aria-expanded="false"  aria-controls="sampleData">
                 Sample Data
+            </button>
+            <button id="clearDB" type="button" class="btn btn-secondary float-right" >
+                Clear Database
             </button>
         </div>
         <div class="col-xs-12 col-sm-10  ">
@@ -113,12 +113,7 @@
                 <div class="row">
                     <div class="col-lg-3 col-sm-4">
                         <br>
-                        Select all metadata files:<br>
-                        <input type="file" id="filesInput" multiple >
-                        <output id="list"></output>
-                    </div>
-                    <div class="col-lg-3 col-sm-4">
-                        Metadata Options (Select before Uploading):
+                        Certificate Options (Select before Uploading):
                         <div class="form-check">
                             <label class="form-check-label">
                                 <input type="radio" id="completedStudents" class="form-check-input" name="metaOptions" value="completed" checked>
@@ -137,6 +132,34 @@
                                 All Students
                             </label>
                         </div>
+                    </div>
+                    <div class="col-lg-3 col-sm-4">
+                        <br>
+                        Segmentation Rule:
+                        <div class="form-check">
+                            <label class="form-check-label">
+                                <input type="radio" id="none" class="form-check-input" name="segmentationRule" value="none" checked>
+                                No Segmentation
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <label class="form-check-label">
+                                <input type="radio" id="AB" class="form-check-input" name="segmentationRule" value="ab">
+                                A/B: A is even Learner Id, B is odd
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <label class="form-check-label">
+                                <input type="radio" id="ABC" class="form-check-input" name="segmentationRule" value="abc">
+                                A/B/C: A is Learner Id ending in 0-3, B ending in 4-6 and C in 7-9
+                            </label>
+                        </div>
+                    </div>
+                    <div class="col-lg-3 col-sm-4">
+                        <br>
+                        Select all metadata files:<br>
+                        <input type="file" id="filesInput" multiple >
+                        <output id="list"></output>
                     </div>
                 </div>
                 <hr>

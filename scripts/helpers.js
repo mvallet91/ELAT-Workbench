@@ -40,12 +40,62 @@ export function downloadCsv(filename, content) {
     downloadElement.click();
 }
 
+/**
+ *
+ * @param array
+ * @param index
+ * @param value
+ * @returns {any[] | SharedArrayBuffer | BigUint64Array | Uint8ClampedArray | Uint32Array | Blob | Int16Array | Float64Array | Float32Array | string | Uint16Array | ArrayBuffer | Int32Array | BigInt64Array | Uint8Array | Int8Array}
+ */
 function replaceAt(array, index, value) {
     const ret = array.slice(0);
     ret[index] = value;
     return ret;
 }
 
+/**
+ * Manages a rule to separate students by their id, for example for A/B testing
+ * @param {string} learnerId
+ * @returns {boolean}
+ */
+export function learnerSegmentationCheck(learnerId) {
+    // return true;
+    return learnerId.split('_')[1] % 2 === 0;
+}
+
+export function segmentationButtons(connection) {
+    // "SELECT * FROM webdata WHERE name = 'graphElements' "
+    let query = "SELECT * FROM webdata WHERE name = 'segmentation' ";
+    connection.runSql(query).then(function (result) {
+        let segmentation = result[0];//['object'];
+        let field = document.getElementById("buttons");
+        if (segmentation === 'ab' || true) {
+            let element = document.createElement("button");
+            // element.classList.add('btn');
+            element.classList.add('btn-primary');
+            element.appendChild(document.createTextNode("All Segments"));
+            field.appendChild(element);
+
+            let elementA = document.createElement("button");
+            // elementA.classList.add('btn');
+            elementA.classList.add('btn-primary');
+            elementA.appendChild(document.createTextNode("Segment A"));
+            elementA.addEventListener('click', function(){console.log('Segment A')});
+            field.appendChild(elementA);
+
+            let elementB = document.createElement("button");
+            // elementB.classList.add('btn');
+            elementB.classList.add('btn-primary');
+            elementB.appendChild(document.createTextNode("Segment B"));
+            field.appendChild(elementB);
+        }
+    })
+}
+
+/**
+ *
+ * @param connection
+ */
 export function downloadForumSegmentation(connection) {
     connection.runSql("SELECT * FROM webdata WHERE name = 'studentsForumBehavior' ").then(function(result) {
         if (result.length === 0){

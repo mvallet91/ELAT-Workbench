@@ -865,7 +865,6 @@ export function processAssessmentsSubmissions(courseMetadataMap, logFiles, index
  * @param {number} total Total files to process
  * @param {number} chunk Current chunk to process
  * @param {JsStoreWorker} connection Main JsStore worker that handles the connection to SqlWeb
- * @returns {array} processingCheck Array with the values for next index and chunk, or to end processing
  */
 export function processQuizSessions(courseMetadataMap, logFiles, index, total, chunk, connection) {
     // This is only for one course! It has to be changed to allow for more courses
@@ -1126,7 +1125,6 @@ export function processQuizSessions(courseMetadataMap, logFiles, index, total, c
  * @param {number} totalChunks Total chunks to process in the current file
  * @param {JsStoreWorker} connection Main JsStore worker that handles the connection to SqlWeb
  * @param {function} callback Callback to prepareLogFiles function, providing the file index and chunk index to continue
- * @returns {array} processingCheck Array with the values for next index and chunk, or to end processing
  */
 export function processORASessions(courseMetadataMap, logFiles, index, total, chunk, totalChunks, connection, callback) {
     // This is only for one course! It has to be changed to allow for more courses
@@ -1376,8 +1374,18 @@ export function processORASessions(courseMetadataMap, logFiles, index, total, ch
 }
 
 
-
-
+/**
+ * This function will read the records in the logfile and extract all events related to Open Response Assessment for
+ * all courses, only used for exploration purposes
+ * @param {object} courseMetadataMap Object with the basic course metadata information
+ * @param {array} logFiles Array of objects with name and file content
+ * @param {number} index Current file number
+ * @param {number} total Total files to process
+ * @param {number} chunk Current chunk to process
+ * @param {number} totalChunks Total chunks to process in the current file
+ * @param {JsStoreWorker} connection Main JsStore worker that handles the connection to SqlWeb
+ * @param {function} callback Callback to prepareLogFiles function, providing the file index and chunk index to continue
+ */
 export function findORASessions(courseMetadataMap, logFiles, index, total, chunk, totalChunks, connection, callback) {
     let courses = [];
     console.log('Starting ORA sessions');

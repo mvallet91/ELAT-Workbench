@@ -1,7 +1,7 @@
 import {processMetadataFiles} from './metadataProcessing.js'
 import {populateSamples, initiateEdxDb, clearWebdataForUpdate,
     deleteEverything, schemaMap, processTablesForDownload} from "./databaseHelpers.js";
-import {loader, downloadForumSegmentation, progressDisplay, webdataJSON} from './helpers.js'
+import {loader, downloadForumSegmentation, progressDisplay, webdataJSON, segmentationButtons} from './helpers.js'
 import {processGeneralSessions, processForumSessions, processVideoInteractionSessions,
     processAssessmentsSubmissions, processQuizSessions, processORASessions, findORASessions} from "./logProcessing.js";
 import {exportChartPNG} from './graphHelpers.js'
@@ -16,6 +16,7 @@ window.onload = function () {
         loader(false);
         console.log(error)
     });
+    segmentationButtons(connection);
 
     //// MULTI-FILE INPUTS INITIALIZATION //////////////////////////////////////////////////////////////////
     let  multiFileInputMetadata = document.getElementById('filesInput');
@@ -324,8 +325,8 @@ function prepareDashboard() {
                 {"id":"areaTile","col":1,"row":1,"size_x":6,"size_y":3}, {"id":"lineTile",       "col":7,"row":1,"size_x":6,"size_y":3},
                 {"id":"heatTile","col":1,"row":4,"size_x":5,"size_y":4}, {"id":"mixedTile",      "col":6,"row":4,"size_x":7,"size_y":4},
                 {"id":"boxTile", "col":1,"row":9,"size_x":6,"size_y":4}, {"id":"areaDropoutTile","col":7,"row":9,"size_x":6,"size_y":4},
-                                    {"id":"arcTile","col":1,"row":14,"size_x":12,"size_y":5},
-                                    {"id":"cycleTile","col":1,"row":19,"size_x":12,"size_y":6}];
+                                    {"id":"arcTile","col":1,"row":14,"size_x":12,"size_y":6},
+                                    {"id":"cycleTile","col":1,"row":20,"size_x":12,"size_y":6}];
             $.each(defaultOrder, function (i, value) {
                 let id_name = "#";
                 id_name = id_name + value.id;

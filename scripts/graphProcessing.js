@@ -44,14 +44,6 @@ export async function drawCharts(connection, start, end) {
 }
 
 
-function drawChartJS(graphElementMap, startDate, endDate, weekly) {
-    drawLineChart(graphElementMap, startDate, endDate, weekly);
-    drawAreaChart(graphElementMap, startDate, endDate, weekly);
-    drawBoxChart(graphElementMap, startDate, endDate, weekly);
-    drawMixedChart(graphElementMap, startDate, endDate, weekly);
-}
-
-
 export async function updateCharts(connection, start, end) {
     let graphElementMap = await getGraphElementMap(connection);
 
@@ -84,6 +76,14 @@ export async function updateCharts(connection, start, end) {
     drawMixedChart(graphElementMap, startDate, endDate, weekly);
 
     drawAreaDropoutChart(graphElementMap, connection, startDate, endDate, weekly);
+}
+
+
+function drawChartJS(graphElementMap, startDate, endDate, weekly) {
+    drawLineChart(graphElementMap, startDate, endDate, weekly);
+    drawAreaChart(graphElementMap, startDate, endDate, weekly);
+    drawBoxChart(graphElementMap, startDate, endDate, weekly);
+    drawMixedChart(graphElementMap, startDate, endDate, weekly);
 }
 
 

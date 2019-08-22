@@ -1,276 +1,12 @@
 import {sqlInsert} from "./databaseHelpers.js";
-import {loader} from "./helpers.js";
+import {loader, learnerSegmentationCheck} from "./helpers.js";
 
-/**
- * Finds the intersecting elements between two sets
- * @param set1
- * @param set2
- * @returns {Set}
- */
-export function intersection(set1, set2){
-    return new Set([...set1].filter(x => set2.has(x)));
-}
-
-/**
- * Finds the difference elements between two sets
- * @param set1
- * @param set2
- * @returns {Set}
- */
-export function difference(set1, set2){
-    return new Set([...set1].filter(x => !set2.has(x)));
-}
-
-/**
- * Process the div where a chart was drawn. If it was drawn using chart.js, it will transform to PNG and download,
- * if it was drawn with d3.js, it will call the SVG2PNG function to process the svg object
- * @param {string} chartId Corresponding chart identifier
- */
-export function exportChartPNG(chartId) {
-    let filename = chartId;
-    let element = document.getElementById(chartId);
-    if (element.className === "chartjs-render-monitor") {
-        element.toBlob(function (blob) {
-            let a = document.createElement('a');
-            a.href = URL.createObjectURL(blob);
-            a.download = filename;
-            a.click();
-        });
-    } else {
-        SVG2PNG(element.firstElementChild, function(canvas) { // Arguments: SVG element, callback function.
-            let base64 = canvas.toDataURL("image/png"); // toDataURL return DataURI as Base64 format.
-            generateLink(filename + '.png', base64).click(); // Trigger the Link is made by Link Generator and download.
-        });
-    }
-}
 
 /**
  *
- * @param svg
- * @param callback
- */
-export function SVG2PNG(svg, callback) {
-    let canvas = document.createElement('canvas'); // Create a Canvas element.
-    let data = svg.outerHTML; // Get SVG element as HTML code.
-    canvg(canvas, data); // Render SVG on Canvas.
-    callback(canvas); // Execute callback function.
-}
-
-/**
- *
- * @param fileName
- * @param data
- * @returns {HTMLElement}
- */
-export function generateLink(fileName, data) {
-    let link = document.createElement('a');
-    link.download = fileName;
-    link.href = data;
-    return link;
-}
-
-/**
- *
- * @param values
- * @param start
- * @param end
- * @returns {Array}
- */
-export function trimByDates(values, start, end){
-    let trimmed = [];
-    for (let date in values){
-        if (new Date(date) >= new Date(start) && new Date(date) <= new Date(end)) {
-            trimmed.push(values[date])
-        }
-    }
-    return trimmed
-}
-
-/**
- *
- * @param weeklyPosters
- * @param weeklyViewers
  * @param connection
- * @returns {{regularPosters: Array, occasionalViewers: Array, regularViewers: Array, occasionalPosters: Array}}
+ * @returns {Promise<unknown>}
  */
-export function getForumSegmentation(weeklyPosters, weeklyViewers, connection) {
-    let posters = {};
-    let regularPosters = [];
-    let occasionalPosters = [];
-    for (let week in weeklyPosters) {
-        let weekPosters = new Set(weeklyPosters[week]);
-        for (let poster of weekPosters) {
-            if (posters.hasOwnProperty(poster)) {
-                posters[poster] = posters[poster] + 1
-            } else {
-                posters[poster] = 1
-            }
-        }
-    }
-    for (let p in posters) {
-        if (posters[p] > 2) {
-            regularPosters.push(p)
-        } else {
-            occasionalPosters.push(p)
-        }
-    }
-    let fViewers = {};
-    let regularViewers = [];
-    let occasionalFViewers = [];
-    for (let week in weeklyViewers) {
-        let weekViewers = new Set(weeklyViewers[week]);
-        for (let viewer of weekViewers) {
-            if (fViewers.hasOwnProperty(viewer)) {
-                fViewers[viewer] = fViewers[viewer] + 1
-            } else {
-                fViewers[viewer] = 1
-            }
-        }
-    }
-    for (let p in fViewers) {
-        if (fViewers[p] > 2) {
-            regularViewers.push(p)
-        } else {
-            occasionalFViewers.push(p)
-        }
-    }
-
-    let forumSegmentation =  {
-        'regularPosters': regularPosters,
-        'regularViewers': regularViewers,
-        'occasionalPosters': occasionalPosters,
-        'occasionalViewers': occasionalFViewers
-    };
-    generateForumBehaviorTable(forumSegmentation, connection);
-    return forumSegmentation;
-}
-
-/**
- *
- * @param forumSegmentation
- * @param connection
- */
-export function generateForumBehaviorTable(forumSegmentation, connection) {
-    let resultMatrix = {};
-    for (let group in forumSegmentation){
-        for (let studentId of forumSegmentation[group]) {
-            if (studentId in resultMatrix) {
-                resultMatrix[studentId].push(group)
-            } else {
-                resultMatrix[studentId] = [group]
-            }
-        }
-    }
-    let studentsForumBehavior = [{
-        'name': 'studentsForumBehavior',
-        'object': resultMatrix
-    }];
-    sqlInsert('webdata', studentsForumBehavior, connection)
-}
-
-
-export function groupWeekly(elementObject) {
-    let grouped = _.groupBy(Object.keys(elementObject), (result) => moment(new Date(result), 'DD/MM/YYYY').startOf('isoWeek'));
-    let weeklySum = {};
-    for (let week in grouped) {
-        let weekDays = grouped[week];
-        let weekTotal = 0;
-        let weekList = [];
-        let weekType = 'number';
-        for (let day of weekDays) {
-            if (typeof elementObject[day] === "number") {
-                weekTotal += elementObject[day];
-            } else {
-                weekType = 'list';
-                let weekValues = [];
-                if (elementObject.hasOwnProperty(day)) {
-                    weekValues = elementObject[day];
-                }
-                for (let element of weekValues) {
-                    weekList.push(element);
-                }
-            }
-        }
-        if (weekType === "number") {
-            weeklySum[week] = weekTotal;
-        } else {
-            weeklySum[week] = weekList;
-        }
-    }
-    return weeklySum
-}
-
-
-export function groupWeeklyMapped(graphElementMap, orderedElements) {
-    let grouped = _.groupBy(graphElementMap['dateListChart'], (result) => moment(result, 'DD/MM/YYYY').startOf('isoWeek'));
-    let weeklySum = {};
-    let weeklyAvg = {};
-    let weekType = 'number';
-    for (let week in grouped) {
-        let weekDays = grouped[week];
-        let weekTotal = 0;
-        let weekList = [];
-        for (let day of weekDays) {
-            if (graphElementMap[orderedElements].hasOwnProperty(day)) {
-                if (! isNaN(Number(graphElementMap[orderedElements][day]))) {
-                    weekTotal += Number(graphElementMap[orderedElements][day]);
-                } else {
-                    weekType = 'list';
-                    let weekValues = [];
-                    if (graphElementMap[orderedElements].hasOwnProperty(day)) {
-                        weekValues = graphElementMap[orderedElements][day];
-                    }
-                    for (let element of weekValues) {
-                        weekList.push(element);
-                    }
-                }
-            }
-        }
-        if (weekType === "number") {
-            weeklySum[week] = weekTotal;
-            weeklyAvg[week] = (weekTotal / 7).toFixed(2);
-        } else {
-            weeklySum[week] = weekList;
-            weeklyAvg[week] = 'noAvg'
-        }
-    }
-    return {'weeklySum': weeklySum, 'weeklyAvg': weeklyAvg}
-}
-
-
-export function zeroIfEmptyArray(array){
-    if (array.length === 0){
-        return [0]
-    }
-    return array
-}
-
-export function calculateArc(start, end, height) {
-    return ['M', start, height - 30,
-        'A',
-        Math.abs(end - start) / 2.3, ',',
-        Math.abs(end - start) / 2, 0, 0, ',',
-        start < end ? 1 : 1, end, ',', height - 30]
-        .join(' ');
-}
-
-Date.prototype.getWeek = function() {
-    let date = new Date(this.getTime());
-    date.setHours(0, 0, 0, 0);
-    date.setDate(date.getDate() + 3 - (date.getDay() + 6) % 7);
-    let week1 = new Date(date.getFullYear(), 0, 4);
-    return 1 + Math.round(((date.getTime() - week1.getTime()) / 86400000
-        - 3 + (week1.getDay() + 6) % 7) / 7);
-};
-
-
-Date.prototype.getWeekYear = function() {
-    let date = new Date(this.getTime());
-    date.setDate(date.getDate() + 3 - (date.getDay() + 6) % 7);
-    return date.getFullYear();
-};
-
-
 export async function getGraphElementMap(connection) {
     let graphElementMap = {};
     let promise = new Promise((resolve, reject) => {
@@ -352,17 +88,19 @@ export async function getGraphElementMap(connection) {
                                 await connection.runSql(query).then(function (sessions) {
                                     toastr.info('Processing indicators');
                                     sessions.forEach(function (session) {
-                                        start = session["start_time"].toDateString();
-                                        start = new Date(start);
-                                        if (dailyDurations.hasOwnProperty(start)) {
-                                            dailyDurations[start].push(session["duration"]);
-                                            dailySessions[start].push(session["course_learner_id"]);
-                                        } else {
-                                            dailyDurations[start] = [];
-                                            dailyDurations[start].push(session["duration"]);
+                                        if (learnerSegmentationCheck(session.course_learner_id)) {
+                                            start = session["start_time"].toDateString();
+                                            start = new Date(start);
+                                            if (dailyDurations.hasOwnProperty(start)) {
+                                                dailyDurations[start].push(session["duration"]);
+                                                dailySessions[start].push(session["course_learner_id"]);
+                                            } else {
+                                                dailyDurations[start] = [];
+                                                dailyDurations[start].push(session["duration"]);
 
-                                            dailySessions[start] = [];
-                                            dailySessions[start].push(session["course_learner_id"]);
+                                                dailySessions[start] = [];
+                                                dailySessions[start].push(session["course_learner_id"]);
+                                            }
                                         }
                                     });
                                 });
@@ -373,20 +111,23 @@ export async function getGraphElementMap(connection) {
                                     });
                                 });
 
+
                                 query = "SELECT * FROM quiz_sessions";
                                 await connection.runSql(query).then(function (q_sessions) {
                                     q_sessions.forEach(function (session) {
-                                        let start = session["start_time"].toDateString();
-                                        start = new Date(start);
-                                        if (quizDurations.hasOwnProperty(start)) {
-                                            quizDurations[start].push(session["duration"]);
-                                            quizSessions[start].push(session["course_learner_id"]);
-                                        } else {
-                                            quizDurations[start] = [];
-                                            quizDurations[start].push(session["duration"]);
+                                        if (learnerSegmentationCheck(session.course_learner_id)) {
+                                            let start = session["start_time"].toDateString();
+                                            start = new Date(start);
+                                            if (quizDurations.hasOwnProperty(start)) {
+                                                quizDurations[start].push(session["duration"]);
+                                                quizSessions[start].push(session["course_learner_id"]);
+                                            } else {
+                                                quizDurations[start] = [];
+                                                quizDurations[start].push(session["duration"]);
 
-                                            quizSessions[start] = [];
-                                            quizSessions[start].push(session["course_learner_id"]);
+                                                quizSessions[start] = [];
+                                                quizSessions[start].push(session["course_learner_id"]);
+                                            }
                                         }
                                     });
                                 });
@@ -394,18 +135,19 @@ export async function getGraphElementMap(connection) {
                                 query = "SELECT * FROM video_interaction";
                                 await connection.runSql(query).then(function (v_sessions) {
                                     v_sessions.forEach(function (session) {
-                                        // start_str = session["start_time"].toDateString();
-                                        start_str = session["start_time"].toDateString();
-                                        start = new Date(start_str);
-                                        if (videoDurations.hasOwnProperty(start)) {
-                                            videoDurations[start].push(session["duration"]);
-                                            videoSessions[start].push(session["course_learner_id"]);
-                                        } else {
-                                            videoDurations[start] = [];
-                                            videoDurations[start].push(session["duration"]);
+                                        if (learnerSegmentationCheck(session.course_learner_id)) {
+                                            start_str = session["start_time"].toDateString();
+                                            start = new Date(start_str);
+                                            if (videoDurations.hasOwnProperty(start)) {
+                                                videoDurations[start].push(session["duration"]);
+                                                videoSessions[start].push(session["course_learner_id"]);
+                                            } else {
+                                                videoDurations[start] = [];
+                                                videoDurations[start].push(session["duration"]);
 
-                                            videoSessions[start] = [];
-                                            videoSessions[start].push(session["course_learner_id"]);
+                                                videoSessions[start] = [];
+                                                videoSessions[start].push(session["course_learner_id"]);
+                                            }
                                         }
                                     });
                                     toastr.info('Working on video sessions...');
@@ -465,7 +207,6 @@ export async function getGraphElementMap(connection) {
                                 });
 
                                 let annotations = annotationsDue.concat(annotationStart);
-                                // console.log(annotations);
 
                                 query = "SELECT * FROM forum_sessions";
                                 await connection.runSql(query).then(function (f_sessions) {
@@ -758,3 +499,294 @@ export async function getGraphElementMap(connection) {
     });
     return await promise
 }
+
+
+/**
+ * Finds the intersecting elements between two sets
+ * @param set1
+ * @param set2
+ * @returns {Set}
+ */
+export function intersection(set1, set2){
+    return new Set([...set1].filter(x => set2.has(x)));
+}
+
+
+/**
+ * Finds the difference elements between two sets
+ * @param set1
+ * @param set2
+ * @returns {Set}
+ */
+export function difference(set1, set2){
+    return new Set([...set1].filter(x => !set2.has(x)));
+}
+
+/**
+ * Process the div where a chart was drawn. If it was drawn using chart.js, it will transform to PNG and download,
+ * if it was drawn with d3.js, it will call the SVG2PNG function to process the svg object
+ * @param {string} chartId Corresponding chart identifier
+ */
+export function exportChartPNG(chartId) {
+    let filename = chartId;
+    let element = document.getElementById(chartId);
+    if (element.className === "chartjs-render-monitor") {
+        element.toBlob(function (blob) {
+            let a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = filename;
+            a.click();
+        });
+    } else {
+        SVG2PNG(element.firstElementChild, function(canvas) { // Arguments: SVG element, callback function.
+            let base64 = canvas.toDataURL("image/png"); // toDataURL return DataURI as Base64 format.
+            generateLink(filename + '.png', base64).click(); // Trigger the Link is made by Link Generator and download.
+        });
+    }
+}
+
+/**
+ *
+ * @param svg
+ * @param callback
+ */
+export function SVG2PNG(svg, callback) {
+    let canvas = document.createElement('canvas'); // Create a Canvas element.
+    let data = svg.outerHTML; // Get SVG element as HTML code.
+    canvg(canvas, data); // Render SVG on Canvas.
+    callback(canvas); // Execute callback function.
+}
+
+/**
+ *
+ * @param fileName
+ * @param data
+ * @returns {HTMLElement}
+ */
+export function generateLink(fileName, data) {
+    let link = document.createElement('a');
+    link.download = fileName;
+    link.href = data;
+    return link;
+}
+
+/**
+ *
+ * @param values
+ * @param start
+ * @param end
+ * @returns {Array}
+ */
+export function trimByDates(values, start, end){
+    let trimmed = [];
+    for (let date in values){
+        if (new Date(date) >= new Date(start) && new Date(date) <= new Date(end)) {
+            trimmed.push(values[date])
+        }
+    }
+    return trimmed
+}
+
+/**
+ *
+ * @param weeklyPosters
+ * @param weeklyViewers
+ * @param connection
+ * @returns {{regularPosters: Array, occasionalViewers: Array, regularViewers: Array, occasionalPosters: Array}}
+ */
+export function getForumSegmentation(weeklyPosters, weeklyViewers, connection) {
+    let posters = {};
+    let regularPosters = [];
+    let occasionalPosters = [];
+    for (let week in weeklyPosters) {
+        let weekPosters = new Set(weeklyPosters[week]);
+        for (let poster of weekPosters) {
+            if (posters.hasOwnProperty(poster)) {
+                posters[poster] = posters[poster] + 1
+            } else {
+                posters[poster] = 1
+            }
+        }
+    }
+    for (let p in posters) {
+        if (posters[p] > 2) {
+            regularPosters.push(p)
+        } else {
+            occasionalPosters.push(p)
+        }
+    }
+    let fViewers = {};
+    let regularViewers = [];
+    let occasionalFViewers = [];
+    for (let week in weeklyViewers) {
+        let weekViewers = new Set(weeklyViewers[week]);
+        for (let viewer of weekViewers) {
+            if (fViewers.hasOwnProperty(viewer)) {
+                fViewers[viewer] = fViewers[viewer] + 1
+            } else {
+                fViewers[viewer] = 1
+            }
+        }
+    }
+    for (let p in fViewers) {
+        if (fViewers[p] > 2) {
+            regularViewers.push(p)
+        } else {
+            occasionalFViewers.push(p)
+        }
+    }
+
+    let forumSegmentation =  {
+        'regularPosters': regularPosters,
+        'regularViewers': regularViewers,
+        'occasionalPosters': occasionalPosters,
+        'occasionalViewers': occasionalFViewers
+    };
+    generateForumBehaviorTable(forumSegmentation, connection);
+    return forumSegmentation;
+}
+
+/**
+ *
+ * @param forumSegmentation
+ * @param connection
+ */
+export function generateForumBehaviorTable(forumSegmentation, connection) {
+    let resultMatrix = {};
+    for (let group in forumSegmentation){
+        for (let studentId of forumSegmentation[group]) {
+            if (studentId in resultMatrix) {
+                resultMatrix[studentId].push(group)
+            } else {
+                resultMatrix[studentId] = [group]
+            }
+        }
+    }
+    let studentsForumBehavior = [{
+        'name': 'studentsForumBehavior',
+        'object': resultMatrix
+    }];
+    sqlInsert('webdata', studentsForumBehavior, connection)
+}
+
+/**
+ *
+ * @param elementObject
+ */
+export function groupWeekly(elementObject) {
+    let grouped = _.groupBy(Object.keys(elementObject), (result) => moment(new Date(result), 'DD/MM/YYYY').startOf('isoWeek'));
+    let weeklySum = {};
+    for (let week in grouped) {
+        let weekDays = grouped[week];
+        let weekTotal = 0;
+        let weekList = [];
+        let weekType = 'number';
+        for (let day of weekDays) {
+            if (typeof elementObject[day] === "number") {
+                weekTotal += elementObject[day];
+            } else {
+                weekType = 'list';
+                let weekValues = [];
+                if (elementObject.hasOwnProperty(day)) {
+                    weekValues = elementObject[day];
+                }
+                for (let element of weekValues) {
+                    weekList.push(element);
+                }
+            }
+        }
+        if (weekType === "number") {
+            weeklySum[week] = weekTotal;
+        } else {
+            weeklySum[week] = weekList;
+        }
+    }
+    return weeklySum
+}
+
+/**
+ *
+ * @param graphElementMap
+ * @param orderedElements
+ * @returns {{weeklySum: *, weeklyAvg: *}}
+ */
+export function groupWeeklyMapped(graphElementMap, orderedElements) {
+    let grouped = _.groupBy(graphElementMap['dateListChart'], (result) => moment(result, 'DD/MM/YYYY').startOf('isoWeek'));
+    let weeklySum = {};
+    let weeklyAvg = {};
+    let weekType = 'number';
+    for (let week in grouped) {
+        let weekDays = grouped[week];
+        let weekTotal = 0;
+        let weekList = [];
+        for (let day of weekDays) {
+            if (graphElementMap[orderedElements].hasOwnProperty(day)) {
+                if (! isNaN(Number(graphElementMap[orderedElements][day]))) {
+                    weekTotal += Number(graphElementMap[orderedElements][day]);
+                } else {
+                    weekType = 'list';
+                    let weekValues = [];
+                    if (graphElementMap[orderedElements].hasOwnProperty(day)) {
+                        weekValues = graphElementMap[orderedElements][day];
+                    }
+                    for (let element of weekValues) {
+                        weekList.push(element);
+                    }
+                }
+            }
+        }
+        if (weekType === "number") {
+            weeklySum[week] = weekTotal;
+            weeklyAvg[week] = (weekTotal / 7).toFixed(2);
+        } else {
+            weeklySum[week] = weekList;
+            weeklyAvg[week] = 'noAvg'
+        }
+    }
+    return {'weeklySum': weeklySum, 'weeklyAvg': weeklyAvg}
+}
+
+/**
+ *
+ * @param array
+ * @returns {number[]|*}
+ */
+export function zeroIfEmptyArray(array){
+    if (array.length === 0){
+        return [0]
+    }
+    return array
+}
+
+/**
+ *
+ * @param start
+ * @param end
+ * @param height
+ * @returns {string}
+ */
+export function calculateArc(start, end, height) {
+    return ['M', start, height - 30,
+        'A',
+        Math.abs(end - start) / 2.3, ',',
+        Math.abs(end - start) / 2, 0, 0, ',',
+        start < end ? 1 : 1, end, ',', height - 30]
+        .join(' ');
+}
+
+
+Date.prototype.getWeek = function() {
+    let date = new Date(this.getTime());
+    date.setHours(0, 0, 0, 0);
+    date.setDate(date.getDate() + 3 - (date.getDay() + 6) % 7);
+    let week1 = new Date(date.getFullYear(), 0, 4);
+    return 1 + Math.round(((date.getTime() - week1.getTime()) / 86400000
+        - 3 + (week1.getDay() + 6) % 7) / 7);
+};
+
+
+Date.prototype.getWeekYear = function() {
+    let date = new Date(this.getTime());
+    date.setDate(date.getDate() + 3 - (date.getDay() + 6) % 7);
+    return date.getFullYear();
+};

@@ -354,6 +354,9 @@ function processEnrollment(course_id, input_file, course_metadata_map){
     let enrolled_learner_set = new Set();
     let learner_index_record = [];
     let learner_mode_map = {};
+
+    let radioValue = $("input[name='segmentationRule']:checked").val();
+
     let lines = input_file.split('\n');
     for (let line of lines.slice(1, )) {
         let record = line.split('\t');

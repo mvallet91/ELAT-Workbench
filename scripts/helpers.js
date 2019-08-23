@@ -123,6 +123,12 @@ function updateToSegment(segment, connection){
             $('#tblGrid tbody').html(HtmlString);
         }
     })
+    connection.runSql("SELECT * FROM webdata WHERE name = 'databaseDetails_" + segment + "' ").then(function(result) {
+        if (result.length === 1) {
+            let HtmlString = result[0]['object']['details'];
+            $('#dbGrid tbody').html(HtmlString);
+        }
+    })
 }
 
 /**

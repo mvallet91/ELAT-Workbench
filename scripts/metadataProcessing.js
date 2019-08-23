@@ -128,10 +128,12 @@ export function processMetadataFiles(files, connection) {
                         enrollment_mode = array[2],
                         certificate_status = array[3],
                         register_time = new Date(processNull(array[4])),
+                        segment = array[5],
                         values = {
                             'course_learner_id': course_learner_id, 'final_grade': final_grade,
                             'enrollment_mode': enrollment_mode, 'certificate_status': certificate_status,
-                            'register_time': register_time, 'group_type': '', 'group_name':''
+                            'register_time': register_time, 'group_type': '', 'group_name':'',
+                            'segment': segment
                         };
                     if (course_learner_id in groupMap){
                         values['group_type'] = groupMap[course_learner_id][0];
@@ -440,15 +442,14 @@ function processCertificates(inputFile, enrollmentValues, courseMetadataMap) {
                     final_grade = null,
                     enrollment_mode = enrollmentValues.learnerModeMap[global_learner_id],
                     certificate_status = null,
-                    register_time = enrollmentValues.learnerEnrollmentTimeMap[global_learner_id];
+                    register_time = enrollmentValues.learnerEnrollmentTimeMap[global_learner_id],
+                    segment = enrollmentValues.learnerSegmentMap[global_learner_id];
                 if (global_learner_id in certificateMap) {
                     final_grade = certificateMap[global_learner_id]['final_grade'];
                     certificate_status = certificateMap[global_learner_id]['certificate_status'];
                 }
                 if (certificate_status === 'downloadable'){ certifiedLearners++ }
-
-                let array = [course_learner_id, final_grade, enrollment_mode, certificate_status, register_time];
-
+                let array = [course_learner_id, final_grade, enrollment_mode, certificate_status, register_time, segment];
                 if (radioValue === 'allStudents') {
                     uncertifiedLearners++;
                     courseLearnerRecord.push(array)

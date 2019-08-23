@@ -306,7 +306,8 @@ export function getEdxDbQuery() {
         certificate_status STRING,
         register_time date_time,
         group_type STRING,
-        group_name STRING
+        group_name STRING,
+        segment STRING
         )
     `;
 

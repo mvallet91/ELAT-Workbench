@@ -1,5 +1,5 @@
 import {sqlInsert} from "./databaseHelpers.js";
-import {loader, learnerSegmentationCheck} from "./helpers.js";
+import {loader} from "./helpers.js";
 
 
 /**
@@ -88,19 +88,17 @@ export async function getGraphElementMap(connection) {
                                 await connection.runSql(query).then(function (sessions) {
                                     toastr.info('Processing indicators');
                                     sessions.forEach(function (session) {
-                                        if (learnerSegmentationCheck(session.course_learner_id)) {
-                                            start = session["start_time"].toDateString();
-                                            start = new Date(start);
-                                            if (dailyDurations.hasOwnProperty(start)) {
-                                                dailyDurations[start].push(session["duration"]);
-                                                dailySessions[start].push(session["course_learner_id"]);
-                                            } else {
-                                                dailyDurations[start] = [];
-                                                dailyDurations[start].push(session["duration"]);
+                                        start = session["start_time"].toDateString();
+                                        start = new Date(start);
+                                        if (dailyDurations.hasOwnProperty(start)) {
+                                            dailyDurations[start].push(session["duration"]);
+                                            dailySessions[start].push(session["course_learner_id"]);
+                                        } else {
+                                            dailyDurations[start] = [];
+                                            dailyDurations[start].push(session["duration"]);
 
-                                                dailySessions[start] = [];
-                                                dailySessions[start].push(session["course_learner_id"]);
-                                            }
+                                            dailySessions[start] = [];
+                                            dailySessions[start].push(session["course_learner_id"]);
                                         }
                                     });
                                 });
@@ -115,19 +113,17 @@ export async function getGraphElementMap(connection) {
                                 query = "SELECT * FROM quiz_sessions";
                                 await connection.runSql(query).then(function (q_sessions) {
                                     q_sessions.forEach(function (session) {
-                                        if (learnerSegmentationCheck(session.course_learner_id)) {
-                                            let start = session["start_time"].toDateString();
-                                            start = new Date(start);
-                                            if (quizDurations.hasOwnProperty(start)) {
-                                                quizDurations[start].push(session["duration"]);
-                                                quizSessions[start].push(session["course_learner_id"]);
-                                            } else {
-                                                quizDurations[start] = [];
-                                                quizDurations[start].push(session["duration"]);
+                                        let start = session["start_time"].toDateString();
+                                        start = new Date(start);
+                                        if (quizDurations.hasOwnProperty(start)) {
+                                            quizDurations[start].push(session["duration"]);
+                                            quizSessions[start].push(session["course_learner_id"]);
+                                        } else {
+                                            quizDurations[start] = [];
+                                            quizDurations[start].push(session["duration"]);
 
-                                                quizSessions[start] = [];
-                                                quizSessions[start].push(session["course_learner_id"]);
-                                            }
+                                            quizSessions[start] = [];
+                                            quizSessions[start].push(session["course_learner_id"]);
                                         }
                                     });
                                 });
@@ -135,19 +131,17 @@ export async function getGraphElementMap(connection) {
                                 query = "SELECT * FROM video_interaction";
                                 await connection.runSql(query).then(function (v_sessions) {
                                     v_sessions.forEach(function (session) {
-                                        if (learnerSegmentationCheck(session.course_learner_id)) {
-                                            start_str = session["start_time"].toDateString();
-                                            start = new Date(start_str);
-                                            if (videoDurations.hasOwnProperty(start)) {
-                                                videoDurations[start].push(session["duration"]);
-                                                videoSessions[start].push(session["course_learner_id"]);
-                                            } else {
-                                                videoDurations[start] = [];
-                                                videoDurations[start].push(session["duration"]);
+                                        start_str = session["start_time"].toDateString();
+                                        start = new Date(start_str);
+                                        if (videoDurations.hasOwnProperty(start)) {
+                                            videoDurations[start].push(session["duration"]);
+                                            videoSessions[start].push(session["course_learner_id"]);
+                                        } else {
+                                            videoDurations[start] = [];
+                                            videoDurations[start].push(session["duration"]);
 
-                                                videoSessions[start] = [];
-                                                videoSessions[start].push(session["course_learner_id"]);
-                                            }
+                                            videoSessions[start] = [];
+                                            videoSessions[start].push(session["course_learner_id"]);
                                         }
                                     });
                                     toastr.info('Working on video sessions...');

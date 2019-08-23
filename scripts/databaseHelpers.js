@@ -154,6 +154,7 @@ export function clearMetadataTables(connection){
     connection.runSql("DELETE FROM webdata WHERE name = 'courseDetails'");
     connection.runSql("DELETE FROM webdata WHERE name = 'databaseDetails'");
     connection.runSql("DELETE FROM webdata WHERE name = 'mainIndicators'");
+    connection.runSql("DELETE FROM webdata WHERE name = 'segmentation'");
 }
 
 /**
@@ -315,7 +316,8 @@ export function getEdxDbQuery() {
         year_of_birth NUMBER,
         level_of_education STRING,
         country STRING,
-        email STRING
+        email STRING,
+        segment STRING
         )
     `;
 

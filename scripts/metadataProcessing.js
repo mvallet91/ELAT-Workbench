@@ -1,4 +1,5 @@
-import {cleanUnicode, cmpDatetime, getDayDiff, loader, processNull, escapeString} from "./helpers.js";
+import {cleanUnicode, cmpDatetime, getDayDiff, loader, processNull,
+    escapeString, learnerSegmentation} from "./helpers.js";
 import {sqlInsert, clearMetadataTables} from "./databaseHelpers.js";
 
 
@@ -15,6 +16,9 @@ export function processMetadataFiles(files, connection) {
         loader(false);
     } else {
         clearMetadataTables(connection);
+        let segmentation = $("input[name='segmentationRule']:checked").val();
+        let segmentationType = {'type': segmentation};
+        sqlInsert('webdata', [{'name': 'segmentation', 'object': segmentationType}], connection);
         let courseRecord = [],
             course_id = courseMetadataMap.course_id,
             fileMap = {};
@@ -148,11 +152,13 @@ export function processMetadataFiles(files, connection) {
                         year_of_birth = parseInt(processNull(array[2])),
                         level_of_education = array[3],
                         country = array[4],
-                        email = array[5];
+                        email = array[5],
+                        segment = array[6];
                     email = email.replace(/"/g, '');
                     let values = {
                         'course_learner_id': course_learner_id, 'gender': gender, 'year_of_birth': year_of_birth,
-                        'level_of_education': level_of_education, 'country': country, 'email': email
+                        'level_of_education': level_of_education, 'country': country, 'email': email,
+                        'segment': segment
                     };
                     data.push(values);
                 }
@@ -343,44 +349,45 @@ function ExtractCourseInformation(files) {
 
 /**
  *
- * @param course_id
- * @param input_file
+ * @param courseId
+ * @param inputFile
  * @param course_metadata_map
  * @returns {{enrolledLearnerSet: *, learnerIndexRecord: *, learnerModeMap: *, learnerEnrollmentTimeMap: *, courseLearnerMap: *}}
  */
-function processEnrollment(course_id, input_file, course_metadata_map){
-    let course_learner_map = {};
-    let learner_enrollment_time_map = {};
-    let enrolled_learner_set = new Set();
-    let learner_index_record = [];
-    let learner_mode_map = {};
+function processEnrollment(courseId, inputFile, course_metadata_map){
+    let courseLearnerMap = {};
+    let learnerEnrollmentTimeMap = {};
+    let enrolledLearnerSet = new Set();
+    let learnerIndexRecord = [];
+    let learnerModeMap = {};
+    let learnerSegmentMap = {};
 
-    let radioValue = $("input[name='segmentationRule']:checked").val();
-
-    let lines = input_file.split('\n');
+    let lines = inputFile.split('\n');
     for (let line of lines.slice(1, )) {
         let record = line.split('\t');
         if (record.length < 2) {continue}
         let active = record[4];
         if (active === '0') {continue}
-        let global_learner_id = record[1],
+        let globalLearnerId = record[1],
             time = new Date(record[3]),
-            course_learner_id = course_id + '_' + global_learner_id,
+            courseLearnerId = courseId + '_' + globalLearnerId,
             mode = record[5];
         if (cmpDatetime(course_metadata_map['end_time'], new Date(time)) === 1) {
-            enrolled_learner_set.add(global_learner_id);
-            let array = [global_learner_id, course_id, course_learner_id];
-            learner_index_record.push(array);
-            course_learner_map[global_learner_id] = course_learner_id;
-            learner_enrollment_time_map[global_learner_id] = time;
-            learner_mode_map[global_learner_id] = mode;
+            enrolledLearnerSet.add(globalLearnerId);
+            let array = [globalLearnerId, courseId, courseLearnerId];
+            learnerIndexRecord.push(array);
+            courseLearnerMap[globalLearnerId] = courseLearnerId;
+            learnerEnrollmentTimeMap[globalLearnerId] = time;
+            learnerModeMap[globalLearnerId] = mode;
+            learnerSegmentMap[globalLearnerId] = learnerSegmentation(globalLearnerId);
         }
     }
-    return {'courseLearnerMap': course_learner_map,
-        'learnerEnrollmentTimeMap': learner_enrollment_time_map,
-        'enrolledLearnerSet': enrolled_learner_set,
-        'learnerIndexRecord': learner_index_record,
-        'learnerModeMap': learner_mode_map
+    return {'courseLearnerMap': courseLearnerMap,
+        'learnerEnrollmentTimeMap': learnerEnrollmentTimeMap,
+        'enrolledLearnerSet': enrolledLearnerSet,
+        'learnerIndexRecord': learnerIndexRecord,
+        'learnerModeMap': learnerModeMap,
+        'learnerSegmentMap': learnerSegmentMap
     }
 }
 
@@ -524,7 +531,8 @@ function processDemographics(courseId, inputFile, enrollmentValues, learnerAuthM
             country = record[13],
             course_learner_id = courseId + '_' + global_learner_id;
         if (enrollmentValues.enrolledLearnerSet.has(global_learner_id)) {
-            let array = [course_learner_id, gender, year_of_birth, level_of_education, country, learnerAuthMap[global_learner_id]['mail']];
+            let array = [course_learner_id, gender, year_of_birth, level_of_education, country,
+                learnerAuthMap[global_learner_id]['mail'], enrollmentValues.learnerSegmentMap[global_learner_id]];
             learnerDemographicRecord.push(array);
         }
     }

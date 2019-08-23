@@ -1,3 +1,4 @@
+
 /**
  * Function for development, used to download all processed dashboard data for Samples
  * @param connection Main JsStore worker that handles the connection to SqlWeb
@@ -56,38 +57,70 @@ function replaceAt(array, index, value) {
 /**
  * Manages a rule to separate students by their id, for example for A/B testing
  * @param {string} learnerId
- * @returns {boolean}
+ * @returns {string}
  */
-export function learnerSegmentationCheck(learnerId) {
-    // return true;
-    return learnerId.split('_')[1] % 2 === 0;
+export function learnerSegmentation(learnerId, segmentation) {
+    if (! segmentation) {
+        segmentation = $("input[name='segmentationRule']:checked").val();
+    }
+    let segment = 'none';
+    if (String(learnerId).includes('_')) {
+        learnerId = Number(learnerId.split('_')[1]);
+    }
+    if (segmentation === 'ab') {
+        if (learnerId % 2 === 0) {
+            segment = 'A'
+        } else {
+            segment = 'B'
+        }
+    }
+    return segment;
 }
 
+
 export function segmentationButtons(connection) {
-    // "SELECT * FROM webdata WHERE name = 'graphElements' "
     let query = "SELECT * FROM webdata WHERE name = 'segmentation' ";
     connection.runSql(query).then(function (result) {
-        let segmentation = result[0];//['object'];
-        let field = document.getElementById("buttons");
-        if (segmentation === 'ab' || true) {
-            let element = document.createElement("button");
-            // element.classList.add('btn');
-            element.classList.add('btn-primary');
-            element.appendChild(document.createTextNode("All Segments"));
-            field.appendChild(element);
+        if (result.length > 0) {
+            let segmentation = result[0]['object']['type'];
+            let field = document.getElementById("buttons");
+            if (segmentation === 'ab') {
+                let element = document.createElement("button");
+                // element.classList.add('btn');
+                element.classList.add('btn-primary');
+                element.appendChild(document.createTextNode("All Segments"));
+                element.addEventListener('click', function () {
+                    updateToSegment('none', connection);
+                });
+                field.appendChild(element);
 
-            let elementA = document.createElement("button");
-            // elementA.classList.add('btn');
-            elementA.classList.add('btn-primary');
-            elementA.appendChild(document.createTextNode("Segment A"));
-            elementA.addEventListener('click', function(){console.log('Segment A')});
-            field.appendChild(elementA);
+                let elementA = document.createElement("button");
+                // elementA.classList.add('btn');
+                elementA.classList.add('btn-primary');
+                elementA.appendChild(document.createTextNode("Segment A"));
+                elementA.addEventListener('click', function () {
+                    updateToSegment('A', connection);
+                });
+                field.appendChild(elementA);
 
-            let elementB = document.createElement("button");
-            // elementB.classList.add('btn');
-            elementB.classList.add('btn-primary');
-            elementB.appendChild(document.createTextNode("Segment B"));
-            field.appendChild(elementB);
+                let elementB = document.createElement("button");
+                // elementB.classList.add('btn');
+                elementB.classList.add('btn-primary');
+                elementB.appendChild(document.createTextNode("Segment B"));
+                elementB.addEventListener('click', function () {
+                    updateToSegment('B', connection);
+                });
+                field.appendChild(elementB);
+            }
+        }
+    })
+}
+
+function updateToSegment(segment, connection){
+    connection.runSql("SELECT * FROM webdata WHERE name = 'courseDetails_" + segment + "' ").then(function(result) {
+        if (result.length === 1) {
+            let HtmlString = result[0]['object']['details'];
+            $('#tblGrid tbody').html(HtmlString);
         }
     })
 }

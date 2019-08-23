@@ -1,5 +1,5 @@
 import {sqlInsert} from "./databaseHelpers.js";
-import {loader} from "./helpers.js";
+import {loader, learnerSegmentation} from "./helpers.js";
 
 
 /**
@@ -13,12 +13,12 @@ export function prepareTables(connection){
 }
 
 /**
- * Function to generate, or obtain the data from the database if available, and display it on the Course Details table
+ * Function to generate, or obtain the data from the database when available, and display it on the Course Details table
  * @param connection Main JsStore worker that handles the connection to SqlWeb
  */
 function showCourseTable(connection) {
     let HtmlString = "";
-    connection.runSql("SELECT * FROM webdata WHERE name = 'courseDetails' ").then(function(result) {
+    connection.runSql("SELECT * FROM webdata WHERE name = 'courseDetails_none' ").then(function(result) {
         if (result.length === 1) {
             HtmlString = result[0]['object']['details'];
             document.getElementById("loading").style.display = "none";
@@ -26,43 +26,64 @@ function showCourseTable(connection) {
         } else {
             loader(true);
             connection.runSql('select * from courses').then(function (courses) {
-                let questionCounter = 0;
-                let forumInteractionCounter = 0;
+
                 let dateFormat = {weekday: 'short', year: 'numeric', month: 'long', day: 'numeric'};
+                let query = "";
                 courses.forEach(async function (course) {
-                    HtmlString += "<tr ItemId=" + course.course_id + "><td>" +
-                        course.course_name + "</td><td>" +
-                        course.start_time.toLocaleDateString('en-EN', dateFormat) + "</td><td>" +
-                        course.end_time.toLocaleDateString('en-EN', dateFormat) + "</td><td>";
-                    let query = "count from course_elements where course_id = '" + course.course_id + "'";
+
+                    query = "SELECT * FROM webdata WHERE name = 'segmentation' ";
+                    let segmentation = '';
                     await connection.runSql(query).then(function (result) {
-                        HtmlString += result.toLocaleString('en-US') + "</td><td>";
+                        segmentation = result[0]['object']['type'];
                     });
-                    query = "count from learner_index where course_id = '" + course.course_id + "'";
-                    await connection.runSql(query).then(function (result) {
-                        HtmlString += result.toLocaleString('en-US') + "</td><td>";
-                    });
-                    query = "SELECT * FROM quiz_questions";
-                    await connection.runSql(query).then(function (results) {
-                        results.forEach(function (result) {
-                            if (result['question_id'].includes(course.course_id.slice(10,))) {
-                                questionCounter++;
-                            }
+                    let segmentMap = {'none': ['none'],
+                        'ab': ['none', 'A', 'B'],
+                        'abc': ['none', 'A', 'B', 'C']};
+
+                    for (let segment of segmentMap[segmentation]) {
+                        HtmlString = "";
+                        let questionCounter = 0;
+                        let forumInteractionCounter = 0;
+                        HtmlString += "<tr ItemId=" + course.course_id + "><td>" +
+                            course.course_name + "</td><td>" +
+                            course.start_time.toLocaleDateString('en-EN', dateFormat) + "</td><td>" +
+                            course.end_time.toLocaleDateString('en-EN', dateFormat) + "</td><td>";
+                        query = "count from course_elements where course_id = '" + course.course_id + "'";
+                        await connection.runSql(query).then(function (result) {
+                            HtmlString += result.toLocaleString('en-US') + "</td><td>";
                         });
-                        HtmlString += questionCounter.toLocaleString('en-US') + "</td><td>";
-                    });
-                    query = "SELECT * FROM forum_interaction";
-                    await connection.runSql(query).then(function (sessions) {
-                        sessions.forEach(function (session) {
-                            if (session['course_learner_id'].includes(course.course_id)) {
-                                forumInteractionCounter++;
-                            }
+                        if (segment === 'none') {query = "count * from learner_demographic";}
+                            else { query = "count from learner_demographic where segment = '" + segment + "'"; }
+                        await connection.runSql(query).then(function (result) {
+                            HtmlString += result.toLocaleString('en-US') + "</td><td>";
                         });
-                    });
-                    HtmlString += forumInteractionCounter.toLocaleString('en-US');
-                    $('#tblGrid tbody').html(HtmlString);
-                    let courseDetails = [{'name': 'courseDetails', 'object': {'details': HtmlString}}];
-                    sqlInsert('webdata', courseDetails, connection);
+                        query = "SELECT * FROM quiz_questions";
+                        await connection.runSql(query).then(function (results) {
+                            results.forEach(function (result) {
+                                if (result['question_id'].includes(course.course_id.slice(10,))) {
+                                    questionCounter++;
+                                }
+                            });
+                            HtmlString += questionCounter.toLocaleString('en-US') + "</td><td>";
+                        });
+                        query = "SELECT * FROM forum_interaction";
+                        await connection.runSql(query).then(function (sessions) {
+                            sessions.forEach(function (session) {
+                                if (session['course_learner_id'].includes(course.course_id) &&
+                                    (segment === 'none' || learnerSegmentation(session['course_learner_id'], segmentation) === segment)) {
+                                    forumInteractionCounter++;
+                                }
+                            });
+                        });
+                        HtmlString += forumInteractionCounter.toLocaleString('en-US');
+
+                        if (segment === 'none') {
+                            $('#tblGrid tbody').html(HtmlString);
+                        }
+
+                        let courseDetails = [{'name': 'courseDetails_' + segment, 'object': {'details': HtmlString}}];
+                        sqlInsert('webdata', courseDetails, connection);
+                    }
                     loader(false);
                 })
             }).catch(function (error) {

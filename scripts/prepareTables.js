@@ -139,7 +139,7 @@ function showDetailsTable(connection) {
                             sessions.forEach(function (session) {
                                 totalSessionCounter++;
                                 if (session['course_learner_id'].includes(course.course_id) &&
-                                    segment === 'none' || learnerSegmentation(session['course_learner_id'], segmentation) === segment) {
+                                    (segment === 'none' || learnerSegmentation(session['course_learner_id'], segmentation) === segment)) {
                                     sessionCounter++;
                                 }
                             });
@@ -149,7 +149,7 @@ function showDetailsTable(connection) {
                             sessions.forEach(function (session) {
                                 totalForumSessionCounter++;
                                 if (session['course_learner_id'].includes(course.course_id) &&
-                                    segment === 'none' || learnerSegmentation(session['course_learner_id'], segmentation) === segment) {
+                                    (segment === 'none' || learnerSegmentation(session['course_learner_id'], segmentation) === segment)) {
                                     forumSessionCounter++;
                                 }
                             });
@@ -159,7 +159,7 @@ function showDetailsTable(connection) {
                             sessions.forEach(function (session) {
                                 totalVideoInteractionCounter++;
                                 if (session['course_learner_id'].includes(course.course_id) &&
-                                    segment === 'none' || learnerSegmentation(session['course_learner_id'], segmentation) === segment) {
+                                    (segment === 'none' || learnerSegmentation(session['course_learner_id'], segmentation) === segment)) {
                                     videoInteractionCounter++;
                                 }
                             });
@@ -169,7 +169,7 @@ function showDetailsTable(connection) {
                             sessions.forEach(function (session) {
                                 totalSubmissionCounter++;
                                 if (session['course_learner_id'].includes(course.course_id) &&
-                                    segment === 'none' || learnerSegmentation(session['course_learner_id'], segmentation) === segment) {
+                                    (segment === 'none' || learnerSegmentation(session['course_learner_id'], segmentation) === segment)) {
                                     submissionCounter++;
                                 }
                             });
@@ -179,7 +179,7 @@ function showDetailsTable(connection) {
                             sessions.forEach(function (session) {
                                 totalAssessmentCounter++;
                                 if (session['course_learner_id'].includes(course.course_id) &&
-                                    segment === 'none' || learnerSegmentation(session['course_learner_id'], segmentation) === segment) {
+                                    (segment === 'none' || learnerSegmentation(session['course_learner_id'], segmentation) === segment)) {
                                     assessmentCounter++;
                                 }
                             });
@@ -189,7 +189,7 @@ function showDetailsTable(connection) {
                             sessions.forEach(function (session) {
                                 totalQuizSessionCounter++;
                                 if (session['course_learner_id'].includes(course.course_id) &&
-                                    segment === 'none' || learnerSegmentation(session['course_learner_id'], segmentation) === segment) {
+                                    (segment === 'none' || learnerSegmentation(session['course_learner_id'], segmentation) === segment)) {
                                     quizSessionCounter++;
                                 }
                             });
@@ -257,34 +257,53 @@ function showMainIndicatorsTable(connection) {
                             avgGrades = {};
                         let HtmlString = "";
                         HtmlString += "<tr ItemId=" + course_id + "><td>";
-                        await connection.runSql("COUNT * from course_learner WHERE certificate_status = 'downloadable' ").then(function (result) {
+                        query = "COUNT * from course_learner WHERE certificate_status = 'downloadable' ";
+                        if (segment !== 'none') {query += " && segment = '" + segment + "' "}
+                        await connection.runSql(query).then(function (result) {
                             completed = result;
                         });
-                        await connection.runSql("COUNT * from learner_index").then(function (result) {
+                        query = "COUNT * from learner_demographic";
+                        if (segment !== 'none') {query += " WHERE segment = '" + segment + "' "}
+                        await connection.runSql(query).then(function (result) {
                             completionRate = completed / result;
                         });
-                        await connection.runSql("SELECT [avg(final_grade)] from course_learner WHERE certificate_status = 'downloadable' ").then(function (result) {
+                        query = "SELECT [avg(final_grade)] from course_learner WHERE certificate_status = 'downloadable' ";
+                        if (segment !== 'none') {query += " && segment = '" + segment + "' "}
+                        await connection.runSql(query).then(function (result) {
                             avgGrade = result[0]['avg(final_grade)'] * 100;
                         });
-                        await connection.runSql("COUNT * from course_learner WHERE enrollment_mode = 'verified' ").then(function (result) {
+                        query = "COUNT * from course_learner WHERE enrollment_mode = 'verified' ";
+                        if (segment !== 'none') {query += " && segment = '" + segment + "' "}
+                        await connection.runSql(query).then(function (result) {
                             verifiedLearners = result;
                         });
-                        await connection.runSql("COUNT * from course_learner WHERE enrollment_mode = 'honor' ").then(function (result) {
+                        query = "COUNT * from course_learner WHERE enrollment_mode = 'honor' ";
+                        if (segment !== 'none') {query += " && segment = '" + segment + "' "}
+                        await connection.runSql(query).then(function (result) {
                             honorLearners = result;
                         });
-                        await connection.runSql("COUNT * from course_learner WHERE enrollment_mode = 'audit' ").then(function (result) {
+                        query = "COUNT * from course_learner WHERE enrollment_mode = 'audit' ";
+                        if (segment !== 'none') {query += " && segment = '" + segment + "' "}
+                        await connection.runSql(query).then(function (result) {
                             auditLearners = result;
                         });
-                        await connection.runSql("SELECT [avg(final_grade)] from course_learner WHERE certificate_status = 'downloadable' GROUP BY enrollment_mode").then(function (results) {
+                        query = "SELECT [avg(final_grade)] from course_learner WHERE certificate_status = 'downloadable' ";
+                        if (segment !== 'none') {query += " && segment = '" + segment + "' "}
+                        query += "GROUP BY enrollment_mode";
+                        await connection.runSql(query).then(function (results) {
                             results.forEach(function (result) {
-                                avgGrades[result.enrollment_mode] = (result.final_grade * 100).toFixed(1);
+                                avgGrades[result.enrollment_mode] = (result['avg(final_grade)'] * 100).toFixed(1);
                             });
                         });
-                        await connection.runSql("SELECT [sum(duration)] from video_interaction GROUP BY course_learner_id").then(function (watchers) {
-                            videoWatchers = watchers.length;
+                        query = "SELECT [sum(duration)] from video_interaction GROUP BY course_learner_id";
+                        await connection.runSql(query).then(function (watchers) {
                             videoDuration = 0;
+                            videoWatchers = 0;
                             watchers.forEach(function (watcher) {
+                            if (segment === 'none' || learnerSegmentation(watcher['course_learner_id'], segmentation) === segment) {
                                 videoDuration += watcher['sum(duration)'];
+                                videoWatchers += 1;
+                            }
                             });
                         });
                         let avgDuration = videoDuration / videoWatchers;

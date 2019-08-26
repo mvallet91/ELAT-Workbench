@@ -1,14 +1,14 @@
 import {groupWeeklyMapped, trimByDates, zeroIfEmptyArray, calculateArc,
     getGraphElementMap, groupWeekly } from "./graphHelpers.js";
 import {sqlInsert} from "./databaseHelpers.js";
-import {loader} from "./helpers.js";
+import {loader, learnerSegmentation} from "./helpers.js";
 
-export async function drawCharts(connection, start, end) {
+export async function drawCharts(connection) {
 
     let graphElementMap = await getGraphElementMap(connection);
 
-    let startDate = new Date(start);
-    let endDate = new Date(end);
+    let startDate = new Date();
+    let endDate = new Date();
     let weekly = true;
 
     let radioValue = $("input[name='processedOrInRange']:checked").val();
@@ -44,8 +44,8 @@ export async function drawCharts(connection, start, end) {
 }
 
 
-export async function updateCharts(connection, start, end) {
-    let graphElementMap = await getGraphElementMap(connection);
+export async function updateCharts(connection, start, end, segment) {
+    let graphElementMap = await getGraphElementMap(connection, segment);
 
     let startDate = new Date(start);
     let endDate = new Date(end);
@@ -78,6 +78,11 @@ export async function updateCharts(connection, start, end) {
     drawAreaDropoutChart(graphElementMap, connection, startDate, endDate, weekly);
 }
 
+
+export async function updateChartsBySegment(connection, start, end, segment) {
+    await updateCharts(connection, start, end, segment);
+    drawVideoTransitionArcChart(connection, segment);
+}
 
 function drawChartJS(graphElementMap, startDate, endDate, weekly) {
     drawLineChart(graphElementMap, startDate, endDate, weekly);
@@ -1126,7 +1131,6 @@ function drawHeatChart(graphElementMap){
 
 
 function calculateVideoTransitions(connection) {
-    let learnerIds = [];
     let learnerStatus = {};
     let videoIds = {};
     let videoIdsP = {};
@@ -1140,12 +1144,6 @@ function calculateVideoTransitions(connection) {
             let course_metadata_map = result[0]['object'];
             let courseId = course_metadata_map.course_id;
             courseId = courseId.slice(courseId.indexOf(':') + 1,);
-            await connection.runSql("SELECT * FROM course_learner").then(function (learners) {
-                learners.forEach(function (learner) {
-                    learnerIds.push(learner.course_learner_id);
-                    learnerStatus[learner.course_learner_id] = learner.certificate_status;
-                });
-            });
 
             let chapterMap = {};
 
@@ -1177,213 +1175,240 @@ function calculateVideoTransitions(connection) {
                 return a.chapter - b.chapter
             });
 
-            for (let video of orderedVideos) {
-                let videoId = video.elementId;
-                videoId = videoId.slice(videoId.lastIndexOf('@') + 1,);
-                videoIds[videoId] = [];
-                videoIdsP[videoId] = [];
-                videoIdsF[videoId] = [];
-            }
+            let query = "SELECT * FROM webdata WHERE name = 'segmentation' ";
+            let segmentation = '';
+            await connection.runSql(query).then(function (result) {
+                segmentation = result[0]['object']['type'];
+            });
+            let segmentMap = {'none': ['none'],
+                'ab': ['none', 'A', 'B'],
+                'abc': ['none', 'A', 'B', 'C']};
 
-            let videoChains = {};
-            let passingChains = {};
-            let failingChains = {};
-            let maxViewers = 0;
-            let passingViewers = 0;
-            let failingViewers = 0;
-            let counter = 0;
-            for (let learner of learnerIds) {
-                let learnerSessions = [];
-                let query = "SELECT * FROM video_interaction WHERE course_learner_id = '" + learner + "'";
-                await connection.runSql(query).then(function (sessions) {
-                    learnerSessions = sessions;
-                    learnerSessions.sort(function (a, b) {
-                        return new Date(a.start_time) - new Date(b.start_time)
+            for (let segment of segmentMap[segmentation]) {
+
+                for (let video of orderedVideos) {
+                    let videoId = video.elementId;
+                    videoId = videoId.slice(videoId.lastIndexOf('@') + 1,);
+                    videoIds[videoId] = [];
+                    videoIdsP[videoId] = [];
+                    videoIdsF[videoId] = [];
+                }
+
+                let learnerIds = [];
+                query = "SELECT * FROM course_learner ";
+                if (segment !== 'none') {
+                    query += "WHERE segment = '" + segment + "' "
+                }
+                await connection.runSql(query).then(function (learners) {
+                    learners.forEach(function (learner) {
+                        learnerIds.push(learner.course_learner_id);
+                        learnerStatus[learner.course_learner_id] = learner.certificate_status;
                     });
-                    let videoChain = [];
-                    let currentVideo = '';
-                    for (let session of learnerSessions) {
-                        if (session.video_id !== currentVideo && session.video_id in videoIds) {
-                            currentVideo = session.video_id;
-                            if (currentVideo in videoIds) {
-                                videoChain.push(currentVideo);
-                            }
-                        }
-                    }
-                    if (videoChain.length > 1) {
-                        videoChains[learner] = videoChain;
-                        if (learnerStatus[learner] === 'downloadable') {
-                            passingChains[learner] = videoChain;
-                            passingViewers++;
-                        } else {
-                            failingChains[learner] = videoChain;
-                            failingViewers++;
-                        }
-                    }
-
-                    counter++;
-
-                    if (counter === learnerIds.length) {
-                        for (let learner in videoChains) {
-                            for (let i = 0; i < videoChains[learner].length - 1; i++) {
-                                let currentVideo = videoChains[learner][i];
-                                let followingVideo = videoChains[learner][i + 1];
-                                videoIds[currentVideo].push(followingVideo);
-                            }
-                        }
-                        let frequencies = {};
-                        for (let video in videoIds) {
-                            let frequency = _.countBy(videoIds[video]);
-                            for (let nextVideo in videoIds) {
-                                if (frequency.hasOwnProperty(nextVideo)) {
-                                    frequency[nextVideo] = frequency[nextVideo] / (failingViewers + passingViewers) // For normalized value
-                                }
-                            }
-                            let freqSorted = Object.keys(frequency).sort(function (a, b) {
-                                return frequency[b] - frequency[a]
-                            });
-                            let top3 = {};
-                            for (let video of freqSorted.slice(0, 3)) {
-                                top3[video] = frequency[video]
-                            }
-                            frequencies[video] = top3;
-                            maxViewers = Math.max(maxViewers, videoIds[video].length)
-                        }
-
-                        // PASSING STUDENTS //////////////////////////////////////////////////////////
-                        for (let learner in passingChains) {
-                            for (let i = 0; i < passingChains[learner].length - 1; i++) {
-                                let currentVideo = passingChains[learner][i];
-                                let followingVideo = passingChains[learner][i + 1];
-                                videoIdsP[currentVideo].push(followingVideo);
-                            }
-                        }
-                        let frequenciesP = {};
-                        for (let video in videoIdsP) {
-                            let frequency = _.countBy(videoIdsP[video]);
-                            for (let nextVideo in videoIdsP) {
-                                if (frequency.hasOwnProperty(nextVideo)) {
-                                    frequency[nextVideo] = frequency[nextVideo] / passingViewers; //  For normalized value
-                                }
-                            }
-                            let freqSorted = Object.keys(frequency).sort(function (a, b) {
-                                return frequency[b] - frequency[a]
-                            });
-                            let top3 = {};
-                            for (let video of freqSorted.slice(0, 3)) {
-                                top3[video] = frequency[video]
-                            }
-                            frequenciesP[video] = top3;
-                        }
-                        // PASSING STUDENTS //////////////////////////////////////////////////////////
-
-                        // FAILING STUDENTS //////////////////////////////////////////////////////////
-                        for (let learner in failingChains) {
-                            for (let i = 0; i < failingChains[learner].length - 1; i++) {
-                                let currentVideo = failingChains[learner][i];
-                                let followingVideo = failingChains[learner][i + 1];
-                                videoIdsF[currentVideo].push(followingVideo);
-                            }
-                        }
-                        let frequenciesF = {};
-                        for (let video in videoIdsF) {
-                            let frequency = _.countBy(videoIdsF[video]);
-                            for (let nextVideo in videoIdsF) {
-                                if (frequency.hasOwnProperty(nextVideo)) {
-                                    frequency[nextVideo] = frequency[nextVideo] / failingViewers; // For normalized value
-                                }
-                            }
-                            let freqSorted = Object.keys(frequency).sort(function (a, b) {
-                                return frequency[b] - frequency[a]
-                            });
-                            let top3 = {};
-                            for (let video of freqSorted.slice(0, 3)) {
-                                top3[video] = frequency[video]
-                            }
-                            frequenciesF[video] = top3;
-                        }
-                        // FAILING STUDENTS //////////////////////////////////////////////////////////
-
-                        let i = 0;
-                        let nodes = [];
-                        let links = [];
-                        let currentChapter = '';
-                        for (let currentVideo in frequencies) {
-                            let percentages = "<span style='font-size: 14px;'>" +
-                                course_metadata_map['element_name_map']["block-v1:" + courseId + "+type@video+block@" + currentVideo] +
-                                "</span><br>";
-                            for (let followingVideo in frequencies[currentVideo]) {
-                                if (frequencies[currentVideo][followingVideo] > 0) {
-                                    let link = {
-                                        'source': currentVideo,
-                                        'target': followingVideo,
-                                        'value': frequencies[currentVideo][followingVideo],
-                                        'status': 'general'
-                                    };
-                                    links.push(link);
-                                    percentages += "<span style='font-size: 12px;'>" +
-                                        course_metadata_map['element_name_map']["block-v1:" + courseId + "+type@video+block@" + followingVideo] +
-                                        ": " + (frequencies[currentVideo][followingVideo] * 100).toFixed(0) +
-                                        "%</span><br>"
-                                }
-                            }
-                            for (let followingVideo in frequenciesP[currentVideo]) {
-                                if (frequenciesP[currentVideo][followingVideo] > 0) {
-                                    let link = {
-                                        'source': currentVideo,
-                                        'target': followingVideo,
-                                        'value': frequenciesP[currentVideo][followingVideo],
-                                        'status': 'passing'
-                                    };
-                                    links.push(link);
-                                }
-                            }
-                            for (let followingVideo in frequenciesF[currentVideo]) {
-                                if (frequenciesF[currentVideo][followingVideo] > 0) {
-                                    let link = {
-                                        'source': currentVideo,
-                                        'target': followingVideo,
-                                        'value': frequenciesF[currentVideo][followingVideo],
-                                        'status': 'failing'
-                                    };
-                                    links.push(link);
-                                }
-                            }
-                            let chapterName = '';
-                            if (chapterMap[currentVideo]['chapterName'] !== currentChapter){
-                                currentChapter =  chapterMap[currentVideo]['chapterName'];
-                                chapterName = currentChapter;
-                            } else {
-                                chapterName = '';
-                            }
-
-                            i++;
-
-                            let videoName = course_metadata_map.element_name_map["block-v1:" + courseId + "+type@video+block@" + currentVideo];
-                            if (!videoName){
-                                videoName = 'Video ' + i
-                            }
-
-                            nodes.push({
-                                'name': videoName,
-                                'info': percentages,
-                                'n': (videoIds[currentVideo].length / maxViewers) * 20,
-                                'grp': chapterMap[currentVideo]['chapter'],
-                                'chapter': chapterName,
-                                'id': currentVideo
-                            });
-                        }
-
-                        arcData['nodes'] = nodes;
-                        arcData['links'] = links;
-                        let arcElements = [{'name': 'arcElements', 'object': arcData}];
-                        connection.runSql("DELETE FROM webdata WHERE name = 'arcElements'").then(function () {
-                            sqlInsert('webdata', arcElements, connection);
-                            drawVideoTransitionArcChart(connection);
-                        });
-                    }
                 });
+
+                let videoChains = {},
+                    passingChains = {},
+                    failingChains = {},
+                    maxViewers = 0,
+                    passingViewers = 0,
+                    failingViewers = 0,
+                    counter = 0;
+                for (let learner of learnerIds) {
+                    if (segment === 'none' || learnerSegmentation(learner, segmentation) === segment) {
+                        let learnerSessions = [];
+                        let query = "SELECT * FROM video_interaction WHERE course_learner_id = '" + learner + "'";
+                        await connection.runSql(query).then(function (sessions) {
+                            learnerSessions = sessions;
+                            learnerSessions.sort(function (a, b) {
+                                return new Date(a.start_time) - new Date(b.start_time)
+                            });
+                        });
+                        let videoChain = [];
+                        let currentVideo = '';
+                        for (let session of learnerSessions) {
+                            if (session.video_id !== currentVideo && session.video_id in videoIds) {
+                                currentVideo = session.video_id;
+                                if (currentVideo in videoIds) {
+                                    videoChain.push(currentVideo);
+                                }
+                            }
+                        }
+                        if (videoChain.length > 1) {
+                            videoChains[learner] = videoChain;
+                            if (learnerStatus[learner] === 'downloadable') {
+                                passingChains[learner] = videoChain;
+                                passingViewers++;
+                            } else {
+                                failingChains[learner] = videoChain;
+                                failingViewers++;
+                            }
+                        }
+                    }
+                }
+                // console.log(segment, Object.keys(videoChains).length);
+                // console.log(Object.keys(passingChains).length, passingViewers);
+                // console.log(Object.keys(failingChains).length, failingViewers);
+
+                for (let learner in videoChains) {
+                    for (let i = 0; i < videoChains[learner].length - 1; i++) {
+                        let currentVideo = videoChains[learner][i];
+                        let followingVideo = videoChains[learner][i + 1];
+                        videoIds[currentVideo].push(followingVideo);
+                    }
+                }
+                let frequencies = {};
+                for (let video in videoIds) {
+                    let frequency = _.countBy(videoIds[video]);
+                    for (let nextVideo in videoIds) {
+                        if (frequency.hasOwnProperty(nextVideo)) {
+                            frequency[nextVideo] = frequency[nextVideo] / (failingViewers + passingViewers) // For normalized value
+                        }
+                    }
+                    let freqSorted = Object.keys(frequency).sort(function (a, b) {
+                        return frequency[b] - frequency[a]
+                    });
+                    let top3 = {};
+                    for (let video of freqSorted.slice(0, 3)) {
+                        top3[video] = frequency[video]
+                    }
+                    frequencies[video] = top3;
+                    maxViewers = Math.max(maxViewers, videoIds[video].length)
+                }
+
+                // PASSING STUDENTS //////////////////////////////////////////////////////////
+                for (let learner in passingChains) {
+                    for (let i = 0; i < passingChains[learner].length - 1; i++) {
+                        let currentVideo = passingChains[learner][i];
+                        let followingVideo = passingChains[learner][i + 1];
+                        videoIdsP[currentVideo].push(followingVideo);
+                    }
+                }
+                let frequenciesP = {};
+                for (let video in videoIdsP) {
+                    let frequency = _.countBy(videoIdsP[video]);
+                    for (let nextVideo in videoIdsP) {
+                        if (frequency.hasOwnProperty(nextVideo)) {
+                            frequency[nextVideo] = frequency[nextVideo] / passingViewers; //  For normalized value
+                        }
+                    }
+                    let freqSorted = Object.keys(frequency).sort(function (a, b) {
+                        return frequency[b] - frequency[a]
+                    });
+                    let top3 = {};
+                    for (let video of freqSorted.slice(0, 3)) {
+                        top3[video] = frequency[video]
+                    }
+                    frequenciesP[video] = top3;
+                }
+                // PASSING STUDENTS //////////////////////////////////////////////////////////
+
+                // FAILING STUDENTS //////////////////////////////////////////////////////////
+                for (let learner in failingChains) {
+                    for (let i = 0; i < failingChains[learner].length - 1; i++) {
+                        let currentVideo = failingChains[learner][i];
+                        let followingVideo = failingChains[learner][i + 1];
+                        videoIdsF[currentVideo].push(followingVideo);
+                    }
+                }
+                let frequenciesF = {};
+                for (let video in videoIdsF) {
+                    let frequency = _.countBy(videoIdsF[video]);
+                    for (let nextVideo in videoIdsF) {
+                        if (frequency.hasOwnProperty(nextVideo)) {
+                            frequency[nextVideo] = frequency[nextVideo] / failingViewers; // For normalized value
+                        }
+                    }
+                    let freqSorted = Object.keys(frequency).sort(function (a, b) {
+                        return frequency[b] - frequency[a]
+                    });
+                    let top3 = {};
+                    for (let video of freqSorted.slice(0, 3)) {
+                        top3[video] = frequency[video]
+                    }
+                    frequenciesF[video] = top3;
+                }
+                // FAILING STUDENTS //////////////////////////////////////////////////////////
+
+                let i = 0;
+                let nodes = [];
+                let links = [];
+                let currentChapter = '';
+                for (let currentVideo in frequencies) {
+                    let percentages = "<span style='font-size: 14px;'>" +
+                        course_metadata_map['element_name_map']["block-v1:" + courseId + "+type@video+block@" + currentVideo] +
+                        "</span><br>";
+                    for (let followingVideo in frequencies[currentVideo]) {
+                        if (frequencies[currentVideo][followingVideo] > 0) {
+                            let link = {
+                                'source': currentVideo,
+                                'target': followingVideo,
+                                'value': frequencies[currentVideo][followingVideo],
+                                'status': 'general'
+                            };
+                            links.push(link);
+                            percentages += "<span style='font-size: 12px;'>" +
+                                course_metadata_map['element_name_map']["block-v1:" + courseId + "+type@video+block@" + followingVideo] +
+                                ": " + (frequencies[currentVideo][followingVideo] * 100).toFixed(0) +
+                                "%</span><br>"
+                        }
+                    }
+                    for (let followingVideo in frequenciesP[currentVideo]) {
+                        if (frequenciesP[currentVideo][followingVideo] > 0) {
+                            let link = {
+                                'source': currentVideo,
+                                'target': followingVideo,
+                                'value': frequenciesP[currentVideo][followingVideo],
+                                'status': 'passing'
+                            };
+                            links.push(link);
+                        }
+                    }
+                    for (let followingVideo in frequenciesF[currentVideo]) {
+                        if (frequenciesF[currentVideo][followingVideo] > 0) {
+                            let link = {
+                                'source': currentVideo,
+                                'target': followingVideo,
+                                'value': frequenciesF[currentVideo][followingVideo],
+                                'status': 'failing'
+                            };
+                            links.push(link);
+                        }
+                    }
+                    let chapterName = '';
+                    if (chapterMap[currentVideo]['chapterName'] !== currentChapter) {
+                        currentChapter = chapterMap[currentVideo]['chapterName'];
+                        chapterName = currentChapter;
+                    } else {
+                        chapterName = '';
+                    }
+
+                    i++;
+
+                    let videoName = course_metadata_map.element_name_map["block-v1:" + courseId + "+type@video+block@" + currentVideo];
+                    if (!videoName) {
+                        videoName = 'Video ' + i
+                    }
+
+                    nodes.push({
+                        'name': videoName,
+                        'info': percentages,
+                        'n': (videoIds[currentVideo].length / maxViewers) * 20,
+                        'grp': chapterMap[currentVideo]['chapter'],
+                        'chapter': chapterName,
+                        'id': currentVideo
+                    });
+                }
+
+                arcData['nodes'] = nodes;
+                arcData['links'] = links;
+                let arcElements = [{
+                    'name': 'arcElements_' + segment,
+                    'object': arcData
+                }];
+                await connection.runSql("DELETE FROM webdata WHERE name = 'arcElements_" + segment + "' ");
+                await sqlInsert('webdata', arcElements, connection);
             }
+            drawVideoTransitionArcChart(connection);
         }
     });
 }
@@ -1392,8 +1417,9 @@ function getTargets(node){
 
 }
 
-function drawVideoTransitionArcChart(connection){ // https://www.d3-graph-gallery.com/graph/arc_template.html
-    connection.runSql("SELECT * FROM webdata WHERE name = 'arcElements' ").then(function(result) {
+function drawVideoTransitionArcChart(connection, segment){ // https://www.d3-graph-gallery.com/graph/arc_template.html
+    if (! segment) {segment = 'none'}
+    connection.runSql("SELECT * FROM webdata WHERE name = 'arcElements_" + segment + "' ").then(function(result) {
         if (result.length !== 1) {
             calculateVideoTransitions(connection)
         } else {
@@ -1408,13 +1434,13 @@ function drawVideoTransitionArcChart(connection){ // https://www.d3-graph-galler
 
             let linkSlider = d3.select('#links');
             linkSlider.on('change', function() {
-                drawVideoTransitionArcChart(connection);
+                drawVideoTransitionArcChart(connection, segment);
             });
             let linkNumber = linkSlider.node().value;
 
             let typeDropdown = d3.select('#arcType');
             typeDropdown.on('change', function () {
-                drawVideoTransitionArcChart(connection)
+                drawVideoTransitionArcChart(connection, segment)
             });
 
             // let arcTileDiv = document.getElementById("arcTile");

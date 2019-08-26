@@ -1,8 +1,8 @@
-
 /**
  * Function for development, used to download all processed dashboard data for Samples
  * @param connection Main JsStore worker that handles the connection to SqlWeb
  */
+
 export function webdataJSON(connection){
     connection.runSql("SELECT * FROM webdata").then(function(webElements) {
         let jsonString = '[';
@@ -78,58 +78,7 @@ export function learnerSegmentation(learnerId, segmentation) {
 }
 
 
-export function segmentationButtons(connection) {
-    let query = "SELECT * FROM webdata WHERE name = 'segmentation' ";
-    connection.runSql(query).then(function (result) {
-        if (result.length > 0) {
-            let segmentation = result[0]['object']['type'];
-            let field = document.getElementById("buttons");
-            if (segmentation === 'ab') {
-                let element = document.createElement("button");
-                // element.classList.add('btn');
-                element.classList.add('btn-primary');
-                element.appendChild(document.createTextNode("All Segments"));
-                element.addEventListener('click', function () {
-                    updateToSegment('none', connection);
-                });
-                field.appendChild(element);
 
-                let elementA = document.createElement("button");
-                // elementA.classList.add('btn');
-                elementA.classList.add('btn-primary');
-                elementA.appendChild(document.createTextNode("Segment A"));
-                elementA.addEventListener('click', function () {
-                    updateToSegment('A', connection);
-                });
-                field.appendChild(elementA);
-
-                let elementB = document.createElement("button");
-                // elementB.classList.add('btn');
-                elementB.classList.add('btn-primary');
-                elementB.appendChild(document.createTextNode("Segment B"));
-                elementB.addEventListener('click', function () {
-                    updateToSegment('B', connection);
-                });
-                field.appendChild(elementB);
-            }
-        }
-    })
-}
-
-function updateToSegment(segment, connection){
-    connection.runSql("SELECT * FROM webdata WHERE name = 'courseDetails_" + segment + "' ").then(function(result) {
-        if (result.length === 1) {
-            let HtmlString = result[0]['object']['details'];
-            $('#tblGrid tbody').html(HtmlString);
-        }
-    })
-    connection.runSql("SELECT * FROM webdata WHERE name = 'databaseDetails_" + segment + "' ").then(function(result) {
-        if (result.length === 1) {
-            let HtmlString = result[0]['object']['details'];
-            $('#dbGrid tbody').html(HtmlString);
-        }
-    })
-}
 
 /**
  *

@@ -1,11 +1,11 @@
 import {processMetadataFiles} from './metadataProcessing.js'
 import {populateSamples, initiateEdxDb, clearWebdataForUpdate,
     deleteEverything, schemaMap, processTablesForDownload} from "./databaseHelpers.js";
-import {loader, downloadForumSegmentation, progressDisplay, webdataJSON, segmentationButtons} from './helpers.js'
+import {loader, downloadForumSegmentation, progressDisplay, webdataJSON} from './helpers.js'
 import {processGeneralSessions, processForumSessions, processVideoInteractionSessions,
-    processAssessmentsSubmissions, processQuizSessions, processORASessions, findORASessions} from "./logProcessing.js";
+    processAssessmentsSubmissions, processQuizSessions, processORASessions} from "./logProcessing.js";
 import {exportChartPNG} from './graphHelpers.js'
-import {drawCharts, updateCharts} from "./graphProcessing.js";
+import {drawCharts, updateCharts, updateChartsBySegment} from "./graphProcessing.js";
 var connection = new JsStore.Instance();
 
 window.onload = function () {
@@ -91,6 +91,43 @@ window.onload = function () {
         }
     }
 
+    function segmentationButtons(connection) {
+        let query = "SELECT * FROM webdata WHERE name = 'segmentation' ";
+        connection.runSql(query).then(function (result) {
+            if (result.length > 0) {
+                let segmentation = result[0]['object']['type'];
+                let field = document.getElementById("buttons");
+                if (segmentation === 'ab') {
+                    let element = document.createElement("button");
+                    // element.classList.add('btn');
+                    element.classList.add('btn-primary');
+                    element.appendChild(document.createTextNode("All Segments"));
+                    element.addEventListener('click', function () {
+                        updateToSegment('none', connection);
+                    });
+                    field.appendChild(element);
+
+                    let elementA = document.createElement("button");
+                    // elementA.classList.add('btn');
+                    elementA.classList.add('btn-primary');
+                    elementA.appendChild(document.createTextNode("Segment A"));
+                    elementA.addEventListener('click', function () {
+                        updateToSegment('A', connection);
+                    });
+                    field.appendChild(elementA);
+
+                    let elementB = document.createElement("button");
+                    // elementB.classList.add('btn');
+                    elementB.classList.add('btn-primary');
+                    elementB.appendChild(document.createTextNode("Segment B"));
+                    elementB.addEventListener('click', function () {
+                        updateToSegment('B', connection);
+                    });
+                    field.appendChild(elementB);
+                }
+            }
+        })
+    }
 };
 
 let reader = new FileReader();
@@ -387,5 +424,26 @@ function prepareDashboard() {
     });
 }
 
+function updateToSegment(segment, connection){
+    connection.runSql("SELECT * FROM webdata WHERE name = 'courseDetails_" + segment + "' ").then(function(result) {
+        if (result.length === 1) {
+            let HtmlString = result[0]['object']['details'];
+            $('#tblGrid tbody').html(HtmlString);
+        }
+    });
+    connection.runSql("SELECT * FROM webdata WHERE name = 'databaseDetails_" + segment + "' ").then(function(result) {
+        if (result.length === 1) {
+            let HtmlString = result[0]['object']['details'];
+            $('#dbGrid tbody').html(HtmlString);
+        }
+    });
+    connection.runSql("SELECT * FROM webdata WHERE name = 'mainIndicators_" + segment + "' ").then(function(result) {
+        if (result.length === 1) {
+            let HtmlString = result[0]['object']['details'];
+            $('#indicatorGrid tbody').html(HtmlString);
+        }
+    });
 
+    updateChartsBySegment(connection, new Date(), new Date(), segment);
+}
 

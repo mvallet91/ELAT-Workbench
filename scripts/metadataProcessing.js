@@ -428,8 +428,9 @@ function processCertificates(inputFile, enrollmentValues, courseMetadataMap) {
                         final_grade = certificateMap[global_learner_id]['final_grade'],
                         enrollment_mode = enrollmentValues.learnerModeMap[global_learner_id],
                         certificate_status = certificateMap[global_learner_id]['certificate_status'],
-                        register_time = enrollmentValues.learnerEnrollmentTimeMap[global_learner_id];
-                    let array = [course_learner_id, final_grade, enrollment_mode, certificate_status, register_time];
+                        register_time = enrollmentValues.learnerEnrollmentTimeMap[global_learner_id],
+                        segment = enrollmentValues.learnerSegmentMap[global_learner_id];
+                    let array = [course_learner_id, final_grade, enrollment_mode, certificate_status, register_time, segment];
                     courseLearnerRecord.push(array);
                     certifiedLearners++;
                 } else {

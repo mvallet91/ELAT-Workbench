@@ -4,10 +4,9 @@ import {sqlInsert, clearMetadataTables} from "./databaseHelpers.js";
 
 
 /**
- * Handles all the functions to process the metadata files, starting from the course structure, then the construction
- * of a dictionary of files by their name, to then process each one by the data they contain.
- * @param {array} files
- * @param connection
+ * Handles all the functions to process the metadata files, starting from the course structure, then the construction of a dictionary of files by their name, to then call the appropriate function to process each one by the data they contain, and finally store the data in the corresponding tables of the database
+ * @param {FileList} files Array of all files
+ * @param {JsStoreWorker} connection Main JsStore worker that handles the connection to SqlWeb
  */
 export function processMetadataFiles(files, connection) {
     loader(true);
@@ -229,9 +228,9 @@ export function processMetadataFiles(files, connection) {
 }
 
 /**
- *
- * @param files
- * @constructor
+ * Processing of the course structure file, this function will handle all the course elements to generate the metadata object
+ * @param {FileList} files Array of all files
+ * @returns {object} courseMetadataMap Object with the course metadata information
  */
 function ExtractCourseInformation(files) {
     let courseMetadataMap = {};
@@ -350,13 +349,13 @@ function ExtractCourseInformation(files) {
 }
 
 /**
- *
- * @param courseId
- * @param inputFile
- * @param course_metadata_map
+ * Processing of the student enrollment file, to create the course_learner table with the learner information
+ * @param {string} courseId Current course id
+ * @param {string} inputFile String with contents of the enrollment file
+ * @param {object} courseMetadataMap Object with the course metadata information
  * @returns {{enrolledLearnerSet: *, learnerIndexRecord: *, learnerModeMap: *, learnerEnrollmentTimeMap: *, courseLearnerMap: *}}
  */
-function processEnrollment(courseId, inputFile, course_metadata_map){
+function processEnrollment(courseId, inputFile, courseMetadataMap){
     let courseLearnerMap = {};
     let learnerEnrollmentTimeMap = {};
     let enrolledLearnerSet = new Set();
@@ -374,7 +373,7 @@ function processEnrollment(courseId, inputFile, course_metadata_map){
             time = new Date(record[3]),
             courseLearnerId = courseId + '_' + globalLearnerId,
             mode = record[5];
-        if (cmpDatetime(course_metadata_map['end_time'], new Date(time)) === 1) {
+        if (cmpDatetime(courseMetadataMap['end_time'], new Date(time)) === 1) {
             enrolledLearnerSet.add(globalLearnerId);
             let array = [globalLearnerId, courseId, courseLearnerId];
             learnerIndexRecord.push(array);
@@ -394,10 +393,10 @@ function processEnrollment(courseId, inputFile, course_metadata_map){
 }
 
 /**
- *
- * @param inputFile
- * @param enrollmentValues
- * @param courseMetadataMap
+ * Processing of the certificates file, to handle the certificate status of the learners
+ * @param {string} inputFile String with contents of the certificates file
+ * @param {object} enrollmentValues Object with the enrollment values returned by the processEnrollment function
+ * @param {object} courseMetadataMap Object with the course metadata information
  * @returns {{certifiedLearners: *, courseLearnerRecord: *, uncertifiedLearners: *}}
  */
 function processCertificates(inputFile, enrollmentValues, courseMetadataMap) {
@@ -473,9 +472,9 @@ function processCertificates(inputFile, enrollmentValues, courseMetadataMap) {
 }
 
 /**
- *
- * @param inputFile
- * @param enrollmentValues
+ * Processing of the auth file, to handle email and check if a user is staff
+ * @param {string} inputFile String with contents of the auth file
+ * @param {object} enrollmentValues Object with the enrollment values returned by the processEnrollment function
  */
 function processAuthMap(inputFile, enrollmentValues) {
     let learnerAuthMap = {};
@@ -492,10 +491,10 @@ function processAuthMap(inputFile, enrollmentValues) {
 }
 
 /**
- *
- * @param courseId
- * @param inputFile
- * @param enrollmentValues
+ * Processing of group file, to assign cohort or group number to learners
+ * @param {string} courseId Current course id
+ * @param {string} inputFile String with contents of the group file
+ * @param {object} enrollmentValues Object with the enrollment values returned by the processEnrollment function
  */
 function processGroups(courseId, inputFile, enrollmentValues){
     let groupMap = {};
@@ -514,10 +513,10 @@ function processGroups(courseId, inputFile, enrollmentValues){
 }
 
 /**
- *
- * @param courseId
- * @param inputFile
- * @param enrollmentValues
+ * Processing of user profile file, to handle learner demographics
+ * @param {string} courseId Current course id
+ * @param {string} inputFile String with contents of the user profile file
+ * @param {object} enrollmentValues Object with the enrollment values returned by the processEnrollment function
  * @param learnerAuthMap
  * @returns {{learnerDemographicRecord: *}}
  */
@@ -543,12 +542,12 @@ function processDemographics(courseId, inputFile, enrollmentValues, learnerAuthM
 }
 
 /**
- *
- * @param forum_file
- * @param course_metadata_map
- * @returns {[]}
+ * Processing of prod file, containing forum posts, to handle learners interactions, such as posting or answering in forums
+ * @param {string} forum_file String with contents of the forum interaction file
+ * @param {object} courseMetadataMap Object with the course metadata information
+ * @returns {array} forumInteractionRecords Array with arrays of interaction records
  */
-function processForumPostingInteraction(forum_file, course_metadata_map){
+function processForumPostingInteraction(forum_file, courseMetadataMap){
     let forum_interaction_records = [];
     let lines = forum_file.split("\n");
     for (let line of lines) {
@@ -583,7 +582,7 @@ function processForumPostingInteraction(forum_file, course_metadata_map){
         if (jsonObject.hasOwnProperty("comment_thread_id" )) {
             post_thread_id = jsonObject["comment_thread_id"]["$oid"]
         }
-        if (post_timestamp < new Date(course_metadata_map["end_time"])) {
+        if (post_timestamp < new Date(courseMetadataMap["end_time"])) {
             let array = [post_id, course_learner_id, post_type, post_title, escapeString(post_content),
                 post_timestamp, post_parent_id, post_thread_id];
             forum_interaction_records.push(array)

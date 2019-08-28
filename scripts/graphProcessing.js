@@ -39,8 +39,7 @@ export async function drawCharts(connection) {
 
     drawCycles(connection);
 
-    drawAreaDropoutChart(graphElementMap, connection, startDate, endDate, weekly);
-
+    drawAreaDropoutChart(startDate, endDate, connection, weekly);
 }
 
 
@@ -70,25 +69,27 @@ export async function updateCharts(connection, start, end, segment) {
             weekly = false
         }
     }
-    drawBoxChart(graphElementMap, startDate, endDate, weekly);
-    drawLineChart(graphElementMap, startDate, endDate, weekly);
-    drawAreaChart(graphElementMap, startDate, endDate, weekly);
+    drawChartJS(graphElementMap, startDate, endDate, weekly);
     drawMixedChart(graphElementMap, startDate, endDate, weekly);
 
-    drawAreaDropoutChart(graphElementMap, connection, startDate, endDate, weekly);
+    drawAreaDropoutChart(startDate, endDate, connection, weekly);
 }
 
 
 export async function updateChartsBySegment(connection, start, end, segment) {
     await updateCharts(connection, start, end, segment);
+    let graphElementMap = await getGraphElementMap(connection, segment);
+    drawHeatChart(graphElementMap);
     drawVideoTransitionArcChart(connection, segment);
+    drawCycles(connection, segment);
+
+    drawAreaDropoutChart(start, end, connection, true, segment)
 }
 
 function drawChartJS(graphElementMap, startDate, endDate, weekly) {
     drawLineChart(graphElementMap, startDate, endDate, weekly);
     drawAreaChart(graphElementMap, startDate, endDate, weekly);
     drawBoxChart(graphElementMap, startDate, endDate, weekly);
-    drawMixedChart(graphElementMap, startDate, endDate, weekly);
 }
 
 
@@ -402,7 +403,7 @@ function drawAreaChart(graphElementMap, startDate, endDate, weekly){
 }
 
 
-function calculateDropoutValues(courseMetadataMap, lastSessions, lastElements, connection){
+function calculateDropoutValues(courseMetadataMap, lastSessions, lastElements, connection, segment){
     let dropoutFreq = _.countBy(lastElements);
 
     let elements = Object.keys(dropoutFreq);
@@ -502,27 +503,27 @@ function calculateDropoutValues(courseMetadataMap, lastSessions, lastElements, c
     }
 
 
-    let dropoutElements = [{'name': 'dropoutElements', 'object': {
+    let dropoutElements = [{'name': "dropoutElements_" + segment, 'object': {
             'orderedDropoutsByElementValue': orderedDropoutsByElementValue,
             'orderedDropoutsByElementWeeklyValue': orderedDropoutsByElementWeeklyValue,
             'slicedTopElements': slicedTopElements}}];
 
-    connection.runSql("DELETE FROM webdata WHERE name = 'dropoutElements'").then(function (success) {
+    connection.runSql("DELETE FROM webdata WHERE name = 'dropoutElements_" + segment +"'").then(function (success) {
         sqlInsert('webdata', dropoutElements, connection);
     });
 }
 
 
-function drawAreaDropoutChart(graphElementMap, connection, startDate, endDate, weekly){
+function drawAreaDropoutChart(startDate, endDate, connection, weekly, segment){
     let areaDropoutCanvas = document.getElementById('areaDropoutChart'),
         areaDropoutCtx = areaDropoutCanvas.getContext('2d');
     areaDropoutCtx.clearRect(0, 0, areaDropoutCanvas.width, areaDropoutCanvas.height);
 
-    connection.runSql("SELECT * FROM webdata WHERE name = 'dropoutElements' ").then(function (result) {
+    if (!segment){segment = 'none'}
+    connection.runSql("SELECT * FROM webdata WHERE name = 'dropoutElements_" + segment + "' ").then(function (result) {
         if (result.length !== 1) {
             console.log('empty')
         } else {
-
             let dropoutValues = result[0]['object'],
                 orderedDropoutsByElementValue = dropoutValues.orderedDropoutsByElementValue,
                 orderedDropoutsByElementWeeklyValue = dropoutValues.orderedDropoutsByElementWeeklyValue,
@@ -1413,6 +1414,7 @@ function calculateVideoTransitions(connection) {
     });
 }
 
+
 function getTargets(node){
 
 }
@@ -1660,361 +1662,392 @@ function drawVideoTransitionArcChart(connection, segment){ // https://www.d3-gra
 
 
 function calculateModuleCycles(connection) {
-    let learnerIds = [];
-    let learnerStatus = {};
-    let elementIds = {};
-    let elementIdsD = {};
-    let unorderedElements = [];
     connection.runSql("SELECT * FROM metadata WHERE name = 'metadata_map' ").then(async function (result) {
         if (result.length !== 1) {
             console.log('Metadata empty');
             loader(false);
         } else {
             loader(true);
-            const course_metadata_map = result[0]['object'];
-            let courseId = course_metadata_map.course_id;
-            courseId = courseId.slice(courseId.indexOf(':') + 1,);
-            let startingWeek = course_metadata_map.start_date.getWeek();
-            await connection.runSql("SELECT * FROM course_learner").then(function (learners) {
-                learners.forEach(function (learner) {
-                    learnerIds.push(learner.course_learner_id);
-                    if (learner.certificate_status !== null) {
-                        learnerStatus[learner.course_learner_id] = learner.certificate_status;
-                    } else {
-                        learnerStatus[learner.course_learner_id] = 'unfinished'
-                    }
-
-                });
+            let query = "SELECT * FROM webdata WHERE name = 'segmentation' ";
+            let segmentation = '';
+            await connection.runSql(query).then(function (result) {
+                segmentation = result[0]['object']['type'];
             });
-            for (let elementId in course_metadata_map.child_parent_map) {
-                if (elementId.includes('video+') ||
-                    elementId.includes('problem+') ||
-                    elementId.includes('discussion+')) {
-                    const parentId = course_metadata_map.child_parent_map[elementId],
-                        parent2Id = course_metadata_map.child_parent_map[parentId],
-                        parent3Id = course_metadata_map.child_parent_map[parent2Id];
-                    unorderedElements.push({
-                        'elementId': elementId,
-                        'chapter': course_metadata_map.order_map[parent3Id],
-                        'section': course_metadata_map.order_map[parent2Id],
-                        'block': course_metadata_map.order_map[parentId],
-                        'type': course_metadata_map.element_type_map[elementId],
-                        'name': course_metadata_map.element_name_map[elementId]
-                    })
-                }
-            }
-            let orderedElements = unorderedElements.sort(function (a, b) {
-                return a.block - b.block
-            });
-            orderedElements.sort(function (a, b) {
-                return a.section - b.section
-            });
-            orderedElements.sort(function (a, b) {
-                return a.chapter - b.chapter
-            });
+            let segmentMap = {'none': ['none'],
+                'ab': ['none', 'A', 'B'],
+                'abc': ['none', 'A', 'B', 'C']};
 
-            for (let element of orderedElements) {
-                let elementId = element.elementId;
-                elementIdsD[elementId] = []; //Designed
-            }
-
-            let learningPaths = {},
-                designedPath = [],
-                currentElement = '';
-
-            for (let element of orderedElements) {
-                if (element.chapter === 1 || element.chapter === 2) {
-                    if (element.elementId !== currentElement) {
-                        currentElement = element.elementId;
-                        let elementId = element.elementId;
-                        designedPath.push(elementId);
-                    }
-                }
-            }
-            learningPaths['designed'] = designedPath;
-            for (let learner in learningPaths) {
-                for (let i = 0; i < learningPaths[learner].length - 1; i++) {
-                    let currentElement = learningPaths[learner][i],
-                        followingElement = learningPaths[learner][i + 1];
-                    elementIdsD[currentElement].push(followingElement);
-                }
-            }
-            let frequenciesDesigned = {};
-            for (let element in elementIdsD) {
-                let frequency = _.countBy(elementIdsD[element]);
-                for (let nextElement in elementIdsD) {
-                    if (frequency.hasOwnProperty(nextElement)) {
-                        frequency[nextElement] = 1;
-                    }
-                }
-                frequenciesDesigned[element] = frequency
-            }
-            let linksDesigned = [];
-            let l = 0;
-            for (let currentElement in frequenciesDesigned) {
-                for (let followingElement in frequenciesDesigned[currentElement]) {
-                    let nodeMap = {
-                        'discussion': 'FORUM START',
-                        'problem': 'QUIZ START',
-                        'video': 'VIDEO'
-                    };
-                    const sourceType = course_metadata_map.element_type_map[currentElement],
-                        targetType = course_metadata_map.element_type_map[followingElement],
-                        sourceNode = nodeMap[sourceType],
-                        targetNode = nodeMap[targetType];
-
-                    let link = {
-                        'sourceElement': currentElement,
-                        'sourceType': sourceType,
-                        'sourceNode': sourceNode,
-                        'targetElement': followingElement,
-                        'targetType': targetType,
-                        'targetNode': targetNode,
-                        'value': frequenciesDesigned[currentElement][followingElement],
-                        'status': 'designed',
-                        'id': ' ' + l
-                    };
-                    linksDesigned.push(link);
-                    l++;
-                }
-            }
-
-            toastr.info('Calculating element transitions');
-            learningPaths = {};
-            let totalLearners = 0,
-                passingLearners = 0,
-                failingLearners = 0;
-            const allSessions = {},
-                lastElements = [],
-                lastSessions = [];
-            for (let learnerId of learnerIds) {
-                totalLearners++;
-                allSessions[learnerId] = [];
-                let status = learnerStatus[learnerId];
-                if (status === 'downloadable'){passingLearners++} else {failingLearners++}
-                await connection.runSql("SELECT * FROM forum_sessions WHERE course_learner_id = '" + learnerId + "' ").then(function (sessions) {
-                    sessions.forEach(function(session) {
-                        let forumStartSession = $.extend({}, session);
-                        forumStartSession['type'] = 'forum';
-                        forumStartSession['time'] = forumStartSession.start_time;
-                        let elementId = forumStartSession.relevent_element_id;
-                        if (elementId.length < 10) {
-                            forumStartSession['elementId'] = 'forum_visit'
-                        } else {
-                            forumStartSession['elementId'] = elementId.slice(elementId.lastIndexOf('@') + 1,);
-                        }
-                        forumStartSession['status'] = status;
-                        allSessions[learnerId].push(forumStartSession);
-
-                        let forumEndSession = $.extend({}, session);
-                        forumEndSession['type'] = 'forum-end';
-                        forumEndSession['time'] = forumEndSession.end_time;
-                        if (elementId.length < 10) {
-                            forumEndSession['elementId'] = 'forum_visit'
-                        } else {
-                            forumEndSession['elementId'] = elementId.slice(elementId.lastIndexOf('@') + 1,);
-                        }
-                        forumEndSession['status'] = status;
-                        allSessions[learnerId].push(forumEndSession)
-                    })
-                });
-                await connection.runSql("SELECT * FROM forum_interaction WHERE course_learner_id = '" + learnerId + "' ").then(function (sessions) {
-                    sessions.forEach(function(session) {
-                        session['type'] = 'forum-post';
-                        session['time'] = session.post_timestamp;
-                        session['elementId'] = session.post_id;
-                        session['postDetails'] = {'id': session.post_id, 'thread': session.post_thread_id, 'parent': session.post_parent_id};
-                        session['status'] = status;
-                        allSessions[learnerId].push(session)
-                    })
-                });
-                await connection.runSql("SELECT * FROM quiz_sessions WHERE course_learner_id = '" + learnerId + "' ").then(function (sessions) {
-                    sessions.forEach(function(session) {
-                        let quizStartSession = $.extend({}, session);
-                        quizStartSession['type'] = 'quiz-start';
-                        quizStartSession['time'] = session.start_time;
-                        let elementId = session.session_id;
-                        quizStartSession['elementId'] = elementId.slice(elementId.lastIndexOf('@') + 1, elementId.indexOf('_course'));
-                        quizStartSession['status'] = status;
-                        allSessions[learnerId].push(quizStartSession);
-
-                        let quizEndSession = $.extend({}, session);
-                        quizEndSession['type'] = 'quiz-end';
-                        quizEndSession['time'] = session.end_time;
-                        quizEndSession['elementId'] = elementId.slice(elementId.lastIndexOf('@') + 1, elementId.indexOf('_course'));
-                        quizEndSession['status'] = status;
-                        allSessions[learnerId].push(quizEndSession)
-                    })
-                });
-                await connection.runSql("SELECT * FROM submissions WHERE course_learner_id = '" + learnerId + "' ").then(function (sessions) {
-                    sessions.forEach(function(session) {
-                        session['type'] = 'submission';
-                        session['time'] = session.submission_timestamp;
-                        let elementId = session.question_id;
-                        session['elementId'] = elementId.slice(elementId.lastIndexOf('@') + 1,);
-                        session['status'] = status;
-                        allSessions[learnerId].push(session)
-                    })
-                });
-                await connection.runSql("SELECT * FROM video_interaction WHERE course_learner_id = '" + learnerId + "' ").then(function (sessions) {
-                    sessions.forEach(function(session) {
-                        session['type'] = 'video';
-                        session['time'] = session.start_time;
-                        let elementId = session.video_id;
-                        session['elementId'] = elementId.slice(elementId.lastIndexOf('@') + 1,);
-                        session['status'] = status;
-                        allSessions[learnerId].push(session)
-                    })
-                });
-
-                //////////////////////// ORA//////////////////////// ORA//////////////////////// ORA//////////////////////// ORA
-                await connection.runSql("SELECT * FROM ora_sessions WHERE course_learner_id = '" + learnerId + "' ").then(function (sessions) {
-                    sessions.forEach(function(session) {
-                        session['type'] = 'ora';
-                        session['time'] = session.start_time;
-                        let element = session.assessment_id;
-                        if (session.submitted === false) {element = element + '_unfinished'}
-                        session['elementId'] = element;
-                        session['status'] = status;
-                        allSessions[learnerId].push(session)
-                    })
-                });
-                //////////////////////// ORA//////////////////////// ORA//////////////////////// ORA//////////////////////// ORA
-
-                allSessions[learnerId].sort(function (a, b) {
-                    return new Date(a.time) - new Date(b.time)
-                });
-                if (learnerIds.length / totalLearners === 4 ){toastr.info('25% done');}
-                if (learnerIds.length / totalLearners === 2 ){toastr.info('Halfway there...');}
-
-                // FOR DROPOUT VALUES
-                if (allSessions[learnerId].length > 2) {
-                    lastElements.push(allSessions[learnerId][allSessions[learnerId].length - 1]['elementId']);
-                    lastSessions.push(allSessions[learnerId][allSessions[learnerId].length - 1])
-                }
-            }
-
-            calculateDropoutValues(course_metadata_map, lastSessions, lastElements, connection);
-
-
-            let weekStart = new Date(course_metadata_map.start_date.toDateString()),
-                weekEnd = new Date(),
-                week = 0,
-                weeklyData = {};
-            do {
-                learningPaths = {
-                    'downloadable': {},
-                    'notpassing': {},
-                    'audit_passing': {},
-                    'unverified': {},
-                    'unfinished': {}
-                };
-                weekEnd = new Date(weekStart.toDateString());
-                weekEnd = new Date(weekEnd.setDate(weekEnd.getDate() + 7));
-                for (let learnerId in allSessions) {
-                    let learningPath = [];
-                    for (let session of allSessions[learnerId]){
-                        if (new Date(session.time) > weekStart &&
-                            new Date(session.time) < weekEnd ){
-                            learningPath.push(session.type + '_')// + session.elementId);
-                        }
-                    }
-                    if (learningPath.length > 1) {
-                        learningPaths[learnerStatus[learnerId]][learnerId] = learningPath;
-                    }
-                }
-                weekStart = new Date(weekEnd);
-                week++;
-
-                for (let status in learningPaths) {
-                    elementIds[status] = {};
-                    for (let learnerId in learningPaths[status]) {
-                        for (let i = 0; i < learningPaths[status][learnerId].length - 1; i++) {
-                            let currentElement = learningPaths[status][learnerId][i];
-                            let followingElement = learningPaths[status][learnerId][i + 1];
-                            // if (currentElement === followingElement) {
-                            //     continue
-                            // }
-                            if (elementIds[status].hasOwnProperty(currentElement)) {
-                                elementIds[status][currentElement].push(followingElement);
+            for (let segment of segmentMap[segmentation]) {
+                let learnerIds = [],
+                    learnerStatus = {},
+                    elementIds = {},
+                    elementIdsD = {},
+                    unorderedElements = [];
+                const course_metadata_map = result[0]['object'];
+                let courseId = course_metadata_map.course_id;
+                courseId = courseId.slice(courseId.indexOf(':') + 1,);
+                let startingWeek = course_metadata_map.start_date.getWeek();
+                await connection.runSql("SELECT * FROM course_learner").then(function (learners) {
+                    learners.forEach(function (learner) {
+                        if (segment === 'none' || learnerSegmentation(learner.course_learner_id, segmentation) === segment) {
+                            learnerIds.push(learner.course_learner_id);
+                            if (learner.certificate_status !== null) {
+                                learnerStatus[learner.course_learner_id] = learner.certificate_status;
                             } else {
-                                elementIds[status][currentElement] = [followingElement]
+                                learnerStatus[learner.course_learner_id] = 'unfinished'
                             }
+                        }
+                    });
+                });
+
+                for (let elementId in course_metadata_map.child_parent_map) {
+                    if (elementId.includes('video+') ||
+                        elementId.includes('problem+') ||
+                        elementId.includes('discussion+')) {
+                        const parentId = course_metadata_map.child_parent_map[elementId],
+                            parent2Id = course_metadata_map.child_parent_map[parentId],
+                            parent3Id = course_metadata_map.child_parent_map[parent2Id];
+                        unorderedElements.push({
+                            'elementId': elementId,
+                            'chapter': course_metadata_map.order_map[parent3Id],
+                            'section': course_metadata_map.order_map[parent2Id],
+                            'block': course_metadata_map.order_map[parentId],
+                            'type': course_metadata_map.element_type_map[elementId],
+                            'name': course_metadata_map.element_name_map[elementId]
+                        })
+                    }
+                }
+                let orderedElements = unorderedElements.sort(function (a, b) {
+                    return a.block - b.block
+                });
+                orderedElements.sort(function (a, b) {
+                    return a.section - b.section
+                });
+                orderedElements.sort(function (a, b) {
+                    return a.chapter - b.chapter
+                });
+
+                for (let element of orderedElements) {
+                    let elementId = element.elementId;
+                    elementIdsD[elementId] = []; //Designed
+                }
+
+                let learningPaths = {},
+                    designedPath = [],
+                    currentElement = '';
+
+                for (let element of orderedElements) {
+                    if (element.chapter === 1 || element.chapter === 2) {
+                        if (element.elementId !== currentElement) {
+                            currentElement = element.elementId;
+                            let elementId = element.elementId;
+                            designedPath.push(elementId);
                         }
                     }
                 }
-                let frequencies = {};
-                for (let status in elementIds) {
-                    frequencies[status] = {};
-                    let learners = passingLearners;
-                    if (status ===! 'downloadable'){learners = failingLearners}
-                    for (let element in elementIds[status]) {
-                        let frequency = _.countBy(elementIds[status][element]);
-                        for (let nextElement in elementIds[status]) {
-                            if (frequency.hasOwnProperty(nextElement)) {
-                                frequency[nextElement] = frequency[nextElement] / elementIds[status][element].length
-                            }
-                        }
-                        frequencies[status][element] = frequency
+                learningPaths['designed'] = designedPath;
+                for (let learner in learningPaths) {
+                    for (let i = 0; i < learningPaths[learner].length - 1; i++) {
+                        let currentElement = learningPaths[learner][i],
+                            followingElement = learningPaths[learner][i + 1];
+                        elementIdsD[currentElement].push(followingElement);
                     }
                 }
-                weeklyData[week] = frequencies;
-            } while (weekStart < new Date(course_metadata_map.end_date.toDateString()));
+                let frequenciesDesigned = {};
+                for (let element in elementIdsD) {
+                    let frequency = _.countBy(elementIdsD[element]);
+                    for (let nextElement in elementIdsD) {
+                        if (frequency.hasOwnProperty(nextElement)) {
+                            frequency[nextElement] = 1;
+                        }
+                    }
+                    frequenciesDesigned[element] = frequency
+                }
+                let linksDesigned = [];
+                let l = 0;
+                for (let currentElement in frequenciesDesigned) {
+                    for (let followingElement in frequenciesDesigned[currentElement]) {
+                        let nodeMap = {
+                            'discussion': 'FORUM START',
+                            'problem': 'QUIZ START',
+                            'video': 'VIDEO'
+                        };
+                        const sourceType = course_metadata_map.element_type_map[currentElement],
+                            targetType = course_metadata_map.element_type_map[followingElement],
+                            sourceNode = nodeMap[sourceType],
+                            targetNode = nodeMap[targetType];
 
-            let nodeMap = {
-                'forum': 'FORUM START',
-                'forum-end': 'FORUM END',
-                'forum-post': 'FORUM SUBMIT',
-                'quiz-start': 'QUIZ START',
-                'quiz-end': 'QUIZ END',
-                'submission': 'QUIZ SUBMIT',
-                'video': 'VIDEO',
-                'ora': 'ORA'
-            };
+                        let link = {
+                            'sourceElement': currentElement,
+                            'sourceType': sourceType,
+                            'sourceNode': sourceNode,
+                            'targetElement': followingElement,
+                            'targetType': targetType,
+                            'targetNode': targetNode,
+                            'value': frequenciesDesigned[currentElement][followingElement],
+                            'status': 'designed',
+                            'id': ' ' + l
+                        };
+                        linksDesigned.push(link);
+                        l++;
+                    }
+                }
 
-            let weeklyLinks = {};
-            for (let week in weeklyData) {
-                let links = JSON.parse(JSON.stringify(linksDesigned));
-                let frequencies = weeklyData[week];
-                for (let status in frequencies) {
-                    for (let currentElement in frequencies[status]) {
-                        for (let followingElement in frequencies[status][currentElement]) {
-                            let sourceType = currentElement.slice(0, currentElement.indexOf('_'));
-                            let targetType = followingElement.slice(0, followingElement.indexOf('_'));
-                            let sourceNode = nodeMap[sourceType];
-                            let targetNode = nodeMap[targetType];
-                            let link = {
-                                'sourceElement': currentElement,
-                                'sourceType': sourceType,
-                                'sourceNode': sourceNode,
-                                'targetElement': followingElement,
-                                'targetType': targetType,
-                                'targetNode': targetNode,
-                                'value': frequencies[status][currentElement][followingElement],
-                                'status': status,
-                                'id': ' ' + l
+                toastr.info('Calculating element transitions');
+                learningPaths = {};
+                let totalLearners = 0,
+                    passingLearners = 0,
+                    failingLearners = 0;
+                const allSessions = {},
+                    lastElements = [],
+                    lastSessions = [];
+                for (let learnerId of learnerIds) {
+                    totalLearners++;
+                    allSessions[learnerId] = [];
+                    let status = learnerStatus[learnerId];
+                    if (status === 'downloadable') {
+                        passingLearners++
+                    } else {
+                        failingLearners++
+                    }
+                    await connection.runSql("SELECT * FROM forum_sessions WHERE course_learner_id = '" + learnerId + "' ").then(function (sessions) {
+                        sessions.forEach(function (session) {
+                            let forumStartSession = $.extend({}, session);
+                            forumStartSession['type'] = 'forum';
+                            forumStartSession['time'] = forumStartSession.start_time;
+                            let elementId = forumStartSession.relevent_element_id;
+                            if (elementId.length < 10) {
+                                forumStartSession['elementId'] = 'forum_visit'
+                            } else {
+                                forumStartSession['elementId'] = elementId.slice(elementId.lastIndexOf('@') + 1,);
+                            }
+                            forumStartSession['status'] = status;
+                            allSessions[learnerId].push(forumStartSession);
+
+                            let forumEndSession = $.extend({}, session);
+                            forumEndSession['type'] = 'forum-end';
+                            forumEndSession['time'] = forumEndSession.end_time;
+                            if (elementId.length < 10) {
+                                forumEndSession['elementId'] = 'forum_visit'
+                            } else {
+                                forumEndSession['elementId'] = elementId.slice(elementId.lastIndexOf('@') + 1,);
+                            }
+                            forumEndSession['status'] = status;
+                            allSessions[learnerId].push(forumEndSession)
+                        })
+                    });
+                    await connection.runSql("SELECT * FROM forum_interaction WHERE course_learner_id = '" + learnerId + "' ").then(function (sessions) {
+                        sessions.forEach(function (session) {
+                            session['type'] = 'forum-post';
+                            session['time'] = session.post_timestamp;
+                            session['elementId'] = session.post_id;
+                            session['postDetails'] = {
+                                'id': session.post_id,
+                                'thread': session.post_thread_id,
+                                'parent': session.post_parent_id
                             };
-                            links.push(link);
-                            l++;
-                        }
+                            session['status'] = status;
+                            allSessions[learnerId].push(session)
+                        })
+                    });
+                    await connection.runSql("SELECT * FROM quiz_sessions WHERE course_learner_id = '" + learnerId + "' ").then(function (sessions) {
+                        sessions.forEach(function (session) {
+                            let quizStartSession = $.extend({}, session);
+                            quizStartSession['type'] = 'quiz-start';
+                            quizStartSession['time'] = session.start_time;
+                            let elementId = session.session_id;
+                            quizStartSession['elementId'] = elementId.slice(elementId.lastIndexOf('@') + 1, elementId.indexOf('_course'));
+                            quizStartSession['status'] = status;
+                            allSessions[learnerId].push(quizStartSession);
+
+                            let quizEndSession = $.extend({}, session);
+                            quizEndSession['type'] = 'quiz-end';
+                            quizEndSession['time'] = session.end_time;
+                            quizEndSession['elementId'] = elementId.slice(elementId.lastIndexOf('@') + 1, elementId.indexOf('_course'));
+                            quizEndSession['status'] = status;
+                            allSessions[learnerId].push(quizEndSession)
+                        })
+                    });
+                    await connection.runSql("SELECT * FROM submissions WHERE course_learner_id = '" + learnerId + "' ").then(function (sessions) {
+                        sessions.forEach(function (session) {
+                            session['type'] = 'submission';
+                            session['time'] = session.submission_timestamp;
+                            let elementId = session.question_id;
+                            session['elementId'] = elementId.slice(elementId.lastIndexOf('@') + 1,);
+                            session['status'] = status;
+                            allSessions[learnerId].push(session)
+                        })
+                    });
+                    await connection.runSql("SELECT * FROM video_interaction WHERE course_learner_id = '" + learnerId + "' ").then(function (sessions) {
+                        sessions.forEach(function (session) {
+                            session['type'] = 'video';
+                            session['time'] = session.start_time;
+                            let elementId = session.video_id;
+                            session['elementId'] = elementId.slice(elementId.lastIndexOf('@') + 1,);
+                            session['status'] = status;
+                            allSessions[learnerId].push(session)
+                        })
+                    });
+
+                    //////////////////////// ORA//////////////////////// ORA//////////////////////// ORA//////////////////////// ORA
+                    await connection.runSql("SELECT * FROM ora_sessions WHERE course_learner_id = '" + learnerId + "' ").then(function (sessions) {
+                        sessions.forEach(function (session) {
+                            session['type'] = 'ora';
+                            session['time'] = session.start_time;
+                            let element = session.assessment_id;
+                            if (session.submitted === false) {
+                                element = element + '_unfinished'
+                            }
+                            session['elementId'] = element;
+                            session['status'] = status;
+                            allSessions[learnerId].push(session)
+                        })
+                    });
+                    //////////////////////// ORA//////////////////////// ORA//////////////////////// ORA//////////////////////// ORA
+
+                    allSessions[learnerId].sort(function (a, b) {
+                        return new Date(a.time) - new Date(b.time)
+                    });
+                    if (learnerIds.length / totalLearners === 4) {
+                        toastr.info('25% done');
+                    }
+                    if (learnerIds.length / totalLearners === 2) {
+                        toastr.info('Halfway there...');
+                    }
+
+                    // FOR DROPOUT VALUES
+                    if (allSessions[learnerId].length > 2) {
+                        lastElements.push(allSessions[learnerId][allSessions[learnerId].length - 1]['elementId']);
+                        lastSessions.push(allSessions[learnerId][allSessions[learnerId].length - 1])
                     }
                 }
-                weeklyLinks[week] = links;
+
+                calculateDropoutValues(course_metadata_map, lastSessions, lastElements, connection, segment);
+
+
+                let weekStart = new Date(course_metadata_map.start_date.toDateString()),
+                    weekEnd = new Date(),
+                    week = 0,
+                    weeklyData = {};
+                do {
+                    learningPaths = {
+                        'downloadable': {},
+                        'notpassing': {},
+                        'audit_passing': {},
+                        'unverified': {},
+                        'unfinished': {}
+                    };
+                    weekEnd = new Date(weekStart.toDateString());
+                    weekEnd = new Date(weekEnd.setDate(weekEnd.getDate() + 7));
+                    for (let learnerId in allSessions) {
+                        let learningPath = [];
+                        for (let session of allSessions[learnerId]) {
+                            if (new Date(session.time) > weekStart &&
+                                new Date(session.time) < weekEnd) {
+                                learningPath.push(session.type + '_')// + session.elementId);
+                            }
+                        }
+                        if (learningPath.length > 1) {
+                            learningPaths[learnerStatus[learnerId]][learnerId] = learningPath;
+                        }
+                    }
+                    weekStart = new Date(weekEnd);
+                    week++;
+
+                    for (let status in learningPaths) {
+                        elementIds[status] = {};
+                        for (let learnerId in learningPaths[status]) {
+                            for (let i = 0; i < learningPaths[status][learnerId].length - 1; i++) {
+                                let currentElement = learningPaths[status][learnerId][i];
+                                let followingElement = learningPaths[status][learnerId][i + 1];
+                                // if (currentElement === followingElement) {
+                                //     continue
+                                // }
+                                if (elementIds[status].hasOwnProperty(currentElement)) {
+                                    elementIds[status][currentElement].push(followingElement);
+                                } else {
+                                    elementIds[status][currentElement] = [followingElement]
+                                }
+                            }
+                        }
+                    }
+                    let frequencies = {};
+                    for (let status in elementIds) {
+                        frequencies[status] = {};
+                        let learners = passingLearners;
+                        if (status === !'downloadable') {
+                            learners = failingLearners
+                        }
+                        for (let element in elementIds[status]) {
+                            let frequency = _.countBy(elementIds[status][element]);
+                            for (let nextElement in elementIds[status]) {
+                                if (frequency.hasOwnProperty(nextElement)) {
+                                    frequency[nextElement] = frequency[nextElement] / elementIds[status][element].length
+                                }
+                            }
+                            frequencies[status][element] = frequency
+                        }
+                    }
+                    weeklyData[week] = frequencies;
+                } while (weekStart < new Date(course_metadata_map.end_date.toDateString()));
+
+                let nodeMap = {
+                    'forum': 'FORUM START',
+                    'forum-end': 'FORUM END',
+                    'forum-post': 'FORUM SUBMIT',
+                    'quiz-start': 'QUIZ START',
+                    'quiz-end': 'QUIZ END',
+                    'submission': 'QUIZ SUBMIT',
+                    'video': 'VIDEO',
+                    'ora': 'ORA'
+                };
+
+                let weeklyLinks = {};
+                for (let week in weeklyData) {
+                    let links = JSON.parse(JSON.stringify(linksDesigned));
+                    let frequencies = weeklyData[week];
+                    for (let status in frequencies) {
+                        for (let currentElement in frequencies[status]) {
+                            for (let followingElement in frequencies[status][currentElement]) {
+                                let sourceType = currentElement.slice(0, currentElement.indexOf('_'));
+                                let targetType = followingElement.slice(0, followingElement.indexOf('_'));
+                                let sourceNode = nodeMap[sourceType];
+                                let targetNode = nodeMap[targetType];
+                                let link = {
+                                    'sourceElement': currentElement,
+                                    'sourceType': sourceType,
+                                    'sourceNode': sourceNode,
+                                    'targetElement': followingElement,
+                                    'targetType': targetType,
+                                    'targetNode': targetNode,
+                                    'value': frequencies[status][currentElement][followingElement],
+                                    'status': status,
+                                    'id': ' ' + l
+                                };
+                                links.push(link);
+                                l++;
+                            }
+                        }
+                    }
+                    weeklyLinks[week] = links;
+                }
+                let cycleData = {};
+                cycleData['links'] = weeklyLinks;
+                let cycleElements = [{'name': 'cycleElements_' + segment, 'object': cycleData}];
+                console.log('Deleting from storage at ' + new Date());
+                await connection.runSql("DELETE FROM webdata WHERE name = 'cycleElements" + segment + "'");
+                console.log('Sending to storage at ' + new Date());
+                await sqlInsert('webdata', cycleElements, connection);
             }
-            let cycleData = {};
-            cycleData['links'] = weeklyLinks;
-            let cycleElements = [{'name': 'cycleElements', 'object': cycleData}];
-            connection.runSql("DELETE FROM webdata WHERE name = 'cycleElements'").then(function (success) {
-                sqlInsert('webdata', cycleElements, connection);
-                drawCycles(connection);
-            });
+            drawCycles(connection);
         }
     })
 }
 
 
-function drawCycles(connection){
-    connection.runSql("SELECT * FROM webdata WHERE name = 'cycleElements' ").then(function(result) {
+function drawCycles(connection, segment){
+    if (!segment) {segment = 'none'}
+    connection.runSql("SELECT * FROM webdata WHERE name = 'cycleElements_" + segment + "' ").then(function(result) {
         if (result.length !== 1) {
             console.log('Start transition calculation');
             calculateModuleCycles(connection);

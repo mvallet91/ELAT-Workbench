@@ -568,10 +568,10 @@ function processForumPostingInteraction(forum_file, course_metadata_map){
 
         let post_title = "";
         if (jsonObject.hasOwnProperty("title")){
-            post_title = jsonObject["title"];
+            post_title = '"' + jsonObject["title"] + '"';
         }
 
-        let post_content = jsonObject["body"];
+        let post_content = '"' + jsonObject["body"] + '"';
         let post_timestamp = new Date(jsonObject["created_at"]["$date"]);
 
         let post_parent_id = "";

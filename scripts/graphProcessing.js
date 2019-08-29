@@ -4,6 +4,7 @@ import {sqlInsert} from "./databaseHelpers.js";
 import {loader, learnerSegmentation} from "./helpers.js";
 
 export async function drawCharts(connection) {
+    loader(true);
 
     let graphElementMap = await getGraphElementMap(connection);
 
@@ -1147,6 +1148,7 @@ function calculateVideoTransitions(connection) {
         if (result.length !== 1) {
             console.log('Metadata empty')
         } else {
+            loader(true);
             let course_metadata_map = result[0]['object'];
             let courseId = course_metadata_map.course_id;
             courseId = courseId.slice(courseId.indexOf(':') + 1,);

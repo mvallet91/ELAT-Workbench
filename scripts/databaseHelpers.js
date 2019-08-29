@@ -235,15 +235,28 @@ export async function deleteEverything(connection) {
             console.log(err);
             alert('The deletion process started but did not finish,\n please refresh and try again');
         });
-        await connection.dropDb().then(function () {
-            toastr.success('Database has been deleted!');
+
+        let DBDeleteRequest  = window.indexedDB.deleteDatabase('edxdb');
+        DBDeleteRequest.onerror = function(event) {
             loader(false);
-            return true
-        }).catch(function (err) {
-            console.log(err);
             alert('The deletion process started but did not finish,\n please refresh and try again');
+            console.log(event.result); // should be undefined
+        };
+        DBDeleteRequest.onsuccess = function(event) {
             loader(false);
-        });
+            toastr.success('Database has been deleted!');
+            console.log(event.result); // should be undefined
+        };
+
+        // await connection.dropDb().then(function () {
+        //     toastr.success('Database has been deleted!');
+        //     loader(false);
+        //     return true
+        // }).catch(function (err) {
+        //     console.log(err);
+        //     alert('The deletion process started but did not finish,\n please refresh and try again');
+        //     loader(false);
+        // });
     }
 }
 

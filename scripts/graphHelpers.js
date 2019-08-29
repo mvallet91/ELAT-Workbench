@@ -16,6 +16,7 @@ export async function getGraphElementMap(connection, segment) {
                 graphElementMap = result[0]['object'];
                 resolve(graphElementMap);
             } else {
+                loader(true);
                 connection.runSql("SELECT * FROM metadata WHERE name = 'metadata_map' ").then(function (result) {
                     if (result.length !== 1) {
                         reject('Metadata empty')

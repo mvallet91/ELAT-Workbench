@@ -137,12 +137,24 @@ export function populateSamples(courseId, connection){
  */
 export function clearStoredWebdata(connection) {
     if (!testing) {
-        connection.runSql("DELETE FROM webdata WHERE name = 'graphElements'");
-        connection.runSql("DELETE FROM webdata WHERE name = 'databaseDetails'");
-        connection.runSql("DELETE FROM webdata WHERE name = 'mainIndicators'");
-        connection.runSql("DELETE FROM webdata WHERE name = 'arcElements'");
-        connection.runSql("DELETE FROM webdata WHERE name = 'cycleElements'");
-        connection.runSql("DELETE FROM webdata WHERE name = 'dropoutElements'");
+        let query = "SELECT * FROM webdata WHERE name = 'segmentation' ";
+        let segmentation = '';
+        connection.runSql(query).then(function (result) {
+            segmentation = result[0]['object']['type'];
+
+            let segmentMap = {'none': ['none'],
+                'ab': ['none', 'A', 'B'],
+                'abc': ['none', 'A', 'B', 'C']};
+
+            for (let segment of segmentMap[segmentation]) {
+                connection.runSql("DELETE FROM webdata WHERE name = 'graphElements_" + segment + "'");
+                connection.runSql("DELETE FROM webdata WHERE name = 'databaseDetails_" + segment + "'");
+                connection.runSql("DELETE FROM webdata WHERE name = 'mainIndicators_" + segment + "'");
+                connection.runSql("DELETE FROM webdata WHERE name = 'arcElements_" + segment + "'");
+                connection.runSql("DELETE FROM webdata WHERE name = 'cycleElements_" + segment + "'");
+                connection.runSql("DELETE FROM webdata WHERE name = 'dropoutElements_" + segment + "'");
+            }
+        });
     }
 }
 

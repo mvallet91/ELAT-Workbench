@@ -43,6 +43,19 @@ export async function drawCharts(connection) {
 }
 
 
+function drawChartJS(graphElementMap, startDate, endDate, weekly) {
+    drawLineChart(graphElementMap, startDate, endDate, weekly);
+    drawAreaChart(graphElementMap, startDate, endDate, weekly);
+    drawBoxChart(graphElementMap, startDate, endDate, weekly);
+}
+
+
+function drawApexCharts(graphElementMap, startDate, endDate, weekly){
+    drawMixedChart(graphElementMap, startDate, endDate, weekly);
+    drawHeatChart(graphElementMap)
+}
+
+
 export async function updateCharts(connection, start, end, segment) {
     let graphElementMap = await getGraphElementMap(connection, segment);
 
@@ -69,33 +82,20 @@ export async function updateCharts(connection, start, end, segment) {
             weekly = false
         }
     }
-    drawChartJS(graphElementMap, startDate, endDate, weekly);
-    drawMixedChart(graphElementMap, startDate, endDate, weekly);
-
-    drawAreaDropoutChart(startDate, endDate, connection, weekly);
+    if (!segment){segment = 'none'}
+    drawChartJS(graphElementMap, startDate, endDate, weekly, segment);
+    drawMixedChart(graphElementMap, startDate, endDate, weekly, segment);
+    drawAreaDropoutChart(startDate, endDate, connection, weekly, segment);
 }
 
 
 export async function updateChartsBySegment(connection, start, end, segment) {
     await updateCharts(connection, start, end, segment);
+
     let graphElementMap = await getGraphElementMap(connection, segment);
     drawHeatChart(graphElementMap);
     drawVideoTransitionArcChart(connection, segment);
     drawCycles(connection, segment);
-
-    drawAreaDropoutChart(start, end, connection, true, segment)
-}
-
-function drawChartJS(graphElementMap, startDate, endDate, weekly) {
-    drawLineChart(graphElementMap, startDate, endDate, weekly);
-    drawAreaChart(graphElementMap, startDate, endDate, weekly);
-    drawBoxChart(graphElementMap, startDate, endDate, weekly);
-}
-
-
-function drawApexCharts(graphElementMap, startDate, endDate, weekly){
-    drawMixedChart(graphElementMap, startDate, endDate, weekly);
-    drawHeatChart(graphElementMap)
 }
 
 
@@ -522,7 +522,7 @@ function drawAreaDropoutChart(startDate, endDate, connection, weekly, segment){
     if (!segment){segment = 'none'}
     connection.runSql("SELECT * FROM webdata WHERE name = 'dropoutElements_" + segment + "' ").then(function (result) {
         if (result.length !== 1) {
-            console.log('empty')
+            console.log('No dropout data collected yet')
         } else {
             let dropoutValues = result[0]['object'],
                 orderedDropoutsByElementValue = dropoutValues.orderedDropoutsByElementValue,
@@ -641,6 +641,7 @@ function drawAreaDropoutChart(startDate, endDate, connection, weekly, segment){
                     }
                 }
             };
+
             if (areaDropoutChart !== null) {
                 areaDropoutChart.destroy();
             }
@@ -1123,7 +1124,11 @@ function drawHeatChart(graphElementMap){
         },
     };
 
-    let heatChart = new ApexCharts(
+    if (heatChart !== null) {
+        heatChart.destroy();
+    }
+
+    heatChart = new ApexCharts(
         document.querySelector("#heatChart"),
         heatOptions
     );

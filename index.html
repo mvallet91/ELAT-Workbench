@@ -82,13 +82,12 @@
                 </caption>
                 <thead>
                     <tr>
-                        <th>Course Name</th>
+                        <th>Course Title</th>
                         <th>Start Time</th>
                         <th>End Time</th>
-                        <th>Course Elements</th>
-                        <th>Enrolled Students</th>
-                        <th>Quiz Questions</th>
-                        <th>Forum Interactions</th>
+                        <th>Enrollment</th>
+                        <th>Problems<br>(Assessments / Quizzes)</th>
+                        <th>Videos</th>
                     </tr>
                 </thead>
                 <tbody></tbody>
@@ -124,19 +123,19 @@
                         <div class="form-check">
                             <label class="form-check-label">
                                 <input type="radio" id="inRangeStudents" class="form-check-input" name="metaOptions" value="inCourseDates">
-                                Students Enrolled During Official Course Dates
+                                Students Enrolled Before Official End Date
                             </label>
                         </div>
                         <div class="form-check" >
                             <label class="form-check-label">
                                 <input type="radio" id="allStudents" class="form-check-input" name="metaOptions" value="allStudents">
-                                All Students
+                                All Enrolled Students
                             </label>
                         </div>
                     </div>
                     <div class="col-lg-3 col-sm-4">
                         <br>
-                        Segmentation Rule:
+                        Segmentation Rule (Select before Uploading):
                         <div class="form-check">
                             <label class="form-check-label">
                                 <input type="radio" id="none" class="form-check-input" name="segmentationRule" value="none" checked>
@@ -227,13 +226,14 @@
                 </caption>
                 <thead>
                     <tr>
-                        <th>Course Name</th>
+                        <th>Course Title</th>
                         <th>General Session</th>
                         <th>Forum Sessions</th>
+                        <th>Forum Posts<br>and Comments</th>
                         <th>Video Interactions</th>
                         <th>Submissions</th>
                         <th>Assessments</th>
-                        <th>Quiz Sessions</th>
+                        <th>Problem Sessions</th>
                     </tr>
                 </thead>
                 <tbody></tbody>
@@ -246,10 +246,10 @@
                 <thead>
                 <tr>
                     <th>Completion Rate</th>
-                    <th>Average Grade <br>(completed course)</th>
-                    <th># of Students per<br> Enrollment Mode (E.M.)</th>
-                    <th>Avg. Grade by E.M.</th>
-                    <th>Avg. Time Spent<br> Watching Video</th>
+                    <th>Average Grade <br>(students w/completed course)</th>
+                    <th>Enrollment per Mode</th>
+                    <th>Average Grade by Enrollment Mode</th>
+                    <th>Average Time Spent<br> Watching Video</th>
                     <th>Students that watched<br> at least 1 video</th>
                 </tr>
                 </thead>
@@ -354,6 +354,17 @@
             <li id="heatTile" >
                 <header>|||</header>
                 <div class="container-fluid" id="heatChartBox">
+                    <button type="button" class="btn btn-primary btn-sm float-right" data-toggle="collapse" data-target="#forumGroupInfo">
+                        Hide
+                    </button>
+                    <div id="forumGroupInfo" class="collapse show">
+                        <div style="border: 1px solid blue; padding: 2px">
+                            Regular Viewers are learners that visit Forums at least once a week in 3 separate weeks
+                            (does not have to be consecutively) during the course.
+                            Occasional Viewers are learners that also visit Forums but less than 3 separate weeks.
+                            Same notion for Regular and Occasional Posters, but regarding Posting or Commenting in Forums.
+                        </div>
+                    </div>
                     <div id="heatChart"></div>
                 </div>
             </li>

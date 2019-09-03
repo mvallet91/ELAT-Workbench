@@ -51,12 +51,14 @@ export function sqlInsert(table, dataObject, connection) {
             }
         }
     }
+    let info = '';
+    if (table === 'webdata' || table === 'metadata') {info = dataObject[0]['name']} else {info = dataObject.length}
     query.map("@val", dataObject);
     connection.runSql(query).then(function (rowsAdded) {
         if (rowsAdded > 0 && table !== 'forum_interaction') {
             let today = new Date();
             let time = today.getHours() + ":" + today.getMinutes() + ":" + today.getSeconds() + '.' + today.getMilliseconds();
-            console.log('Successfully added to' , table, ' at ', time);
+            console.log('Successfully added', info, 'to' , table, ' at ', time);
             if (table === 'metadata'){
                 loader(false);
                 toastr.success('Please reload the page now', 'Metadata ready', {timeOut: 0})
@@ -64,7 +66,7 @@ export function sqlInsert(table, dataObject, connection) {
         }
     }).catch(function (err) {
         loader(false);
-        console.log(err, table);
+        console.log(err, info, 'in', table);
     });
 }
 
@@ -175,16 +177,28 @@ export function clearMetadataTables(connection){
  */
 export function clearWebdataForUpdate(connection) {
     loader(true);
-    connection.runSql("DELETE FROM webdata WHERE name = 'mainIndicators'");
-    connection.runSql("DELETE FROM webdata WHERE name = 'databaseDetails'");
-    connection.runSql("DELETE FROM webdata WHERE name = 'arcElements'");
-    connection.runSql("DELETE FROM webdata WHERE name = 'cycleElements'");
-    connection.runSql("DELETE FROM webdata WHERE name = 'databaseDetails'");
-    connection.runSql("DELETE FROM webdata WHERE name = 'dropoutElements'");
-    connection.runSql("DELETE FROM webdata WHERE name = 'graphElements'").then(function () {
-        loader(false);
-        toastr.success('Please reload the page now', 'Updating Indicators and Charts', {timeOut: 0})
-    });
+    let query = "SELECT * FROM webdata WHERE name = 'segmentation' ";
+    let segmentation = '';
+    let segmentMap = {
+        'none': ['none'],
+        'ab': ['none', 'A', 'B'],
+        'abc': ['none', 'A', 'B', 'C']
+    };
+    connection.runSql(query).then(function (result) {
+        segmentation = result[0]['object']['type'];
+        for (let segment of segmentMap[segmentation]) {
+            connection.runSql("DELETE FROM webdata WHERE name = 'mainIndicators_" + segment + "'");
+            connection.runSql("DELETE FROM webdata WHERE name = 'databaseDetails_" + segment + "'");
+            connection.runSql("DELETE FROM webdata WHERE name = 'arcElements_" + segment + "'");
+            connection.runSql("DELETE FROM webdata WHERE name = 'cycleElements_" + segment + "'");
+            connection.runSql("DELETE FROM webdata WHERE name = 'databaseDetails_" + segment + "'");
+            connection.runSql("DELETE FROM webdata WHERE name = 'dropoutElements_" + segment + "'");
+            connection.runSql("DELETE FROM webdata WHERE name = 'graphElements_" + segment + "'").then(function () {
+                loader(false);
+                toastr.success('Please reload the page now', 'Updating Indicators and Charts', {timeOut: 0})
+            });
+        }
+    })
 }
 
 /**

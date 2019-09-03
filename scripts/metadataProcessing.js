@@ -453,8 +453,8 @@ function processCertificates(inputFile, enrollmentValues, courseMetadataMap) {
                 if (radioValue === 'allStudents') {
                     uncertifiedLearners++;
                     courseLearnerRecord.push(array)
-                } else if (radioValue === 'inRangeStudents') {
-                    if (new Date(register_time) <= new Date(courseMetadataMap.end_time)){
+                } else if (radioValue === 'inCourseDates') {
+                    if (new Date(register_time) <= new Date(courseMetadataMap.end_date)){
                         uncertifiedLearners++;
                         courseLearnerRecord.push(array)
                     } else {
@@ -463,6 +463,7 @@ function processCertificates(inputFile, enrollmentValues, courseMetadataMap) {
                 }
             }
         }
+        console.log(certifiedLearners, uncertifiedLearners);
         return {
             'certifiedLearners': certifiedLearners,
             'uncertifiedLearners': uncertifiedLearners,

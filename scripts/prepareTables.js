@@ -29,6 +29,15 @@ function showCourseTable(connection) {
                 let dateFormat = {weekday: 'short', year: 'numeric', month: 'long', day: 'numeric'};
                 let query = "";
                 courses.forEach(async function (course) {
+                    let courseMetadataMap = {};
+                    await connection.runSql("SELECT * FROM metadata WHERE name = 'metadata_map' ").then(function(result) {
+                        if (result.length === 0) {
+                            loader(false);
+                            toastr.error('Metadata has not been processed! Please upload all metadata files first');
+                        } else {
+                            courseMetadataMap = result[0]['object'];
+                        }
+                    });
                     query = "SELECT * FROM webdata WHERE name = 'segmentation' ";
                     let segmentation = '';
                     await connection.runSql(query).then(function (result) {
@@ -46,34 +55,46 @@ function showCourseTable(connection) {
                             course.course_name + "</td><td>" +
                             course.start_time.toLocaleDateString('en-EN', dateFormat) + "</td><td>" +
                             course.end_time.toLocaleDateString('en-EN', dateFormat) + "</td><td>";
-                        query = "count from course_elements where course_id = '" + course.course_id + "'";
-                        await connection.runSql(query).then(function (result) {
-                            HtmlString += result.toLocaleString('en-US') + "</td><td>";
-                        });
+                        // query = "count from course_elements where course_id = '" + course.course_id + "'";
+                        // await connection.runSql(query).then(function (result) {
+                        //     HtmlString += result.toLocaleString('en-US') + "</td><td>";
+                        // });
                         if (segment === 'none') {query = "count * from learner_demographic";}
                             else { query = "count from learner_demographic where segment = '" + segment + "'"; }
                         await connection.runSql(query).then(function (result) {
                             HtmlString += result.toLocaleString('en-US') + "</td><td>";
                         });
                         query = "SELECT * FROM quiz_questions";
-                        await connection.runSql(query).then(function (results) {
-                            results.forEach(function (result) {
-                                if (result['question_id'].includes(course.course_id.slice(10,))) {
-                                    questionCounter++;
-                                }
-                            });
-                            HtmlString += questionCounter.toLocaleString('en-US') + "</td><td>";
-                        });
-                        query = "SELECT * FROM forum_interaction";
-                        await connection.runSql(query).then(function (sessions) {
-                            sessions.forEach(function (session) {
-                                if (session['course_learner_id'].includes(course.course_id) &&
-                                    (segment === 'none' || learnerSegmentation(session['course_learner_id'], segmentation) === segment)) {
-                                    forumInteractionCounter++;
-                                }
-                            });
-                        });
-                        HtmlString += forumInteractionCounter.toLocaleString('en-US');
+                        let problemBlockSet = new Set();
+
+                        for (let component in courseMetadataMap.element_type_map){
+                            if (courseMetadataMap.element_type_map[component] === 'problem') {
+                                let problemBlockId = courseMetadataMap.child_parent_map[component];
+                                problemBlockSet.add(problemBlockId);
+                            }
+                        }
+                        HtmlString += problemBlockSet.size.toLocaleString('en-US') + "</td><td>";
+
+                        // await connection.runSql(query).then(function (results) {
+                        //     results.forEach(function (result) {
+                        //         let problemBlockId = courseMetadataMap.child_parent_map[result['question_id']];
+                        //         problemBlockSet.add(problemBlockId);
+                        //         if (result['question_id'].includes(course.course_id.slice(10,))) {
+                        //             questionCounter++;
+                        //         }
+                        //         console.log(result['question_id'], problemBlockId, courseMetadataMap.child_parent_map[problemBlockId])
+                        //     });
+                        //     // HtmlString += questionCounter.toLocaleString('en-US') + "</td><td>";
+                        //     HtmlString += problemBlockSet.size.toLocaleString('en-US') + "</td><td>";
+                        // });
+
+                        let videoCounter = 0;
+                        for (let component in courseMetadataMap.element_type_map){
+                            if (courseMetadataMap.element_type_map[component] === 'video') {
+                                videoCounter++
+                            }
+                        }
+                        HtmlString += videoCounter.toLocaleString('en-US');
 
                         if (segment === 'none') {
                             $('#tblGrid tbody').html(HtmlString);
@@ -106,6 +127,15 @@ function showDetailsTable(connection) {
             loader(true);
             connection.runSql('select * from courses').then(function (courses) {
                 courses.forEach(async function (course) {
+                    let courseMetadataMap = {};
+                    await connection.runSql("SELECT * FROM metadata WHERE name = 'metadata_map' ").then(function(result) {
+                        if (result.length === 0) {
+                            loader(false);
+                            toastr.error('Metadata has not been processed! Please upload all metadata files first');
+                        } else {
+                            courseMetadataMap = result[0]['object'];
+                        }
+                    });
                     let query = "SELECT * FROM webdata WHERE name = 'segmentation' ";
                     let segmentation = '';
                     await connection.runSql(query).then(function (result) {
@@ -126,6 +156,7 @@ function showDetailsTable(connection) {
                         let totalQuizSessionCounter = 0;
                         let sessionCounter = 0;
                         let forumSessionCounter = 0;
+                        let forumInteractionCounter = 0;
                         let videoInteractionCounter = 0;
                         let submissionCounter = 0;
                         let assessmentCounter = 0;
@@ -151,6 +182,15 @@ function showDetailsTable(connection) {
                                 if (session['course_learner_id'].includes(course.course_id) &&
                                     (segment === 'none' || learnerSegmentation(session['course_learner_id'], segmentation) === segment)) {
                                     forumSessionCounter++;
+                                }
+                            });
+                        });
+                        query = "SELECT * FROM forum_interaction";
+                        await connection.runSql(query).then(function (sessions) {
+                            sessions.forEach(function (session) {
+                                if (session['course_learner_id'].includes(course.course_id) &&
+                                    (segment === 'none' || learnerSegmentation(session['course_learner_id'], segmentation) === segment)) {
+                                    forumInteractionCounter++;
                                 }
                             });
                         });
@@ -202,6 +242,7 @@ function showDetailsTable(connection) {
                             totalQuizSessionCounter.toLocaleString('en-US');
                         HtmlString += sessionCounter.toLocaleString('en-US') + "</td><td>" +
                             forumSessionCounter.toLocaleString('en-US') + "</td><td>" +
+                            forumInteractionCounter.toLocaleString('en-US') + "</td><td>" +
                             videoInteractionCounter.toLocaleString('en-US') + "</td><td>" +
                             submissionCounter.toLocaleString('en-US') + "</td><td>" +
                             assessmentCounter.toLocaleString('en-US') + "</td><td>" +

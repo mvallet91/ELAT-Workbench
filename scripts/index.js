@@ -358,12 +358,27 @@ function prepareDashboard() {
                 });
             });
         } else {
-            let defaultOrder = [
+            let defaultOrder = [];
+            if (window.innerWidth > 1400) {
+                defaultOrder = [
                 {"id":"areaTile","col":1,"row":1,"size_x":6,"size_y":3}, {"id":"lineTile",       "col":7,"row":1,"size_x":6,"size_y":3},
                 {"id":"heatTile","col":1,"row":4,"size_x":5,"size_y":4}, {"id":"mixedTile",      "col":6,"row":4,"size_x":7,"size_y":4},
                 {"id":"boxTile", "col":1,"row":9,"size_x":6,"size_y":4}, {"id":"areaDropoutTile","col":7,"row":9,"size_x":6,"size_y":4},
                                     {"id":"arcTile","col":1,"row":14,"size_x":12,"size_y":6},
-                                    {"id":"cycleTile","col":1,"row":20,"size_x":12,"size_y":6}];
+                                    {"id":"cycleTile","col":1,"row":20,"size_x":12,"size_y":6}
+                ];
+            } else {
+                defaultOrder = [
+                    {"id":"areaTile","col":1,"row":1,"size_x":7,"size_y":4},
+                    {"id":"lineTile", "col":1,"row":4,"size_x":7,"size_y":4},
+                    {"id":"heatTile","col":1,"row":7,"size_x":7,"size_y":4},
+                    {"id":"mixedTile", "col":1,"row":11,"size_x":7,"size_y":4},
+                    {"id":"boxTile", "col":1,"row":15,"size_x":7,"size_y":4},
+                    {"id":"areaDropoutTile","col":1,"row":19,"size_x":7,"size_y":4},
+                    {"id":"arcTile","col":1,"row":23,"size_x":7,"size_y":5},
+                    {"id":"cycleTile","col":1,"row":29,"size_x":7,"size_y":5}
+                ];
+            }
             $.each(defaultOrder, function (i, value) {
                 let id_name = "#";
                 id_name = id_name + value.id;

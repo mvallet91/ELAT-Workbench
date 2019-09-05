@@ -122,6 +122,7 @@ export function populateSamples(courseId, connection){
     connection.runSql("SELECT * FROM webdata").then(function(metadata) {
         if (metadata.length > 1){
             toastr.error('The database has to be clear first!');
+            loader(false);
         } else {
             toastr.info('Reading sample');
             $.getJSON(courseFile, function(json) {

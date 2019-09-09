@@ -439,6 +439,11 @@ function prepareDashboard() {
     });
 }
 
+/**
+ * Function to update tables and graphs to a learner segment, responds to button click
+ * @param segment
+ * @param connection
+ */
 function updateToSegment(segment, connection){
     connection.runSql("SELECT * FROM webdata WHERE name = 'courseDetails_" + segment + "' ").then(function(result) {
         if (result.length === 1) {

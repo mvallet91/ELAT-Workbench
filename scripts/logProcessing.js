@@ -84,7 +84,10 @@ export function processGeneralSessions(courseMetadataMap, logFiles, fileIndex, t
                     } else {
                         let verification_time = new Date(end_time);
                         if (new Date(event_logs[i]["event_time"]) > verification_time.setMinutes(verification_time.getMinutes() + 30)){
-                            let session_id = course_learner_id + '_' + start_time + '_' + end_time;
+
+                            // let session_id = course_learner_id + '_' + start_time + '_' + end_time;
+                            let session_id = course_learner_id + '_' + start_time.getTime() + '_' + end_time.getTime();
+
                             let duration = (end_time - start_time)/1000;
 
                             if (duration > 5){
@@ -102,7 +105,7 @@ export function processGeneralSessions(courseMetadataMap, logFiles, fileIndex, t
                         } else {
                             if (event_logs[i]["event_type"] === "page_close"){
                                 end_time = new Date(event_logs[i]["event_time"]);
-                                session_id = course_learner_id + '_' + start_time + '_' + end_time;
+                                session_id = course_learner_id + '_' + start_time.getTime() + '_' + end_time.getTime();
                                 let duration = (end_time - start_time)/1000;
 
                                 if (duration > 5){
@@ -305,7 +308,8 @@ export function processForumSessions(courseMetadataMap, logFiles, index, total, 
                         if (['forum_activity', 'edx.forum.searched'].includes(event_logs[i]['event_type'])) {
                             let verification_time = new Date(end_time);
                             if (new Date(event_logs[i]["event_time"]) > verification_time.setMinutes(verification_time.getMinutes() + 30)) {
-                                session_id = session_id + '_' + start_time + '_' + end_time;
+                                session_id = session_id + '_' + start_time.getTime() + '_' + end_time.getTime();
+                                // session_id = session_id + '_' + start_time + '_' + end_time;
                                 const duration = (end_time - start_time) / 1000;
 
                                 if (duration > 5) {
@@ -341,7 +345,7 @@ export function processForumSessions(courseMetadataMap, logFiles, index, total, 
                             if (new Date(event_logs[i]["event_time"]) <= verification_time.setMinutes(verification_time.getMinutes() + 30)){
                                 end_time = new Date(event_logs[i]['event_time']);
                             }
-                            session_id = session_id + '_' +  start_time + '_' + end_time;
+                            session_id = session_id + '_' +  start_time.getTime() + '_' + end_time.getTime();
                             const duration = (end_time - start_time) / 1000;
 
                             if (duration > 5) {
@@ -571,7 +575,7 @@ export function processVideoInteractionSessions(courseMetadataMap, logFiles, ind
                         video_id = log['video_id'];
                         if (pause_check) {
                             let duration_pause = (new Date(log['event_time']) - pause_start_time)/1000;
-                            let video_interaction_id = (course_learner_id + '_' + video_id  + '_' + pause_start_time);
+                            let video_interaction_id = (course_learner_id + '_' + video_id  + '_' + pause_start_time.getTime());
                             if (duration_pause > 2 && duration_pause < 600) {
                                 if (video_interaction_id in video_interaction_map) {
                                     video_interaction_map[video_interaction_id]['times_pause'] = 1;
@@ -635,7 +639,7 @@ export function processVideoInteractionSessions(courseMetadataMap, logFiles, ind
                                 video_id === log['video_id']) {
                                 let watch_duration = (new Date(log['event_time']) - video_start_time)/1000,
                                     video_end_time = new Date(log['event_time']),
-                                    video_interaction_id = (course_learner_id + '_' + video_id + '_' + video_end_time);
+                                    video_interaction_id = (course_learner_id + '_' + video_id + '_' + video_end_time.getTime());
                                 if (watch_duration > 5) {
                                     video_interaction_map[video_interaction_id] = ({'course_learner_id': course_learner_id,
                                         'video_id': video_id, 'type': 'video', 'watch_duration': watch_duration,
@@ -665,7 +669,7 @@ export function processVideoInteractionSessions(courseMetadataMap, logFiles, ind
                             if ( !(video_event_types.includes(log['event_type']))) {
                                 let video_end_time = new Date(log['event_time']);
                                 let watch_duration = (video_end_time - video_start_time)/1000;
-                                let video_interaction_id = (course_learner_id + '_' + video_id + '_' + video_end_time + '_' + chunk);
+                                let video_interaction_id = (course_learner_id + '_' + video_id + '_' + video_end_time.getTime() + '_' + chunk);
                                 if (watch_duration > 5) {
                                     video_interaction_map[video_interaction_id] = ({'course_learner_id': course_learner_id,
                                         'video_id': video_id, 'type': 'video', 'watch_duration': watch_duration,
@@ -1077,7 +1081,7 @@ export function processQuizSessions(courseMetadataMap, logFiles, index, total, c
             let end_time = new Date(quizSessions[session_id]['time_array'][i]['end_time']);
             if (start_time < end_time) {
                 let duration = (end_time - start_time) / 1000;
-                let final_session_id = session_id + '_' + start_time + '_' + end_time;
+                let final_session_id = session_id + '_' + start_time.getTime() + '_' + end_time.getTime();
                 if (duration > 5) {
                     let array = [final_session_id, course_learner_id, start_time, end_time, duration];
                     quiz_session_record.push(array);
@@ -1251,7 +1255,7 @@ export function processORASessions(courseMetadataMap, logFiles, index, total, ch
 
                             let verification_time = new Date(endTime);
                             if (new Date(eventLogs[i]['event_time']) > verification_time.setMinutes(verification_time.getMinutes() + 30)) {
-                                sessionId = sessionId + '_' + startTime + '_' + endTime;
+                                sessionId = sessionId + '_' + startTime.getTime() + '_' + endTime.getTime();
 
                                 const duration = (endTime - startTime) / 1000;
 
@@ -1308,7 +1312,7 @@ export function processORASessions(courseMetadataMap, logFiles, index, total, ch
                             if (eventLogs[i]['event_time'] <= verificationTime.setMinutes(verificationTime.getMinutes() + 30)) {
                                 endTime = new Date(eventLogs[i]['event_time']);
                             }
-                            sessionId = sessionId + '_' + startTime + '_' + endTime;
+                            sessionId = sessionId + '_' + startTime.getTime() + '_' + endTime.getTime();
                             const duration = (endTime - startTime) / 1000;
 
                             if (duration > 5) {

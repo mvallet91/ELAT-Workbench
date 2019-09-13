@@ -251,6 +251,8 @@ export async function deleteEverything(connection) {
             alert('The deletion process started but did not finish,\n please refresh and try again');
         });
 
+        localStorage.clear();
+
         let DBDeleteRequest  = window.indexedDB.deleteDatabase('edxdb');
         DBDeleteRequest.onerror = function(event) {
             loader(false);

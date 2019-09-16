@@ -2,7 +2,6 @@
  * Function for development, used to download all processed dashboard data for Samples
  * @param connection Main JsStore worker that handles the connection to SqlWeb
  */
-
 export function webdataJSON(connection){
     connection.runSql("SELECT * FROM webdata").then(function(webElements) {
         let jsonString = '[';
@@ -76,9 +75,6 @@ export function learnerSegmentation(learnerId, segmentation) {
     }
     return segment;
 }
-
-
-
 
 /**
  *

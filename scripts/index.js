@@ -34,36 +34,10 @@ window.onload = function () {
     });
 
     //// BUTTONS INITIALIZATION /////////////////////////////////////////////////////////////////////////////
-
     let buttons = document.querySelectorAll('button');
     buttons.forEach( btn => {
         btn.addEventListener('click', buttonHandler);
     });
-
-    function buttonHandler(ev) {
-        let id = ev.currentTarget.id;
-        if (id === 'clearDB') {
-            deleteEverything(connection).then(function () {console.log('Cleared Database')});
-        } else if (id.startsWith('populate')) {
-            let courseId = id.slice(id.indexOf('-') + 1,);
-            populateSamples(courseId, connection);
-        } else if (id === 'updateChartValues') {
-            clearWebdataForUpdate(connection)
-        } else if (id.startsWith('dl')) {
-            let table = id.slice(id.indexOf('_') + 1,);
-            if (table === 'all') {
-                for (let table in schemaMap) {
-                    processTablesForDownload(table, schemaMap[table], connection);
-                }
-            } else {
-                processTablesForDownload(table, schemaMap[table], connection);
-            }
-        } else if (id === 'getForumList'){
-            downloadForumSegmentation(connection)
-        } else if (id === 'getWebdata'){
-            webdataJSON(connection)
-        }
-    }
 
     // RADIO INPUT INITIALIZATION //////////////////////////////////////////////////////////////////////////////
     let inputs = document.querySelectorAll('input');
@@ -71,63 +45,11 @@ window.onload = function () {
         input.addEventListener('change', inputHandler);
     });
 
-    function inputHandler(ev) {
-        const name = ev.currentTarget.name;
-        if (name === 'dailyOrWeekly' || name === 'processedOrInRange') {
-            updateCharts(connection).then( function() {console.log('Update Charts')})
-        }
-    }
-
     //  ANCHOR ELEMENTS INITIALIZATION ////////////////////////////////////////////////////////////////////////
     let anchors = document.querySelectorAll('a');
     anchors.forEach( a => {
         a.addEventListener('click', anchorHandler);
     });
-    function anchorHandler(ev) {
-        const id = ev.currentTarget.id;
-        if (id.startsWith('png')) {
-            let chartId = id.slice(id.indexOf('_') + 1,);
-            exportChartPNG(chartId)
-        }
-    }
-
-    function segmentationButtons(connection) {
-        let query = "SELECT * FROM webdata WHERE name = 'segmentation' ";
-        connection.runSql(query).then(function (result) {
-            if (result.length > 0) {
-                let segmentation = result[0]['object']['type'];
-                let field = document.getElementById("buttons");
-                if (segmentation === 'ab') {
-                    let element = document.createElement("button");
-                    // element.classList.add('btn');
-                    element.classList.add('btn-primary');
-                    element.appendChild(document.createTextNode("All Segments"));
-                    element.addEventListener('click', function () {
-                        updateToSegment('none', connection);
-                    });
-                    field.appendChild(element);
-
-                    let elementA = document.createElement("button");
-                    // elementA.classList.add('btn');
-                    elementA.classList.add('btn-primary');
-                    elementA.appendChild(document.createTextNode("Segment A"));
-                    elementA.addEventListener('click', function () {
-                        updateToSegment('A', connection);
-                    });
-                    field.appendChild(elementA);
-
-                    let elementB = document.createElement("button");
-                    // elementB.classList.add('btn');
-                    elementB.classList.add('btn-primary');
-                    elementB.appendChild(document.createTextNode("Segment B"));
-                    elementB.addEventListener('click', function () {
-                        updateToSegment('B', connection);
-                    });
-                    field.appendChild(elementB);
-                }
-            }
-        })
-    }
 };
 
 let reader = new FileReader();
@@ -464,6 +386,99 @@ function updateToSegment(segment, connection){
         }
     });
 
-    updateChartsBySegment(connection, new Date(), new Date(), segment);
+    updateChartsBySegment(connection, new Date(), new Date(), segment).then(function(){console.log('Updated')});
 }
 
+/**
+ * Handles the anchors with graph downloads
+ * @param ev
+ */
+function anchorHandler(ev) {
+    const id = ev.currentTarget.id;
+    if (id.startsWith('png')) {
+        let chartId = id.slice(id.indexOf('_') + 1,);
+        exportChartPNG(chartId)
+    }
+}
+
+/**
+ * Reads the segmentation type selected, and dynamically generates the necessary buttons
+ * @param connection
+ */
+function segmentationButtons(connection) {
+    let query = "SELECT * FROM webdata WHERE name = 'segmentation' ";
+    connection.runSql(query).then(function (result) {
+        if (result.length > 0) {
+            let segmentation = result[0]['object']['type'];
+            let field = document.getElementById("buttons");
+            if (segmentation === 'ab') {
+                let element = document.createElement("button");
+                // element.classList.add('btn');
+                element.classList.add('btn-primary');
+                element.appendChild(document.createTextNode("All Segments"));
+                element.addEventListener('click', function () {
+                    updateToSegment('none', connection);
+                });
+                field.appendChild(element);
+
+                let elementA = document.createElement("button");
+                // elementA.classList.add('btn');
+                elementA.classList.add('btn-primary');
+                elementA.appendChild(document.createTextNode("Segment A"));
+                elementA.addEventListener('click', function () {
+                    updateToSegment('A', connection);
+                });
+                field.appendChild(elementA);
+
+                let elementB = document.createElement("button");
+                // elementB.classList.add('btn');
+                elementB.classList.add('btn-primary');
+                elementB.appendChild(document.createTextNode("Segment B"));
+                elementB.addEventListener('click', function () {
+                    updateToSegment('B', connection);
+                });
+                field.appendChild(elementB);
+            }
+        }
+    })
+}
+
+/**
+ * Handles the different events for the buttons on the page
+ * @param ev
+ */
+function buttonHandler(ev) {
+    let id = ev.currentTarget.id;
+    if (id === 'clearDB') {
+        deleteEverything(connection).then(function () {console.log('Cleared Database')});
+    } else if (id.startsWith('populate')) {
+        let courseId = id.slice(id.indexOf('-') + 1,);
+        populateSamples(courseId, connection);
+    } else if (id === 'updateChartValues') {
+        clearWebdataForUpdate(connection)
+    } else if (id.startsWith('dl')) {
+        let table = id.slice(id.indexOf('_') + 1,);
+        if (table === 'all') {
+            for (let table in schemaMap) {
+                processTablesForDownload(table, schemaMap[table], connection);
+            }
+        } else {
+            processTablesForDownload(table, schemaMap[table], connection);
+        }
+    } else if (id === 'getForumList'){
+        downloadForumSegmentation(connection)
+    } else if (id === 'getWebdata'){
+        webdataJSON(connection)
+    }
+}
+
+/**
+ * Handles changes on the radio inputs
+ * @param ev
+ */
+function inputHandler(ev) {
+    const name = ev.currentTarget.name;
+    if (name === 'dailyOrWeekly' || name === 'processedOrInRange') {
+        updateCharts(connection).then( function() {console.log('Update Charts')})
+    }
+}

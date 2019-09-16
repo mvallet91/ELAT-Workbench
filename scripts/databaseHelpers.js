@@ -4,7 +4,7 @@ import {prepareTables} from "./prepareTables.js";
 let testing = false;
 
 /**
- *
+ * Function to verify if the edx database exists and start the dashboard, or generate it otherwise
  * @param connection Main JsStore worker that handles the connection to SqlWeb
  */
 export function initiateEdxDb(connection) {
@@ -33,17 +33,17 @@ export function initiateEdxDb(connection) {
 
 
 /**
- * Database helper to insert values into IndexedDB in an SQL fashion, using the SqlWeb library
- * @param {string} table
- * @param {array} dataObject
+ * Handles the SQL-style query to insert values into IndexedDB, using the SqlWeb interpreter
+ * @param {string} table String with the name of the table to insert
+ * @param {array} dataRows Array of objects (rows) to be inserted into the table
  * @param connection Main JsStore worker that handles the connection to SqlWeb
  */
-export function sqlInsert(table, dataObject, connection) {
+export function sqlInsert(table, dataRows, connection) {
     if (!(['forum_interaction', 'webdata'].includes(table))){
         connection.runSql('DELETE FROM ' + table);
     }
     let query = new SqlWeb.Query("INSERT INTO " + table + " values='@val'");
-    for (let v of dataObject) {
+    for (let v of dataRows) {
         for (let field of Object.keys(v)) {
             if (field.includes('time')){
                 let date = v[field];
@@ -52,8 +52,8 @@ export function sqlInsert(table, dataObject, connection) {
         }
     }
     let info = '';
-    if (table === 'webdata' || table === 'metadata') {info = dataObject[0]['name']} else {info = dataObject.length}
-    query.map("@val", dataObject);
+    if (table === 'webdata' || table === 'metadata') {info = dataRows[0]['name']} else {info = dataRows.length}
+    query.map("@val", dataRows);
     connection.runSql(query).then(function (rowsAdded) {
         if (rowsAdded > 0 && table !== 'forum_interaction') {
             let today = new Date();
@@ -71,9 +71,9 @@ export function sqlInsert(table, dataObject, connection) {
 }
 
 /**
- *
- * @param table
- * @param rowsArray
+ * Handles the SQL-style query to insert values from the logs into IndexedDB, using the SqlWeb interpreter
+ * @param {string} table String with the name of the table to insert
+ * @param {array} rowsArray Array of objects (rows) to be inserted into the table
  * @param connection Main JsStore worker that handles the connection to SqlWeb
  */
 export function sqlLogInsert(table, rowsArray, connection) {
@@ -103,9 +103,9 @@ export function sqlLogInsert(table, rowsArray, connection) {
 }
 
 /**
- *
- * @param courseId
- * @param connection
+ * Reads JSON stored values, and populates the sample data into dashboard tables and graphs
+ * @param {string} courseId String with the course id, embedded in the button
+ * @param connection Main JsStore worker that handles the connection to SqlWeb
  */
 export function populateSamples(courseId, connection){
     loader(true);
@@ -135,7 +135,7 @@ export function populateSamples(courseId, connection){
 }
 
 /**
- *
+ * Deletes the processed Webdata used for dashboard tables and graphs after new log files are added
  * @param connection Main JsStore worker that handles the connection to SqlWeb
  */
 export function clearStoredWebdata(connection) {
@@ -162,19 +162,35 @@ export function clearStoredWebdata(connection) {
 }
 
 /**
- *
+ * Deletes the processed Webdata used for dashboard tables only, when metadata is updated
  * @param connection Main JsStore worker that handles the connection to SqlWeb
  */
-export function clearMetadataTables(connection){
-    connection.runSql("DELETE FROM webdata WHERE name = 'courseDetails'");
-    connection.runSql("DELETE FROM webdata WHERE name = 'databaseDetails'");
-    connection.runSql("DELETE FROM webdata WHERE name = 'mainIndicators'");
+export function clearDashboardTablesWebdata(connection){
+    loader(true);
+    let query = "SELECT * FROM webdata WHERE name = 'segmentation' ";
+    let segmentation = '';
+    let segmentMap = {
+        'none': ['none'],
+        'ab': ['none', 'A', 'B'],
+        'abc': ['none', 'A', 'B', 'C']
+    };
     connection.runSql("DELETE FROM webdata WHERE name = 'segmentation'");
+    connection.runSql(query).then(function (result) {
+        segmentation = result[0]['object']['type'];
+        for (let segment of segmentMap[segmentation]) {
+            connection.runSql("DELETE FROM webdata WHERE name = 'courseDetails_" + segment + "'");
+            connection.runSql("DELETE FROM webdata WHERE name = 'mainIndicators_" + segment + "'");
+            connection.runSql("DELETE FROM webdata WHERE name = 'databaseDetails_" + segment + "'").then(function () {
+                loader(false);
+                toastr.success('Please reload the page now', 'Updating Indicators and Charts', {timeOut: 0})
+            });
+        }
+    });
 }
 
 /**
- *
- * @param connection
+ * Deletes the processed Webdata used for dashboard tables and graphs, executed by the user via button
+ * @param connection Main JsStore worker that handles the connection to SqlWeb
  */
 export function clearWebdataForUpdate(connection) {
     loader(true);
@@ -188,6 +204,7 @@ export function clearWebdataForUpdate(connection) {
     connection.runSql(query).then(function (result) {
         segmentation = result[0]['object']['type'];
         for (let segment of segmentMap[segmentation]) {
+            connection.runSql("DELETE FROM webdata WHERE name = 'courseDetails_" + segment + "'");
             connection.runSql("DELETE FROM webdata WHERE name = 'mainIndicators_" + segment + "'");
             connection.runSql("DELETE FROM webdata WHERE name = 'databaseDetails_" + segment + "'");
             connection.runSql("DELETE FROM webdata WHERE name = 'arcElements_" + segment + "'");
@@ -203,8 +220,8 @@ export function clearWebdataForUpdate(connection) {
 }
 
 /**
- *
- * @param connection
+ * Deletes all tables, and then the full database
+ * @param connection Main JsStore worker that handles the connection to SqlWeb
  * @returns {Promise<void>}
  */
 export async function deleteEverything(connection) {
@@ -278,53 +295,60 @@ export async function deleteEverything(connection) {
 }
 
 /**
- *
- * @param tablename
- * @param headers
- * @param connection
+ * Processes the data from a table to be downloaded, converting from the IndexedDB key-value format to a csv
+ * @param {string} tablename Name of the table to be downloaded
+ * @param {array} headers Headers of the table
+ * @param connection Main JsStore worker that handles the connection to SqlWeb
  */
-export function processTablesForDownload(tablename, headers, connection) {
+export function processTablesForDownload(tablename, connection) {
+    let schemaMap = {
+        'sessions': ['session_id', 'course_learner_id', 'start_time', 'end_time', 'duration'],
+        'forum_sessions': ['session_id', 'course_learner_id', 'times_search', 'start_time',
+            'end_time', 'duration', 'relevent_element_id'],
+        'video_interaction': ['interaction_id', 'course_learner_id', 'video_id', 'duration',
+            'times_forward_seek', 'duration_forward_seek', 'times_backward_seek', 'duration_backward_seek',
+            'times_speed_up', 'times_speed_down', 'times_pause', 'duration_pause', 'start_time', 'end_time'],
+        'submissions': ['submission_id', 'course_learner_id', 'question_id', 'submission_timestamp'],
+        'assessments': ['assessment_id', 'course_learner_id', 'max_grade', 'grade'],
+        'quiz_sessions': ['session_id', 'course_learner_id', 'start_time', 'end_time', 'duration'],
+        'forum_interaction': ['post_id', 'course_learner_id', 'post_type', 'post_title', 'post_content',
+            'post_timestamp', 'post_parent_id', 'post_thread_id']
+    };
+    let headers = schemaMap[tablename];
+
     connection.runSql('select * from courses').then(function (courses) {
         courses.forEach(function(course){
             const course_id = course.course_id;
             let total_count = 0,
                 counter = 0;
-            connection.runSql("COUNT * FROM " + tablename).then(function(count) {
-                total_count = count;
-            });
-            connection.runSql("SELECT * FROM " + tablename).then(function(sessions) {
-                let data = [headers];
-                sessions.forEach(function (session) {
-                    counter++;
-                    if (session['course_learner_id'].includes(course_id)){
-                        let array = [];
-                        for (let key in session){
-                            array.push(session[key]);
-                        }
-                        data.push(array)
-                    }
-                    if (counter === total_count){
-                        downloadCsv(tablename + course_id + '.csv', data);
-                    }
+            if (tablename === 'all') {
+                for (let table in schemaMap) {
+                    processTablesForDownload(table, connection);
+                }
+            } else {
+                connection.runSql("COUNT * FROM " + tablename).then(function (count) {
+                    total_count = count;
                 });
-            });
+                connection.runSql("SELECT * FROM " + tablename).then(function (sessions) {
+                    let data = [headers];
+                    sessions.forEach(function (session) {
+                        counter++;
+                        if (session['course_learner_id'].includes(course_id)) {
+                            let array = [];
+                            for (let key in session) {
+                                array.push(session[key]);
+                            }
+                            data.push(array)
+                        }
+                        if (counter === total_count) {
+                            downloadCsv(tablename + course_id + '.csv', data);
+                        }
+                    });
+                });
+            }
         });
     })
 }
-
-
-export let schemaMap = {'sessions': ['session_id', 'course_learner_id', 'start_time', 'end_time', 'duration'],
-    'forum_sessions': ['session_id', 'course_learner_id', 'times_search', 'start_time',
-        'end_time', 'duration', 'relevent_element_id'],
-    'video_interaction':['interaction_id', 'course_learner_id', 'video_id','duration',
-        'times_forward_seek','duration_forward_seek','times_backward_seek','duration_backward_seek',
-        'times_speed_up','times_speed_down','times_pause','duration_pause','start_time','end_time'],
-    'submissions': ['submission_id', 'course_learner_id', 'question_id', 'submission_timestamp'],
-    'assessments': ['assessment_id', 'course_learner_id', 'max_grade', 'grade'],
-    'quiz_sessions': ['session_id', 'course_learner_id', 'start_time', 'end_time', 'duration'],
-    'forum_interaction': ['post_id', 'course_learner_id', 'post_type', 'post_title', 'post_content',
-        'post_timestamp', 'post_parent_id', 'post_thread_id']
-};
 
 /**
  * Generates the schema for the edX database

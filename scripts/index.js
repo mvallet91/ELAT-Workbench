@@ -1,6 +1,6 @@
 import {processMetadataFiles} from './metadataProcessing.js'
 import {populateSamples, initiateEdxDb, clearWebdataForUpdate,
-    deleteEverything, schemaMap, processTablesForDownload} from "./databaseHelpers.js";
+    deleteEverything, processTablesForDownload} from "./databaseHelpers.js";
 import {loader, downloadForumSegmentation, progressDisplay, webdataJSON} from './helpers.js'
 import {processGeneralSessions, processForumSessions, processVideoInteractionSessions,
     processAssessmentsSubmissions, processQuizSessions, processORASessions} from "./logProcessing.js";
@@ -458,13 +458,7 @@ function buttonHandler(ev) {
         clearWebdataForUpdate(connection)
     } else if (id.startsWith('dl')) {
         let table = id.slice(id.indexOf('_') + 1,);
-        if (table === 'all') {
-            for (let table in schemaMap) {
-                processTablesForDownload(table, schemaMap[table], connection);
-            }
-        } else {
-            processTablesForDownload(table, schemaMap[table], connection);
-        }
+        processTablesForDownload(table, connection);
     } else if (id === 'getForumList'){
         downloadForumSegmentation(connection)
     } else if (id === 'getWebdata'){

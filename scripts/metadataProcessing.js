@@ -1,6 +1,6 @@
 import {cleanUnicode, cmpDatetime, getDayDiff, loader, processNull,
     escapeString, learnerSegmentation} from "./helpers.js";
-import {sqlInsert, clearMetadataTables} from "./databaseHelpers.js";
+import {sqlInsert, clearDashboardTablesWebdata} from "./databaseHelpers.js";
 
 
 /**
@@ -14,7 +14,7 @@ export function processMetadataFiles(files, connection) {
     if (Object.keys(courseMetadataMap).length < 1) {
         loader(false);
     } else {
-        clearMetadataTables(connection);
+        clearDashboardTablesWebdata(connection);
         let segmentation = $("input[name='segmentationRule']:checked").val();
         let segmentationType = {'type': segmentation};
         sqlInsert('webdata', [{'name': 'segmentation', 'object': segmentationType}], connection);

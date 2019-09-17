@@ -1,11 +1,10 @@
 import {sqlInsert} from "./databaseHelpers.js";
 import {loader, learnerSegmentation} from "./helpers.js";
 
-
 /**
- *
- * @param connection
- * @returns {Promise<unknown>}
+ * Main processing function for all graph related data
+ * @param {JsStoreWorker} connection Main JsStore worker that handles the connection to SqlWeb
+ * @returns {Promise<Object>} When resolved, it returns the graph data object
  */
 export async function getGraphElementMap(connection, segment) {
     let graphElementMap = {};
@@ -526,7 +525,7 @@ export async function getGraphElementMap(connection, segment) {
  * Finds the intersecting elements between two sets
  * @param set1
  * @param set2
- * @returns {Set}
+ * @returns {Set} Set with intersecting elements
  */
 export function intersection(set1, set2){
     return new Set([...set1].filter(x => set2.has(x)));
@@ -537,7 +536,7 @@ export function intersection(set1, set2){
  * Finds the difference elements between two sets
  * @param set1
  * @param set2
- * @returns {Set}
+ * @returns {Set} set with difference elements
  */
 export function difference(set1, set2){
     return new Set([...set1].filter(x => !set2.has(x)));
@@ -561,14 +560,14 @@ export function exportChartPNG(chartId) {
     } else {
         SVG2PNG(element.firstElementChild, function(canvas) { // Arguments: SVG element, callback function.
             let base64 = canvas.toDataURL("image/png"); // toDataURL return DataURI as Base64 format.
-            generateLink(filename + '.png', base64).click(); // Trigger the Link is made by Link Generator and download.
+            generateImageLink(filename + '.png', base64).click(); // Trigger the Link is made by Link Generator and download.
         });
     }
 }
 
 /**
- *
- * @param svg
+ * Converts SVG object from a canvas into PNG image using canvg
+ * @param {Element} svg Page element with svg code
  * @param callback
  */
 export function SVG2PNG(svg, callback) {
@@ -579,12 +578,12 @@ export function SVG2PNG(svg, callback) {
 }
 
 /**
- *
- * @param fileName
- * @param data
- * @returns {HTMLElement}
+ * Creates generic anchor element with href to object to prepare image for download
+ * @param {string} fileName Name for the generated file
+ * @param {string} data HTML code from chart SVG
+ * @returns {HTMLElement} link Generated link for download
  */
-export function generateLink(fileName, data) {
+export function generateImageLink(fileName, data) {
     let link = document.createElement('a');
     link.download = fileName;
     link.href = data;
@@ -592,11 +591,11 @@ export function generateLink(fileName, data) {
 }
 
 /**
- *
- * @param values
- * @param start
- * @param end
- * @returns {Array}
+ * Trims objects with graph data between dates
+ * @param {Object} values Ordered graph values to be trimmed
+ * @param {Date} start Start date to trim
+ * @param {Date} end Final date to trim
+ * @returns {Array} trimmed Trimmed array of values within required dates
  */
 export function trimByDates(values, start, end){
     let trimmed = [];
@@ -609,11 +608,10 @@ export function trimByDates(values, start, end){
 }
 
 /**
- *
- * @param weeklyPosters
- * @param weeklyViewers
- * @param connection
- * @returns {{regularPosters: Array, occasionalViewers: Array, regularViewers: Array, occasionalPosters: Array}}
+ * Processing of regular vs occasional forum posters and regular vs occasional forum viewers
+ * @param {Object} weeklyPosters Object with array of ids of learners that posted by week
+ * @param {Object} weeklyViewers Object with array of ids of learners that visited forums by week
+ * @param {JsStoreWorker} connection Main JsStore worker that handles the connection to SqlWeb
  */
 export function getForumSegmentation(weeklyPosters, weeklyViewers, connection) {
     let posters = {};
@@ -663,16 +661,6 @@ export function getForumSegmentation(weeklyPosters, weeklyViewers, connection) {
         'occasionalPosters': occasionalPosters,
         'occasionalViewers': occasionalFViewers
     };
-    generateForumBehaviorTable(forumSegmentation, connection);
-    return forumSegmentation;
-}
-
-/**
- *
- * @param forumSegmentation
- * @param connection
- */
-export function generateForumBehaviorTable(forumSegmentation, connection) {
     let resultMatrix = {};
     for (let group in forumSegmentation){
         for (let studentId of forumSegmentation[group]) {
@@ -690,9 +678,75 @@ export function generateForumBehaviorTable(forumSegmentation, connection) {
     sqlInsert('webdata', studentsForumBehavior, connection)
 }
 
+// /**
+//  *
+//  * @param forumSegmentation
+//  * @param {JsStoreWorker} connection Main JsStore worker that handles the connection to SqlWeb
+//  */
+// export function generateForumBehaviorTable(forumSegmentation, connection) {
+//     let resultMatrix = {};
+//     for (let group in forumSegmentation){
+//         for (let studentId of forumSegmentation[group]) {
+//             if (studentId in resultMatrix) {
+//                 resultMatrix[studentId].push(group)
+//             } else {
+//                 resultMatrix[studentId] = [group]
+//             }
+//         }
+//     }
+//     let studentsForumBehavior = [{
+//         'name': 'studentsForumBehavior',
+//         'object': resultMatrix
+//     }];
+//     sqlInsert('webdata', studentsForumBehavior, connection)
+// }
+
 /**
- *
- * @param elementObject
+ * Groups the values of a graph series by week. If the daily values are numbers, it returns the total sum/average for each week. If they're an array, it returns a concatenated array for each week's sum.
+ * @param {Object} graphElementMap Object with all graph series
+ * @param {string} orderedSeriesName Name of the series to group
+ * @returns {{weeklySum: *, weeklyAvg: *}} Weekly aggregated graph series object
+ */
+export function groupWeeklyMapped(graphElementMap, orderedSeriesName) {
+    let grouped = _.groupBy(graphElementMap['dateListChart'], (result) => moment(result, 'DD/MM/YYYY').startOf('isoWeek'));
+    let weeklySum = {};
+    let weeklyAvg = {};
+    let weekType = 'number';
+    for (let week in grouped) {
+        let weekDays = grouped[week];
+        let weekTotal = 0;
+        let weekList = [];
+        for (let day of weekDays) {
+            if (graphElementMap[orderedSeriesName].hasOwnProperty(day)) {
+                if (! isNaN(Number(graphElementMap[orderedSeriesName][day]))) {
+                    weekTotal += Number(graphElementMap[orderedSeriesName][day]);
+                } else {
+                    weekType = 'list';
+                    let weekValues = [];
+                    if (graphElementMap[orderedSeriesName].hasOwnProperty(day)) {
+                        weekValues = graphElementMap[orderedSeriesName][day];
+                    }
+                    for (let element of weekValues) {
+                        weekList.push(element);
+                    }
+                }
+            }
+        }
+        if (weekType === "number") {
+            weeklySum[week] = weekTotal;
+            weeklyAvg[week] = (weekTotal / 7).toFixed(2);
+        } else {
+            weeklySum[week] = weekList;
+            weeklyAvg[week] = 'noAvg'
+        }
+    }
+    return {'weeklySum': weeklySum, 'weeklyAvg': weeklyAvg}
+}
+
+/**
+ * Groups the values of a graph series by week. If the daily values are numbers, it returns the total sum for each week. If they're an array, it returns a concatenated array for each week. Only for forum behavior series.
+ * @param {Object} elementObject Graph series object
+ * @returns {Object} weeklySum Weekly aggregated graph series object
  */
 export function groupWeekly(elementObject) {
     let grouped = _.groupBy(Object.keys(elementObject), (result) => moment(new Date(result), 'DD/MM/YYYY').startOf('isoWeek'));
@@ -726,51 +780,9 @@ export function groupWeekly(elementObject) {
 }
 
 /**
- *
- * @param graphElementMap
- * @param orderedElements
- * @returns {{weeklySum: *, weeklyAvg: *}}
- */
-export function groupWeeklyMapped(graphElementMap, orderedElements) {
-    let grouped = _.groupBy(graphElementMap['dateListChart'], (result) => moment(result, 'DD/MM/YYYY').startOf('isoWeek'));
-    let weeklySum = {};
-    let weeklyAvg = {};
-    let weekType = 'number';
-    for (let week in grouped) {
-        let weekDays = grouped[week];
-        let weekTotal = 0;
-        let weekList = [];
-        for (let day of weekDays) {
-            if (graphElementMap[orderedElements].hasOwnProperty(day)) {
-                if (! isNaN(Number(graphElementMap[orderedElements][day]))) {
-                    weekTotal += Number(graphElementMap[orderedElements][day]);
-                } else {
-                    weekType = 'list';
-                    let weekValues = [];
-                    if (graphElementMap[orderedElements].hasOwnProperty(day)) {
-                        weekValues = graphElementMap[orderedElements][day];
-                    }
-                    for (let element of weekValues) {
-                        weekList.push(element);
-                    }
-                }
-            }
-        }
-        if (weekType === "number") {
-            weeklySum[week] = weekTotal;
-            weeklyAvg[week] = (weekTotal / 7).toFixed(2);
-        } else {
-            weeklySum[week] = weekList;
-            weeklyAvg[week] = 'noAvg'
-        }
-    }
-    return {'weeklySum': weeklySum, 'weeklyAvg': weeklyAvg}
-}
-
-/**
- *
- * @param array
- * @returns {number[]|*}
+ * Check if an array is empty to return an array with a zero to avoid graph processing errors
+ * @param {Array} array Graph array to be checked
+ * @returns {Array} Original array or array with a zero if empty
  */
 export function zeroIfEmptyArray(array){
     if (array.length === 0){
@@ -780,11 +792,11 @@ export function zeroIfEmptyArray(array){
 }
 
 /**
- *
- * @param start
- * @param end
- * @param height
- * @returns {string}
+ * Function to calculate the arc for the video transitions
+ * @param {number} start Origin point of the arc
+ * @param {number} end Target point of the arc
+ * @param {number} height Height of the arc
+ * @returns {string} String with svg arc info
  */
 export function calculateArc(start, end, height) {
     return ['M', start, height - 30,
@@ -795,7 +807,10 @@ export function calculateArc(start, end, height) {
         .join(' ');
 }
 
-
+/**
+ * Prototype function added to Date type to calculate the week number of a given date
+ * @returns {number} Week number of a date
+ */
 Date.prototype.getWeek = function() {
     let date = new Date(this.getTime());
     date.setHours(0, 0, 0, 0);

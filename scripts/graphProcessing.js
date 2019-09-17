@@ -3,6 +3,11 @@ import {groupWeeklyMapped, trimByDates, zeroIfEmptyArray, calculateArc,
 import {sqlInsert} from "./databaseHelpers.js";
 import {loader, learnerSegmentation} from "./helpers.js";
 
+/**
+ * Main function to draw all charts in the page. Obtains the graphElementMap and configurations, then draws charts.
+ * @param {JsStoreWorker} connection Main JsStore worker that handles the connection to SqlWeb
+ * @returns {Promise}
+ */
 export async function drawCharts(connection) {
     loader(true);
 
@@ -43,20 +48,39 @@ export async function drawCharts(connection) {
     drawAreaDropoutChart(startDate, endDate, connection, weekly);
 }
 
-
+/**
+ * Handle charts drawn by Chart.js
+ * @param {Object} graphElementMap Object with all ordered values for charts
+ * @param {Date} startDate Starting date to be drawn
+ * @param {Date} endDate Final date to be drawn
+ * @param {boolean} weekly True for weekly, false for daily values
+ */
 function drawChartJS(graphElementMap, startDate, endDate, weekly) {
     drawLineChart(graphElementMap, startDate, endDate, weekly);
     drawAreaChart(graphElementMap, startDate, endDate, weekly);
     drawBoxChart(graphElementMap, startDate, endDate, weekly);
 }
 
-
+/**
+ * Handle charts drawn by ApexCharts.js
+ * @param {Object} graphElementMap Object with all ordered values for charts
+ * @param {Date} startDate Starting date to be drawn
+ * @param {Date} endDate Final date to be drawn
+ * @param {boolean} weekly True for weekly, false for daily values
+ */
 function drawApexCharts(graphElementMap, startDate, endDate, weekly){
     drawMixedChart(graphElementMap, startDate, endDate, weekly);
     drawHeatChart(graphElementMap)
 }
 
-
+/**
+ *
+ * @param {JsStoreWorker} connection Main JsStore worker that handles the connection to SqlWeb
+ * @param start
+ * @param end
+ * @param segment
+ * @returns {Promise<void>}
+ */
 export async function updateCharts(connection, start, end, segment) {
     let graphElementMap = await getGraphElementMap(connection, segment);
 
@@ -99,7 +123,13 @@ export async function updateChartsBySegment(connection, start, end, segment) {
     drawCycles(connection, segment);
 }
 
-
+/**
+ * Draws the line chart with Session count and Learner count
+ * @param {Object} graphElementMap Object with all ordered values for charts
+ * @param {Date} startDate Starting date to be drawn
+ * @param {Date} endDate Final date to be drawn
+ * @param {boolean} weekly True for weekly, false for daily values
+ */
 function drawLineChart(graphElementMap, startDate, endDate, weekly){
     let canvas = document.getElementById('lineChart'),
         lineCtx = canvas.getContext('2d');
@@ -235,7 +265,13 @@ function drawLineChart(graphElementMap, startDate, endDate, weekly){
     lineChart = new Chart(lineCtx, lineOptions);
 }
 
-
+/**
+ * Draws the area chart with video, quiz, and forum sessions, with a line for session average duration
+ * @param {Object} graphElementMap Object with all ordered values for charts
+ * @param {Date} startDate Starting date to be drawn
+ * @param {Date} endDate Final date to be drawn
+ * @param {boolean} weekly True for weekly, false for daily values
+ */
 function drawAreaChart(graphElementMap, startDate, endDate, weekly){
     let canvas = document.getElementById('areaChart'),
         areaCtx = canvas.getContext('2d');
@@ -403,7 +439,14 @@ function drawAreaChart(graphElementMap, startDate, endDate, weekly){
     areaChart = new Chart(areaCtx, areaOptions);
 }
 
-
+/**
+ * Calculates and stores the values for the dropout chart: the last element learners interact with
+ * @param {object} courseMetadataMap Object with the course metadata information
+ * @param {Array} lastSessions Array of objects with the last session of each learner, the element id and date
+ * @param {Array} lastElements Array of the last element visited by every learner
+ * @param {JsStoreWorker} connection Main JsStore worker that handles the connection to SqlWeb
+ * @param {string} segment Current segment to evaluate
+ */
 function calculateDropoutValues(courseMetadataMap, lastSessions, lastElements, connection, segment){
     let dropoutFreq = _.countBy(lastElements);
 
@@ -514,7 +557,14 @@ function calculateDropoutValues(courseMetadataMap, lastSessions, lastElements, c
     });
 }
 
-
+/**
+ * Draws the area chart for dropout: the last element each learner interacted with, by date
+ * @param {Date} startDate Starting date to be drawn
+ * @param {Date} endDate Final date to be drawn
+ * @param {JsStoreWorker} connection Main JsStore worker that handles the connection to SqlWeb
+ * @param {boolean} weekly True for weekly, false for daily values
+ * @param {string} segment Current segment to evaluate
+ */
 function drawAreaDropoutChart(startDate, endDate, connection, weekly, segment){
     let areaDropoutCanvas = document.getElementById('areaDropoutChart'),
         areaDropoutCtx = areaDropoutCanvas.getContext('2d');
@@ -651,7 +701,13 @@ function drawAreaDropoutChart(startDate, endDate, connection, weekly, segment){
     })
 }
 
-
+/**
+ * Draws a box and whisker chart with the character count of posts by date
+ * @param {Object} graphElementMap Object with all ordered values for charts
+ * @param {Date} startDate Starting date to be drawn
+ * @param {Date} endDate Final date to be drawn
+ * @param {boolean} weekly True for weekly, false for daily values
+ */
 function drawBoxChart(graphElementMap, startDate, endDate, weekly){
     // BOXPLOT https://codepen.io/sgratzl/pen/QxoLoY
     let boxCtx = document.getElementById("boxChart").getContext("2d");
@@ -767,7 +823,13 @@ function drawBoxChart(graphElementMap, startDate, endDate, weekly){
     });
 }
 
-
+/**
+ * Draws a chart with bars for learners posts on forums and lines for viewing behavior in forums
+ * @param {Object} graphElementMap Object with all ordered values for charts
+ * @param {Date} startDate Starting date to be drawn
+ * @param {Date} endDate Final date to be drawn
+ * @param {boolean} weekly True for weekly, false for daily values
+ */
 function drawMixedChart(graphElementMap, startDate, endDate, weekly){
     let weeklyPosts = groupWeeklyMapped(graphElementMap, 'orderedForumPosts');
     let weeklyRegPosts = groupWeeklyMapped(graphElementMap, 'orderedForumPostsByRegulars');
@@ -1064,7 +1126,10 @@ function drawMixedChart(graphElementMap, startDate, endDate, weekly){
     mixedChart.render();
 }
 
-
+/**
+ * Draws a heatmap chart with the students forum behaviors in the axes and average grade as the "heat" value
+ * @param {Object} graphElementMap Object with all ordered values for charts
+ */
 function drawHeatChart(graphElementMap){
     let heatOptions = {
         chart: {
@@ -1136,7 +1201,10 @@ function drawHeatChart(graphElementMap){
     heatChart.render();
 }
 
-
+/**
+ * Calculates the video path of every learner by their video sessions
+ * @param {JsStoreWorker} connection Main JsStore worker that handles the connection to SqlWeb
+ */
 function calculateVideoTransitions(connection) {
     let learnerStatus = {};
     let videoIds = {};
@@ -1426,6 +1494,11 @@ function getTargets(node){
 
 }
 
+/**
+ * Draws an arc chart based on the aggregated transitions between videos of learners
+ * @param {JsStoreWorker} connection Main JsStore worker that handles the connection to SqlWeb
+ * @param {string} segment Current segment to evaluate
+ */
 function drawVideoTransitionArcChart(connection, segment){ // https://www.d3-graph-gallery.com/graph/arc_template.html
     if (! segment) {segment = 'none'}
     connection.runSql("SELECT * FROM webdata WHERE name = 'arcElements_" + segment + "' ").then(function(result) {
@@ -1667,7 +1740,10 @@ function drawVideoTransitionArcChart(connection, segment){ // https://www.d3-gra
     })
 }
 
-
+/**
+ * Calculates the path between course components followed by every student per week
+ * @param {JsStoreWorker} connection Main JsStore worker that handles the connection to SqlWeb
+ */
 function calculateModuleCycles(connection) {
     connection.runSql("SELECT * FROM metadata WHERE name = 'metadata_map' ").then(async function (result) {
         if (result.length !== 1) {
@@ -2051,7 +2127,11 @@ function calculateModuleCycles(connection) {
     })
 }
 
-
+/**
+ * Draws a custom chart based on the aggregated transitions between course components of learners
+ * @param {JsStoreWorker} connection Main JsStore worker that handles the connection to SqlWeb
+ * @param {string} segment Current segment to evaluate
+ */
 function drawCycles(connection, segment){
     if (!segment) {segment = 'none'}
     connection.runSql("SELECT * FROM webdata WHERE name = 'cycleElements_" + segment + "' ").then(function(result) {

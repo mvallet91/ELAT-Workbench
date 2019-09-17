@@ -1,3 +1,9 @@
+/**
+ * @fileOverview EdX Log file Analysis Tool
+ * @author <a href="mailto:m.valletorre@tudelft.nl">Manuel Valle Torre</a>
+ * @version 0.1
+ */
+
 import {processMetadataFiles} from './metadataProcessing.js'
 import {populateSamples, initiateEdxDb, clearWebdataForUpdate,
     deleteEverything, processTablesForDownload} from "./databaseHelpers.js";

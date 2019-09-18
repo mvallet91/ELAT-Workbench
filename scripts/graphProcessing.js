@@ -1490,10 +1490,6 @@ function calculateVideoTransitions(connection) {
 }
 
 
-function getTargets(node){
-
-}
-
 /**
  * Draws an arc chart based on the aggregated transitions between videos of learners
  * @param {JsStoreWorker} connection Main JsStore worker that handles the connection to SqlWeb
@@ -1509,10 +1505,6 @@ function drawVideoTransitionArcChart(connection, segment){ // https://www.d3-gra
             nodeData.links.sort(function(a, b) {
                 return b.value - a.value;
             });
-
-            // if (linkNumber == null){
-            //     linkNumber = nodeData.nodes.length
-            // }
 
             let linkSlider = d3.select('#links');
             linkSlider.on('change', function() {
@@ -1578,6 +1570,17 @@ function drawVideoTransitionArcChart(connection, segment){ // https://www.d3-gra
             nodeData.nodes.forEach(function (n) {
                 idToNode[n.id] = n;
             });
+
+            let nodeTargetMap = {};
+            for (let node of nodeData.nodes){
+                let targetsIds = [];
+                for (let link of nodeData.links.slice(0,linkNumber)) {
+                    if (node['id'] === link['source']) {
+                        targetsIds.push(link['target'])
+                    }
+                }
+                nodeTargetMap[node['id']] = targetsIds
+            }
 
             let arcType = typeDropdown.node().value;
 
@@ -1652,7 +1655,7 @@ function drawVideoTransitionArcChart(connection, segment){ // https://www.d3-gra
                 })
                 .style("text-anchor", "end")
                 .attr("transform", function (d) {
-                    return ("translate(" + (x(d.name) + 20) + "," + (height - 15) + ")rotate(-20)")
+                    return ("translate(" + (x(d.name) + 20) + "," + (height - 15) + ")rotate(-35)")
                 })
                 .style("font-size", 10);
 
@@ -1694,7 +1697,7 @@ function drawVideoTransitionArcChart(connection, segment){ // https://www.d3-gra
                         })
                         .style("font-size", function (label_d) {
                             // getTargets(d)
-                            if (label_d.name === d.name) {
+                            if (label_d.name === d.name || nodeTargetMap[d.id].includes(label_d.id)) {
                                 return 12
                             } else {
                                 return 2

@@ -1,0 +1,546 @@
+﻿<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+    <meta charset="utf-8" />
+    <title>HIDDEN Tools</title>
+    <link rel="shortcut icon" type="image/x-icon" href="icons/favicon.ico">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <link href="style/grids.css " rel="stylesheet " type="text/css " />
+
+    <link href="style/main.css " rel="stylesheet " type="text/css " />
+
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/2.1.1/toastr.min.css">
+
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.8.2/css/all.css"
+          integrity="sha384-oS3vJWv+0UjzBfQzYUhtDYW+Pj2yciDJxpsK1OYPAYjqT085Qq/1cq5FLXAZQ7Ay"
+          crossorigin="anonymous">
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.6.4/css/bootstrap-datepicker.min.css" />
+
+    <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/jquery.gridster/0.5.6/jquery.gridster.min.css" />
+
+    <script src = "https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/jsstore@3.1.0/dist/jsstore.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsstore@3.1.0/dist/jsstore.worker.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sqlweb@1.3.2/dist/sqlweb.min.js"></script>
+
+    <script src="https://cdn.jsdelivr.net/gh/mvallet91/hidden-Workbench/scripts/pako.js"></script> TODO REACTIVATE PAKO
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.8.0/Chart.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-annotation/0.5.7/chartjs-plugin-annotation.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.11/lodash.min.js"></script>
+    <script src="https://d3js.org/d3.v5.min.js"></script>
+    <script src="https://d3js.org/d3-scale-chromatic.v1.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/canvg/1.4/rgbcolor.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvg/dist/browser/canvg.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/save-svg-as-png@1.4.14/lib/saveSvgAsPng.min.js"></script>
+
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery.gridster/0.5.6/jquery.gridster.min.js" charset="utf-8"></script>
+
+</head>
+
+<body>
+
+    <nav class="navbar navbar-expand-lg navbar-light bg-light container-fluid">
+        <a class="navbar-brand" href="https://mvallet91.github.io/ELAT/">
+            <span><img src="img/logonav.png" width="30" alt="Logo"></span> edX Logfile Analysis Tool
+        </a>
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarText" aria-controls="navbarText" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarText">
+<!--            <ul class="navbar-nav mr-auto">-->
+<!--                <li class="nav-item">-->
+<!--                    <a class="nav-link" href="https://mvallet91.github.io/ELAT/docs/home/" target="_blank">Learn More</a>-->
+<!--                </li>-->
+<!--                <li class="nav-item">-->
+<!--                    <a class="nav-link" href="https://mvallet91.github.io/ELAT/docs/quickstart/" target="_blank">Quick Start</a>-->
+<!--                </li>-->
+<!--                <li class="nav-item">-->
+<!--                    <a class="nav-link" href="https://mvallet91.github.io/ELAT/docs/about/" target="_blank">About</a>-->
+<!--                </li>-->
+<!--                <li class="nav-item">-->
+<!--                    <a class="nav-link" href="https://github.com/mvallet91/ELAT-Workbench" target="_blank"><i class="fab fa-github fa-2x"></i></a>-->
+<!--                </li>-->
+<!--            </ul>-->
+<!--            <span class="navbar-brand">-->
+<!--                <a class="nav-link pull-right" href="https://www.tudelft.nl/ewi/over-de-faculteit/afdelingen/software-technology/web-information-systems/" target="_blank">-->
+<!--                    <img src="img/2000px-TU_Delft_Logo.svg.png" width="90px" ></a>-->
+<!--            </span>-->
+        </div>
+    </nav>
+
+    <div id="loading" style="display: none"></div>
+
+    <div class="row justify-content-md-center " style="margin-top:10px; ">
+        <div class="col-xs-12 col-sm-10  ">
+            <table id="tblGrid" class="table table-hover ">
+                <caption style="text-align:center;padding:7px 0 7px 0;background:#007394;color:white;font-size:18px;caption-side: top; ">
+                    Course Overview
+                </caption>
+                <thead>
+                    <tr>
+                        <th>Course Title</th>
+                        <th>Start Time</th>
+                        <th>End Time</th>
+                        <th>Enrollment</th>
+                        <th>Problems<br>(Assessments / Quizzes)</th>
+                        <th>Videos</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+    <!-- FILE SYSTEM FIELDS /////////////////////////////////////////////////////////////////////// -->
+    <div class="row justify-content-md-center " style="margin-top:10px; ">
+        <div id="buttons" class="col-xs-12 col-sm-10  ">
+            <button type="button" class="btn btn-primary" data-toggle="collapse" data-target="#uploadBoxes" aria-expanded="false"  aria-controls="uploadBoxes">
+                Upload Files
+            </button>
+            <button type="button" class="btn btn-primary " data-toggle="collapse" data-target="#sampleData" aria-expanded="false"  aria-controls="sampleData">
+                Sample Data
+            </button>
+            <button id="clearDB" type="button" class="btn btn-secondary float-right" >
+                Clear Database
+            </button>
+        </div>
+        <div class="col-xs-12 col-sm-10  ">
+            <div id="uploadBoxes" class="collapse">
+                <br>
+                <div class="row">
+                    <div class="col-lg-3 col-sm-4">
+                        <h6>Metadata Files</h6>
+                        Certificate Options (Select before Uploading):
+                        <div class="form-check">
+                            <label class="form-check-label">
+                                <input type="radio" id="completedStudents" class="form-check-input" name="metaOptions" value="completed" checked>
+                                Students with Certificate Only
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <label class="form-check-label">
+                                <input type="radio" id="inRangeStudents" class="form-check-input" name="metaOptions" value="inCourseDates">
+                                Students Enrolled Before Official End Date
+                            </label>
+                        </div>
+                        <div class="form-check" >
+                            <label class="form-check-label">
+                                <input type="radio" id="allStudents" class="form-check-input" name="metaOptions" value="allStudents">
+                                All Enrolled Students
+                            </label>
+                        </div>
+                    </div>
+                    <div class="col-lg-3 col-sm-4">
+                        <br>
+                        Segmentation Rule (Select before Uploading):
+                        <div class="form-check">
+                            <label class="form-check-label">
+                                <input type="radio" id="none" class="form-check-input" name="segmentationRule" value="none" checked>
+                                No Segmentation
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <label class="form-check-label">
+                                <input type="radio" id="AB" class="form-check-input" name="segmentationRule" value="ab">
+                                A/B: A is even Learner Id, B is odd
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <label class="form-check-label">
+                                <input type="radio" id="ABC" class="form-check-input" name="segmentationRule" value="abc">
+                                A/B/C: A is Learner Id ending in 0-3, B ending in 4-6 and C in 7-9
+                            </label>
+                        </div>
+                    </div>
+                    <div class="col-lg-3 col-sm-4">
+                        <br>
+                        Select all metadata files:<br>
+                        <input type="file" id="filesInput" multiple >
+                        <output id="list"></output>
+                    </div>
+                </div>
+                <hr>
+                <h6>Log files</h6>
+                Select log files:<br>
+                <input type="file" id="logFilesInput" multiple >
+                <output id="listLogs"></output>
+
+                <table id="progress_tab">
+                </table>
+                <table id="progress_time">
+                </table>
+                <table id="progress_bar">
+                </table>
+            </div>
+        </div>
+        <div class="col-xs-12 col-sm-10  ">
+            <div id="sampleData" class="collapse">
+<!--                <br>-->
+<!--                <div class="col">-->
+<!--                    <button type="button" class="btn btn-secondary btn-sm" id="populate-FP101x">Introduction to Functional Programming (Students w/Certificate)</button>-->
+<!--                </div>-->
+                <br>
+                <div class="col">
+                    <button type="button" class="btn btn-secondary btn-sm" id="populate-FP101x_All">Introduction to Functional Programming</button>
+                </div>
+<!--                <br>-->
+<!--                <div class="col ">-->
+<!--                    <button type="button" class="btn btn-secondary btn-sm" id="populate-Frame101x">Framing: Creating powerful political messages</button>-->
+<!--                </div>-->
+<!--                <br>-->
+<!--                <div class="col ">-->
+<!--                    <button type="button" class="btn btn-secondary btn-sm" id="populate-RI101x">Responsible Innovation: Ethics, Safety and Technology</button>-->
+<!--                </div>-->
+                <!--<br>-->
+                <!--<div class="col ">-->
+                    <!--<button type="button" class="btn btn-secondary btn-sm" id="populate-TW3421x">Credit Risk Management</button>-->
+                <!--</div>-->
+                <!--<br>-->
+                <!--<div class="col ">-->
+                    <!--<button type="button" class="btn btn-secondary btn-sm" id="populate-AE1110x">Introduction to Aeronautical Engineering</button>-->
+                <!--</div>-->
+                <!--<br>-->
+                <!--<div class="col ">-->
+                    <!--<button type="button" class="btn btn-secondary btn-sm" id="populate-Visual101x">IMAGE | ABILITY - Visualizing the Unimaginable</button>-->
+                <!--</div>-->
+                <br>
+                <div class="col">
+                    <button type="button" class="btn btn-secondary btn-sm" id="populate-Mind101x">MIND (Currently unavailable)</button>
+                </div>
+<!--                <br>-->
+<!--                <div class="col">-->
+<!--                    <button type="button" class="btn btn-info btn-sm" id="getWebdata">Print Webdata to Console</button>-->
+<!--                </div>-->
+            </div>
+        </div>
+    </div>
+
+    <div class="row justify-content-md-center " style="margin-top:10px; ">
+        <div class="col-xs-12 col-sm-10  ">
+            <table id="dbGrid" class="table table-hover ">
+                <caption style="text-align:center;padding:7px 0 7px 0;background:#008fb8;color:white;font-size:18px;caption-side: top; ">
+                    Session Overview
+                </caption>
+                <thead>
+                    <tr>
+                        <th>Course Title</th>
+                        <th>General Session</th>
+                        <th>Forum Sessions</th>
+                        <th>Forum Posts<br>and Comments</th>
+                        <th>Video Interactions</th>
+                        <th>Submissions</th>
+                        <th>Assessments</th>
+                        <th>Problem Sessions</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+
+            <table id="indicatorGrid" class="table table-hover ">
+                <caption style="text-align:center;padding:7px 0 7px 0;background:#00A6D6;color:white;font-size:18px;caption-side: top; ">
+                    Main Indicators
+                </caption>
+                <thead>
+                <tr>
+                    <th>Completion Rate</th>
+                    <th>Average Grade <br>(students w/completed course)</th>
+                    <th>Enrollment per Mode</th>
+                    <th>Average Grade by Enrollment Mode</th>
+                    <th>Average Time Spent<br> Watching Video</th>
+                    <th>Students that watched<br> at least 1 video</th>
+                </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+
+            <table id="dlGrid" class="table table-hover ">
+                <caption style="text-align:center;padding:7px 0 7px 0;background:#00bdf4;color:white;font-size:18px;caption-side: top; ">
+                    Database Downloads
+                </caption>
+                <thead>
+                <tr>
+                    <th>Table</th>
+                    <th>Metadata</th>
+                    <th>General Session</th>
+                    <th>Forum Sessions</th>
+                    <th>Forum Interactions</th>
+                    <th>Video Interactions</th>
+                    <th>Submissions</th>
+                    <th>Assessments</th>
+                    <th>Quiz Sessions</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr>
+                    <th><button type="button" class="btn btn-primary btn-sm" id="dl_all">Download All</button></th>
+                    <th><button type="button" class="btn btn-primary btn-sm" id="dl_metadata">Download</button></th>
+                    <th><button type="button" class="btn btn-primary btn-sm" id="dl_sessions">Download</button></th>
+                    <th><button type="button" class="btn btn-primary btn-sm" id="dl_forum_sessions">Download</button></th>
+                    <th><button type="button" class="btn btn-primary btn-sm" id="dl_forum_interaction">Download</button></th>
+                    <th><button type="button" class="btn btn-primary btn-sm" id="dl_video_interactions">Download</button></th>
+                    <th><button type="button" class="btn btn-primary btn-sm" id="dl_submissions">Download</button></th>
+                    <th><button type="button" class="btn btn-primary btn-sm" id="dl_assessments">Download</button></th>
+                    <th><button type="button" class="btn btn-primary btn-sm" id="dl_quiz_sessions">Download</button></th>
+                </tr>
+                </tbody>
+            </table>
+            <button type="button" class="btn btn-primary btn-sm" data-toggle="collapse" data-target="#graphOptions" aria-expanded="false" >
+                Graph Options
+            </button>
+            <div id="graphOptions" class="collapse">
+                <br>
+                <div class="row">
+                    <div class="col-lg-3 col-sm-4">
+                        <h6>Date Range (time-series charts only)</h6>
+                        <div class="form-check" >
+                            <label class="form-check-label">
+                                <input type="radio" id="allDatesRadio" class="form-check-input" name="processedOrInRange" value="allDates" >
+                                All Processed Logs
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <label class="form-check-label">
+                                <input type="radio" id="courseDatesRadio" class="form-check-input" name="processedOrInRange" value="courseDates" checked>
+                                Official Course Dates
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <label class="form-check-label">
+                                Specific Dates - <input type="text" name="daterange" />
+                            </label>
+                        </div>
+                    </div>
+                    <div class="col-lg-3 col-sm-4">
+                        <h6>Week vs Day</h6>
+                        <div class="form-check" >
+                            <label class="form-check-label">
+                                <input type="radio" id="weeklyRadio" class="form-check-input" name="dailyOrWeekly"
+                                       value="weekly" checked >
+                                Weekly Values
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <label class="form-check-label">
+                                <input type="radio" id="dailyRadio" class="form-check-input" name="dailyOrWeekly"
+                                       value="daily">
+                                Daily Values
+                            </label>
+                        </div>
+                        <br>
+                        <h6>Table of Students with Forum Behavior Group</h6>
+                        <button id="getForumList" type="button" class="btn btn-primary btn-sm" >
+                            Download
+                        </button>
+                    </div>
+                </div>
+                <br>
+                <h6>Reprocess Graph Values</h6>
+                <div class="col ">
+                    <button type="button" class="btn btn-danger btn-sm" id="updateChartValues">Delete and Update</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="gridster">
+        <ul>
+            <li id="mixedTile" >
+                <header>|||</header>
+                <div class="container-fluid" id="mixedChartBox">
+                    <div id="mixedChart"></div>
+                </div>
+            </li>
+            <li id="heatTile" >
+                <header>|||</header>
+                <div class="container-fluid" id="heatChartBox">
+                    <button type="button" class="btn btn-primary btn-sm float-right" data-toggle="collapse" data-target="#forumGroupInfo">
+                        Hide
+                    </button>
+                    <div id="forumGroupInfo" class="collapse show">
+                        <div style="border: 1px solid blue; padding: 2px">
+                            Regular Viewers are learners that visit Forums at least once a week in 3 separate weeks
+                            (does not have to be consecutively) during the course.
+                            Occasional Viewers are learners that also visit Forums but less than 3 separate weeks.
+                            Same notion for Regular and Occasional Posters, but regarding Posting or Commenting in Forums.
+                        </div>
+                    </div>
+                    <div id="heatChart"></div>
+                </div>
+            </li>
+            <li id="lineTile" >
+                <header>|||</header>
+                <div class="container-fluid" id="lineChartBox" >
+                    <div class="dropdown">
+                        <button type="button" class="btn btn-sm dropdown-toggle" data-toggle="dropdown" style="float:right;">
+                            <i class="fas fa-download"></i>
+                        </button>
+                        <div class="dropdown-menu">
+                            <a class="dropdown-item" id="png_lineChart">Download PNG</a>
+                        </div>
+                    </div>
+                    <canvas style = "position:relative; top:-10px;" id="lineChart"></canvas>
+                </div>
+            </li>
+            <li id="boxTile" >
+                <header>|||</header>
+                <div class="container-fluid " id="boxChartBox">
+                    <div class="dropdown">
+                        <button type="button" class="btn btn-sm dropdown-toggle" data-toggle="dropdown" style="float:right;">
+                            <i class="fas fa-download"></i>
+                        </button>
+                        <div class="dropdown-menu">
+                            <a class="dropdown-item" id="png_boxChart">Download PNG</a>
+                        </div>
+                    </div>
+                    <canvas style = "position:relative; top:-10px;" id="boxChart"></canvas>
+                </div>
+            </li>
+            <li id="areaTile" >
+                <header>|||</header>
+                <div class="container-fluid " id="areaChartBox">
+                    <div class="dropdown">
+                        <button type="button" class="btn btn-sm dropdown-toggle" data-toggle="dropdown" style="float:right;">
+                            <i class="fas fa-download"></i>
+                        </button>
+                        <div class="dropdown-menu">
+                            <a class="dropdown-item" id="png_areaChart">Download PNG</a>
+                        </div>
+                    </div>
+                    <canvas style = "position:relative; top:-10px;" id="areaChart"></canvas>
+                </div>
+            </li>
+            <li id="areaDropoutTile" >
+                <header>|||</header>
+                <div class="container-fluid " id="areaDropoutChartBox">
+                    <div class="dropdown">
+                        <button type="button" class="btn btn-sm dropdown-toggle" data-toggle="dropdown" style="float:right;">
+                            <i class="fas fa-download"></i>
+                        </button>
+                        <div class="dropdown-menu">
+                            <a class="dropdown-item" id="png_areaDropoutChart">Download PNG</a>
+                        </div>
+                    </div>
+                    <canvas style = "position:relative; top:-10px;" id="areaDropoutChart"></canvas>
+                </div>
+            </li>
+            <li id="arcTile" >
+                <header>|||</header>
+                <div class="container-fluid " id="arcChartBox">
+                    <button type="button" class="btn btn-primary btn-sm float-right" data-toggle="collapse" data-target="#videoInfo">
+                        Hide
+                    </button>
+                    <div id="videoInfo" class="collapse show">
+                        <div style="border: 1px solid blue; padding: 2px">
+                            The <a href="http://www.educationaldatamining.org/EDM2016/proceedings/paper_63.pdf" target="_blank">Video Interactions</a>
+                            chart shows the average learner's sequential watching activity across videos. Each node (circle)
+                            represents a <i>video</i>, and they are ordered according to the course structure. Each link (arc) shows the
+                            the following video watched, and the thickness is proportional to the amount of students going to that video.
+                        </div>
+                    </div>
+                    <br>
+                    <form>
+                        <div class="dropdown">
+                            <button type="button" class="btn btn-sm dropdown-toggle" data-toggle="dropdown" style="float:right;">
+                                <i class="fas fa-download"></i>
+                            </button>
+                            <div class="dropdown-menu">
+                                <a class="dropdown-item" id="png_arcChart">Download PNG</a>
+                            </div>
+                        </div>
+                        <label for="links" style="float:right;"> - Level of Detail</label>
+                        <input type="range" min=10 max=500 step=10 id="links" value=50 style="float:right;">
+                        <label style="float:left;" for="arcType">Student Status - </label>
+                        <select name="type" id="arcType" style="float:left;">
+                            <option value="general">Everyone</option>
+                            <option value="passing">Passing Only</option>
+                            <option value="failing">Failing Only</option>
+                        </select>
+                    </form>
+                    <div style="width: 100%; overflow-x:auto; overflow-y:hidden" >
+                        <div style="height: 400px">
+                            <div id="arcChart"></div>
+                        </div>
+                    </div>
+                </div>
+            </li>
+            <li id="cycleTile" >
+                <header>|||</header>
+                <div class="container-fluid  " id="cycleChartBox">
+                    <button type="button" class="btn btn-primary btn-sm float-right" data-toggle="collapse" data-target="#transitionInfo">
+                        Hide
+                    </button>
+                    <div id="transitionInfo" class="collapse show">
+                        <div style="border: 1px solid blue; padding: 2px">
+                            The <a href="http://www.educationaldatamining.org/EDM2016/proceedings/paper_63.pdf" target="_blank">Learning Path</a>
+                            chart shows the average learner's sequential movement between course components during a given week.
+                            Each node (circle) is a <i>type</i> of course component, and each link (arrow) shows the
+                            <i>likelihood</i> that a student will transition from one event type to another.
+                            The paths are calculated as a <a href="https://en.wikipedia.org/wiki/Markov_chain" target="_blank">Markov Chain</a>,
+                            so the probability that a student goes to a given component type depends only on the previous component.
+                        </div>
+                    </div>
+                    <br>
+                    <form>
+                        <div class="dropdown">
+                            <button type="button" class="btn btn-sm dropdown-toggle" data-toggle="dropdown" style="float:right;">
+                                <i class="fas fa-download"></i>
+                            </button>
+                            <div class="dropdown-menu">
+                                <a class="dropdown-item" id="png_cycleChart">Download PNG</a>
+                            </div>
+                        </div>
+                        <label for="linksCycle" style="float:right;"> - Level of Detail</label>
+                        <input type="range" min=0 max=300 step=10 id="linksCycle" value=30 style="float:right;">
+                        <label style="float:left;" for="cycleType">Student Status - </label>
+                        <select name="type" id="cycleType" style="float:left;">
+                            <option value="downloadable">Passing Only</option>
+                            <option value="notpassing">Failing Only</option>
+                            <option value="general">Passing and Failing</option>
+                            <option value="designed">Designed</option>
+                        </select>
+                        <label for="cycleWeek" > Week - </label>
+                        <input  id="cycleWeek" type="number" min="1" max=getMaxWeeks() step="1" value="1" required
+                                style="width: 6ch;">
+                    </form>
+                    <div id="cycleChart" ></div>
+                </div>
+            </li>
+        </ul>
+    </div>
+
+    <script src = "https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.15.0/umd/popper.min.js"></script>
+    <script src = "https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
+    <script src = "https://cdnjs.cloudflare.com/ajax/libs/toastr.js/2.1.1/toastr.min.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/blockui@1.0.0/jquery.blockUI.min.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/apexcharts@3.8.1/dist/apexcharts.min.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/chartjs-chart-box-and-violin-plot@2.1.0/build/Chart.BoxPlot.min.js"></script>
+
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@shopify/draggable@1.0.0-beta.5/lib/draggable.bundle.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@shopify/draggable@1.0.0-beta.5/lib/swappable.js"></script>
+
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
+
+    <script type="module" src="scripts/index.js"></script>
+    <script type="module" src="scripts/metadataProcessing.js"></script>
+    <script type="module" src="scripts/prepareTables.js"></script>
+    <script type="module" src="scripts/databaseHelpers.js"></script>
+    <script type="module" src="scripts/helpers.js"></script>
+
+
+    <script>
+        let lineChart = null;
+        let areaChart = null;
+        let areaDropoutChart = null;
+        let boxChart = null;
+        let arcChart = null;
+        let heatChart = null;
+        let mixedChart = null;
+    </script>
+</body>
+</html>

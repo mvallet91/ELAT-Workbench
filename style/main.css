@@ -1,0 +1,57 @@
+#tblGrid {
+    margin-top: 20px;
+}
+
+table {
+    table-layout:fixed
+}
+
+tr th,
+tr td {
+    border: 1px solid black;
+    padding: 5px 0px 5px 0px;
+    text-align: center;
+}
+
+.p, span, a {
+    font-family: "Helvetica Neue", sans-serif;
+    font-weight: bold;
+    font-size: 14px;
+    letter-spacing: .1px;
+}
+
+.row-centered {
+    text-align: center;
+}
+
+.col-centered {
+    display: inline-block;
+    float: none;
+    /* reset the text-align */
+    text-align: left;
+    /* inline-block space fix */
+    margin-right: -4px;
+}
+
+.navbar-brand {
+    padding:0;
+}
+
+#loading {
+    background: url('../icons/loading-hourglass.gif') no-repeat center center;
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 100%;
+    z-index: 9999999;
+}
+
+.chart {
+    display: block;
+    width: 100%;
+}
+
+.apexcharts-menu-item.exportSVG {
+    display: none;
+}

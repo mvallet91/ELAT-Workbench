@@ -1,5 +1,5 @@
-import {cleanUnicode, cmpDatetime, getDayDiff, loader, processNull,
-    escapeString, learnerSegmentation} from "./helpers.js";
+import {cleanUnicode, cmpDatetime, getDayDiff, loader,
+    processNull, learnerSegmentation, escapeString} from "./helpers.js";
 import {sqlInsert, clearDashboardTablesWebdata} from "./databaseHelpers.js";
 
 

@@ -28,7 +28,8 @@
     <script src="https://cdn.jsdelivr.net/npm/jsstore@3.1.0/dist/jsstore.worker.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sqlweb@1.3.2/dist/sqlweb.min.js"></script>
 
-    <script src="https://cdn.jsdelivr.net/gh/mvallet91/ELAT-Workbench/scripts/pako.js"></script>
+<!--    <script src="https://cdn.jsdelivr.net/gh/mvallet91/ELAT-Workbench/scripts/pako.js"></script> TODO REACTIVATE PAKO-->
+    <script src="scripts/pako.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.8.0/Chart.bundle.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-annotation/0.5.7/chartjs-plugin-annotation.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.11/lodash.min.js"></script>
@@ -264,6 +265,7 @@
                 <thead>
                 <tr>
                     <th>Table</th>
+                    <th>Metadata</th>
                     <th>General Session</th>
                     <th>Forum Sessions</th>
                     <th>Forum Interactions</th>
@@ -276,10 +278,11 @@
                 <tbody>
                 <tr>
                     <th><button type="button" class="btn btn-primary btn-sm" id="dl_all">Download All</button></th>
+                    <th><button type="button" class="btn btn-primary btn-sm" id="dl_metadata">Download</button></th>
                     <th><button type="button" class="btn btn-primary btn-sm" id="dl_sessions">Download</button></th>
                     <th><button type="button" class="btn btn-primary btn-sm" id="dl_forum_sessions">Download</button></th>
                     <th><button type="button" class="btn btn-primary btn-sm" id="dl_forum_interaction">Download</button></th>
-                    <th><button type="button" class="btn btn-primary btn-sm" id="dl_video_interaction">Download</button></th>
+                    <th><button type="button" class="btn btn-primary btn-sm" id="dl_video_interactions">Download</button></th>
                     <th><button type="button" class="btn btn-primary btn-sm" id="dl_submissions">Download</button></th>
                     <th><button type="button" class="btn btn-primary btn-sm" id="dl_assessments">Download</button></th>
                     <th><button type="button" class="btn btn-primary btn-sm" id="dl_quiz_sessions">Download</button></th>

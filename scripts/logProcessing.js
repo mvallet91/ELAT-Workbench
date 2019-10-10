@@ -772,7 +772,7 @@ export function processVideoInteractionSessions(courseMetadataMap, logFiles, ind
             data.push(values);
         }
         // console.log('Sending', data.length, ' values to storage at ' + new Date());
-        sqlLogInsert('video_interaction', data, connection);
+        sqlLogInsert('video_interactions', data, connection);
         progressDisplay(data.length + ' video interaction sessions', index);
     } else {
         console.log('No forum session info for ', index, total);

@@ -7,8 +7,11 @@ function PromiseTimeout(delay) {
     });
 }
 
-describe('renders without crashing', () => {
-    test('we view the welcome h1 header', async () => {
+let metadataPath = "C:/Users/manuelvalletor/ELAT-Metadata/FP101x-3T2015/";
+let logPath = "C:/Users/manuelvalletor/surfdrive/Shared/WIS-EdX/logs/";
+
+describe('Full End-to-end testing with multiple log files', () => {
+    test('Verify the summarized info in dashboard tables', async () => {
         debugger;
         const width = 1535;
         const height = 1704;
@@ -20,7 +23,7 @@ describe('renders without crashing', () => {
         await page.setViewport({ width, height });
 
         // await page.goto('https://mvallet91.github.io/hidden_workbench/', {waitUntil: 'domcontentloaded'});
-        await page.goto('http://localhost:63342/untitled/index.html?_ijt=621sj41m1et9ct9m2mhqqdktsi', {waitUntil: 'domcontentloaded'});
+        await page.goto('http://localhost:63342/untitled/index.html?_ijt=tukl913ue6lo8rkkrp7t1r7huu', {waitUntil: 'domcontentloaded'});
         await page.screenshot({path: 'img/screenshot.png'});
 
         expect(page).not.toBeNull();
@@ -35,19 +38,18 @@ describe('renders without crashing', () => {
         await PromiseTimeout(6000);
         const title = await page.title();
         console.log(title);
-        await page.screenshot({path: 'start.png'});
+        await page.screenshot({path: 'test/images/start.png'});
 
         let selector = '#buttons > button:nth-child(1)';
         await page.evaluate((selector) => document.querySelector(selector).click(), selector);
 
-        let filePath = "C:/Users/manuelvalletor/ELAT-Metadata/FP101x-3T2015/";
         let fileNames = ["DelftX-FP101x-3T2015-course_structure-prod-analytics.json",
             "DelftX-FP101x-3T2015-prod.mongo", "DelftX-FP101x-3T2015-auth_user-prod-analytics.sql" ,
             "DelftX-FP101x-3T2015-auth_userprofile-prod-analytics.sql", "DelftX-FP101x-3T2015-student_courseenrollment-prod-analytics.sql",
             "DelftX-FP101x-3T2015-certificates_generatedcertificate-prod-analytics.sql"];
         let filePaths = [];
         for (let file of fileNames){
-            filePaths.push(filePath + file)
+            filePaths.push(metadataPath + file)
         }
         const [fileChooser] = await Promise.all([
             page.waitForFileChooser(),
@@ -55,7 +57,7 @@ describe('renders without crashing', () => {
         ]);
         await fileChooser.accept(filePaths);
         await PromiseTimeout(60000);
-        await page.screenshot({path: 'uploadedMeta.png'});
+        await page.screenshot({path: 'test/images/uploadedMeta.png'});
 
         await page.reload({ waitUntil: ["networkidle0", "domcontentloaded"] });
         await PromiseTimeout(20000);
@@ -63,7 +65,6 @@ describe('renders without crashing', () => {
 
         await page.evaluate((selector) => document.querySelector(selector).click(), selector);
 
-        let logPath = "C:/Users/manuelvalletor/surfdrive/Shared/WIS-EdX/logs/";
         let logPaths = [];
         for (let day = 15; day < 18; day++) {
             let logName = "delftx-edx-events-2015-10-" + day + ".log.gz";
@@ -77,11 +78,11 @@ describe('renders without crashing', () => {
         ]);
         await logfileChooser.accept(logPaths);
         await PromiseTimeout(300000);
-        await page.screenshot({path: 'uploadedLogs.png'});
+        await page.screenshot({path: 'test/images/uploadedLogs.png'});
 
         await page.reload({ waitUntil: ["networkidle0", "domcontentloaded"] });
         await PromiseTimeout(300000);
-        await page.screenshot({path: 'processedCharts.png', fullPage: true});
+        await page.screenshot({path: 'test/images/processedCharts.png', fullPage: true});
 
         const data = await page.$$eval('table tr td', tds => tds.map((td) => {
             return td.innerHTML;

@@ -35,6 +35,9 @@
     "sqlweb": "^1.3.2",
     "webpack": "^4.41.0"
   },
+  "jest": {
+  "setupFiles": ["./setup-jest.js"]
+},
   "scripts": {
     "test": "jest"
   },

@@ -355,7 +355,7 @@ function ExtractCourseInformation(files) {
  * @param {object} courseMetadataMap Object with the course metadata information
  * @returns {{enrolledLearnerSet: *, learnerIndexRecord: *, learnerModeMap: *, learnerEnrollmentTimeMap: *, courseLearnerMap: *}}
  */
-function processEnrollment(courseId, inputFile, courseMetadataMap){
+export function processEnrollment(courseId, inputFile, courseMetadataMap){
     let courseLearnerMap = {};
     let learnerEnrollmentTimeMap = {};
     let enrolledLearnerSet = new Set();

@@ -355,7 +355,7 @@ function ExtractCourseInformation(files) {
  * @param {object} courseMetadataMap Object with the course metadata information
  * @returns {{enrolledLearnerSet: *, learnerIndexRecord: *, learnerModeMap: *, learnerEnrollmentTimeMap: *, courseLearnerMap: *}}
  */
-function processEnrollment(courseId, inputFile, courseMetadataMap){
+export function processEnrollment(courseId, inputFile, courseMetadataMap){
     let courseLearnerMap = {};
     let learnerEnrollmentTimeMap = {};
     let enrolledLearnerSet = new Set();
@@ -373,7 +373,7 @@ function processEnrollment(courseId, inputFile, courseMetadataMap){
             time = new Date(record[3]),
             courseLearnerId = courseId + '_' + globalLearnerId,
             mode = record[5];
-        if (cmpDatetime(courseMetadataMap['end_time'], new Date(time)) === 1) {
+        if (cmpDatetime(new Date(courseMetadataMap['end_time']), new Date(time)) === 1) {
             enrolledLearnerSet.add(globalLearnerId);
             let array = [globalLearnerId, courseId, courseLearnerId];
             learnerIndexRecord.push(array);

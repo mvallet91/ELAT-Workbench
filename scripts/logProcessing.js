@@ -290,7 +290,7 @@ export function processForumSessions(courseMetadataMap, logFiles, index, total, 
                     times_search = 0,
                     sessionRelatedElementPrevious = '',
                     sessionRelatedElementCurrent = '';
-
+                console.log(learner, event_logs.length);
                 for (let i in event_logs) {
                     let relatedElementCurrent = courseElementsFinder(event_logs[i], course_id);
 
@@ -408,7 +408,8 @@ export function processForumSessions(courseMetadataMap, logFiles, index, total, 
             };
             data.push(values);
         }
-        // console.log('Sending to storage at ' + new Date());
+        console.log(data)
+        if (connection === null) {return data}
         sqlLogInsert('forum_sessions', data, connection);
         progressDisplay(data.length + ' forum interaction sessions', index);
     }
@@ -772,6 +773,7 @@ export function processVideoInteractionSessions(courseMetadataMap, logFiles, ind
             data.push(values);
         }
         // console.log('Sending', data.length, ' values to storage at ' + new Date());
+        if (connection === null) {return data}
         sqlLogInsert('video_interactions', data, connection);
         progressDisplay(data.length + ' video interaction sessions', index);
     } else {

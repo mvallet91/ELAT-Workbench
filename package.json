@@ -1,10 +1,10 @@
 {
-  "name": "hiddenelat",
+  "name": "HiddenElat",
   "version": "1.0.0",
   "description": "Testing for ELAT",
   "main": "index.js",
   "directories": {
-    "test": "test"
+    "lib": "lib"
   },
   "dependencies": {
     "gzip-js": "^0.3.2",
@@ -36,8 +36,8 @@
     "webpack": "^4.41.0"
   },
   "jest": {
-  "setupFiles": ["./setup-jest.js"]
-},
+    "setupFiles": ["./setup-jest.js"]
+  },
   "scripts": {
     "test": "jest"
   },

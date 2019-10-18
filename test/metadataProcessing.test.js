@@ -1,6 +1,6 @@
 import {processEnrollment, processCertificates, processAuthMap, processGroups,
-    processDemographics, processForumPostingInteraction, processMetadataFiles} from "../scripts/metadataProcessing.js"
-import {getTestingValues, getTestingOutput} from "./testingValues.js"
+    processDemographics, processForumPostingInteraction} from "../scripts/metadataProcessing.js"
+import {getTestingValues, getTestingOutput} from "./metadataTestingValues.js"
 
 let courseMetadataMap = getTestingValues('courseMetadataMap'),
     courseId = getTestingValues('courseId'),

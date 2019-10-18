@@ -169,7 +169,7 @@ export function processGeneralSessions(courseMetadataMap, logFiles, fileIndex, t
                         'end_time': end_time, 'duration':duration};
                     data.push(values);
                 }
-                // console.log('Send to storage at ' + new Date());
+                if (connection === null) {return data}
                 sqlLogInsert('sessions', data, connection);
                 clearStoredWebdata(connection);
                 progressDisplay(data.length + ' sessions', fileIndex);
@@ -844,6 +844,7 @@ export function processAssessmentsSubmissions(courseMetadataMap, logFiles, index
                 }
             }
         }
+        if (connection === null) {return assessment_data}
         if (assessment_data.length === 0) {
             console.log('No assessment data', index, total)
         } else {

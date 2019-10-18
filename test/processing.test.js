@@ -1,5 +1,5 @@
 import {processEnrollment, processCertificates, processAuthMap, processGroups,
-    processDemographics} from "../scripts/metadataProcessing.js"
+    processDemographics, processForumPostingInteraction, processMetadataFiles} from "../scripts/metadataProcessing.js"
 import {getTestingValues, getTestingOutput} from "./testingValues.js"
 
 let courseMetadataMap = getTestingValues('courseMetadataMap'),
@@ -7,14 +7,18 @@ let courseMetadataMap = getTestingValues('courseMetadataMap'),
     enrollmentFile = getTestingValues('enrollmentFile'),
     certificateFile = getTestingValues('certificateFile'),
     authFile = getTestingValues('authFile'),
-    groupFile = getTestingValues('groupFile');
+    groupFile = getTestingValues('groupFile'),
+    demographicFile = getTestingValues('demographicFile'),
+    forumFile = getTestingValues('forumFile');
 
 courseMetadataMap = JSON.parse(courseMetadataMap);
 
 let enrollmentOutput = getTestingOutput('enrollmentOutput'),
     certificateOutput = getTestingOutput('certificateOutput'),
     authOutput = getTestingOutput('authOutput'),
-    groupOutput = getTestingOutput('groupOutput');
+    groupOutput = getTestingOutput('groupOutput'),
+    demographicOutput = getTestingOutput('demographicOutput'),
+    forumOutput = getTestingOutput('forumOutput');
 
 test('Input enrollment sample, to get processed object', () => {
     expect(processEnrollment(courseId, enrollmentFile, courseMetadataMap))
@@ -40,7 +44,12 @@ test('Input group sample, to get processed object', () => {
 
 test('Input demographic sample, to get processed object', () => {
     expect(processDemographics(courseId, demographicFile, enrollmentValues, learnerAuthMap))
-        .toEqual(groupOutput)
+        .toEqual(demographicOutput)
+});
+
+test('Input forum post sample, to get processed object', () => {
+    expect(processForumPostingInteraction(forumFile, courseMetadataMap))
+        .toEqual(forumOutput)
 });
 
 

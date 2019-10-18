@@ -290,10 +290,8 @@ export function processForumSessions(courseMetadataMap, logFiles, index, total, 
                     times_search = 0,
                     sessionRelatedElementPrevious = '',
                     sessionRelatedElementCurrent = '';
-                console.log(learner, event_logs.length);
                 for (let i in event_logs) {
                     let relatedElementCurrent = courseElementsFinder(event_logs[i], course_id);
-
                     if (session_id === '') {
                         if (['forum_activity', 'edx.forum.searched'].includes(event_logs[i]['event_type'])) {
                             session_id = 'forum_session_' + course_learner_id;
@@ -408,7 +406,6 @@ export function processForumSessions(courseMetadataMap, logFiles, index, total, 
             };
             data.push(values);
         }
-        console.log(data)
         if (connection === null) {return data}
         sqlLogInsert('forum_sessions', data, connection);
         progressDisplay(data.length + ' forum interaction sessions', index);

@@ -553,13 +553,12 @@ export function processDemographics(courseId, inputFile, enrollmentValues, learn
  * @param {object} courseMetadataMap Object with the course metadata information
  * @returns {array} forumInteractionRecords Array with arrays of interaction records
  */
-function processForumPostingInteraction(forum_file, courseMetadataMap){
+export function processForumPostingInteraction(forum_file, courseMetadataMap){
     let forum_interaction_records = [];
     let lines = forum_file.split("\n");
     for (let line of lines) {
         if (line.length < 9) {continue;}
         let jsonObject = JSON.parse(line);
-
         let post_id = jsonObject["_id"]["$oid"];
         let course_learner_id = jsonObject["course_id"] + "_" + jsonObject["author_id"];
 
@@ -588,9 +587,9 @@ function processForumPostingInteraction(forum_file, courseMetadataMap){
         if (jsonObject.hasOwnProperty("comment_thread_id" )) {
             post_thread_id = jsonObject["comment_thread_id"]["$oid"]
         }
-        if (post_timestamp < new Date(courseMetadataMap["end_time"])) {
-            let array = [post_id, course_learner_id, post_type, post_title, escapeString(post_content),
-                post_timestamp, post_parent_id, post_thread_id];
+        let array = [post_id, course_learner_id, post_type, post_title, escapeString(post_content),
+            post_timestamp, post_parent_id, post_thread_id];
+        if (new Date(post_timestamp) < new Date(courseMetadataMap["end_time"])) {
             forum_interaction_records.push(array)
         }
     }

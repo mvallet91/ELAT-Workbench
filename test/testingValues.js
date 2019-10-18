@@ -34,8 +34,12 @@ let courseId = 'courseId',
         "2\t22\tFirst2 Last2\t\t\t\tcourse.xml\tf\tUserlaan 2,Zip Town, The Netherlands\t1970\tm\t- experience with the edX-platform\\r\\n- interest in the courses\t1\tNULL\tNULL\tNULL\tNULL\n" +
         "3\t33\tFirst3 Last3\t\t\t\tcourse.xml\tm\t\t1975\tb\t\t1\tIN\t\tNULL\tNULL\n" +
         "4\t44\tFirst4 Last4\t\t\t\tcourse.xml\tm\t\t1997\ths\t\t1\tIN\t\tNULL\tNULL\n" +
-        "5\t55\tFirst5 Last5\t\t\t{\"old_names\": [[\"F L\", \"\", \"2013-07-15T18:27:28.671237\"]]}\tcourse.xml\t\t\tNULL\t\t\t1\tNULL\tNULL\tNULL\tNULL\n";
+        "5\t55\tFirst5 Last5\t\t\t{\"old_names\": [[\"F L\", \"\", \"2013-07-15T18:27:28.671237\"]]}\tcourse.xml\t\t\tNULL\t\t\t1\tNULL\tNULL\tNULL\tNULL\n",
+    forumPostFile =
+        [{"_id":{"$oid":"56291062d2aca5ee99000d0d"},"votes":{"up":[],"down":[],"up_count":0,"down_count":0,"count":0,"point":0},"visible":true,"abuse_flaggers":[],"historical_abuse_flaggers":[],"parent_ids":[{"$oid":"5623cfffc762776d5c0009ed"}],"at_position_list":[],"body":"Thanks!","course_id":"course-v1:DelftX+FP101x+3T2015","_type":"Comment","endorsed":false,"anonymous":false,"anonymous_to_peers":false,"parent_id":{"$oid":"5623cfffc762776d5c0009ed"},"author_id":"44","comment_thread_id":{"$oid":"5623c79dd2aca5b29c0009ea"},"author_username":"User4","sk":"5623cfffc762776d5c0009ed-56291062d2aca5ee99000d0d","updated_at":{"$date":"2015-10-22T16:35:46.239Z"},"created_at":{"$date":"2015-10-22T16:35:46.239Z"}}];
 
+let forumString = '';
+for (let record of forumPostFile){ forumString += JSON.stringify(record) + '\n' }
 
 let enrollmentOutput = { 'courseLearnerMap':
         { '11': 'courseId_11',
@@ -82,6 +86,23 @@ let groupOutput =  {
     'courseId_55': ['cohort', 'Group 2']
 };
 
+let demographicOutput =  {'learnerDemographicRecord': [
+    [ 'courseId_11', '', '2000', '', 'US', 'email1', 'none' ],
+    [ 'courseId_22', 'f', '1970', 'm', 'NULL', 'email2', 'none' ],
+    [ 'courseId_44', 'm', '1997', 'hs', 'IN', 'email4', 'none' ],
+    [ 'courseId_55', '', 'NULL', '', 'NULL', 'email5', 'none' ]
+]};
+
+let forumOutput =  [[ '56291062d2aca5ee99000d0d',
+    'course-v1:DelftX+FP101x+3T2015_44',
+    'Comment_Reply',
+    '',
+    '\\"Thanks!\\"',
+    new Date('2015-10-22T16:35:46.239Z'),
+    '5623cfffc762776d5c0009ed',
+    '5623c79dd2aca5b29c0009ea' ]];
+
+
 export function getTestingValues(key) {
     let values = {
         'courseId': courseId,
@@ -90,7 +111,8 @@ export function getTestingValues(key) {
         'certificateFile': certificateFile,
         'authFile': authFile,
         'groupFile': groupFile,
-        'demographicFile': demographicFile
+        'demographicFile': demographicFile,
+        'forumFile': forumString
     };
     return values[key];
 }
@@ -100,7 +122,9 @@ export function getTestingOutput(key) {
         'enrollmentOutput': enrollmentOutput,
         'certificateOutput': certificateOutput,
         'authOutput': authOutput,
-        'groupOutput': groupOutput
+        'groupOutput': groupOutput,
+        'demographicOutput': demographicOutput,
+        'forumOutput': forumOutput
     };
     return values[key];
 }

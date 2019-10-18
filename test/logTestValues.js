@@ -75,9 +75,12 @@ let videoSession =  [ { interaction_id:
     start_time: new Date('2016-01-01T21:02:56.694Z'),
     end_time: new Date('2016-01-01T21:05:35.587Z') } ];
 
+let forumSession =  [{"course_learner_id": "course-v1:DelftX+FP101x+3T2015_8050296", "duration": 31.341, "end_time": new Date('2016-01-01T22:14:33.573Z'), "relevent_element_id": "", "session_id": "forum_session_course-v1:DelftX+FP101x+3T2015_8050296_1451686442232_1451686473573", "start_time": new Date('2016-01-01T22:14:02.232Z'), "times_search": 0}]
+
 export function getOutputValues(key){
     let values = {
-        'videoSession': videoSession
+        'videoSession': videoSession,
+        'forumSession': forumSession
     };
     return values[key]
 }

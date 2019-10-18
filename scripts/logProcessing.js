@@ -1112,6 +1112,7 @@ export function processQuizSessions(courseMetadataMap, logFiles, index, total, c
             };
             data.push(values)
         }
+        if (connection === null){return data}
         sqlLogInsert('quiz_sessions', data, connection);
         progressDisplay(data.length + ' quiz interaction sessions', index);
     }

@@ -33,7 +33,7 @@ test('Process a forum session from a subset of records', () => {
         .toEqual(forumData)
 });
 
-test('Process a forum session from a subset of records', () => {
+test('Process a submission session from a subset of records', () => {
     expect(processAssessmentsSubmissions(courseMetadataMap, logFile, index, total, chunk, connection))
         .toEqual(submissionData)
 });

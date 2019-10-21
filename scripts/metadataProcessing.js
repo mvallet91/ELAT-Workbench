@@ -350,6 +350,7 @@ function ExtractCourseInformation(files) {
             courseMetadataMap['order_map'] = order_map;
             courseMetadataMap['element_name_map'] = element_name_map;
             console.log('Metadata map ready');
+            console.log(JSON.stringify(courseMetadataMap))
             return courseMetadataMap;
         }
     }

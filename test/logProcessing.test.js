@@ -2,21 +2,27 @@ import {processGeneralSessions, processAssessmentsSubmissions, processQuizSessio
     processVideoInteractionSessions, processForumSessions} from "../scripts/logProcessing.js"
 import {getTestValues, getOutputValues} from "./logTestValues.js"
 import {getTestingValues} from "./metadataTestingValues.js"
+import {processORASessions} from "../scripts/logProcessing";
 
 let courseMetadataMap = getTestingValues('courseMetadataMap');
 courseMetadataMap = JSON.parse(courseMetadataMap);
+let oraCourseMetadataMap = getTestingValues('oraCourseMetadataMap');
+oraCourseMetadataMap = JSON.parse(oraCourseMetadataMap);
 
 let logFile = getTestValues('logFile'),
     index = 0,
     total = 1,
     chunk = 0,
-    connection = null;
+    totalChunks = 1,
+    connection = null,
+    oraCallback = function () {};
 
 let sessionData = getOutputValues('learningSession'),
     videoData = getOutputValues('videoSession'),
     forumData = getOutputValues('forumSession'),
     submissionData = getOutputValues('submissionSession'),
-    quizData = getOutputValues('quizSession');
+    quizData = getOutputValues('quizSession'),
+    oraData = getOutputValues('oraSession');
 
 test('Process general learning sessions from a subset of records', () => {
     expect(processGeneralSessions(courseMetadataMap, logFile, index, total, chunk, connection))
@@ -38,7 +44,13 @@ test('Process a submission session from a subset of records', () => {
         .toEqual(submissionData)
 });
 
-test('Process a quiz session from a subset of records', () => {
-    expect(processQuizSessions(courseMetadataMap, logFile, index, total, chunk, connection))
-        .toEqual(quizData)
+// test('Process a quiz session from a subset of records', () => {
+//     expect(processQuizSessions(courseMetadataMap, logFile, index, total, chunk, connection))
+//         .toEqual(quizData)
+// });
+
+
+test('Process ORA session from a subset of records', () => {
+    expect(processORASessions(oraCourseMetadataMap, logFile, index, total, chunk, totalChunks, connection, oraCallback))
+        .toEqual(oraData)
 });

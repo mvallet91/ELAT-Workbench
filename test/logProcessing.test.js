@@ -44,10 +44,10 @@ test('Process a submission session from a subset of records', () => {
         .toEqual(submissionData)
 });
 
-// test('Process a quiz session from a subset of records', () => {
-//     expect(processQuizSessions(courseMetadataMap, logFile, index, total, chunk, connection))
-//         .toEqual(quizData)
-// });
+test('Process a quiz session from a subset of records', () => {
+    expect(processQuizSessions(courseMetadataMap, logFile, index, total, chunk, connection))
+        .toEqual(quizData)
+});
 
 
 test('Process ORA session from a subset of records', () => {

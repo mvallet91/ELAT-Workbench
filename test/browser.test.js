@@ -23,7 +23,8 @@ describe('Full End-to-end testing with multiple log files', () => {
         await page.setViewport({ width, height });
 
         // await page.goto('https://mvallet91.github.io/hidden_workbench/', {waitUntil: 'domcontentloaded'});
-        await page.goto('http://localhost:63342/untitled/index.html?_ijt=tukl913ue6lo8rkkrp7t1r7huu', {waitUntil: 'domcontentloaded'});
+        // await page.goto('http://localhost:63342/untitled/index.html?_ijt=tukl913ue6lo8rkkrp7t1r7huu', {waitUntil: 'domcontentloaded'});
+        await page.goto('http://localhost:63342/hidden_workbench/index.html?_ijt=7cd3n2v0kcl43923uqv8uum9ma', {waitUntil: 'domcontentloaded'});
         await page.screenshot({path: 'img/screenshot.png'});
 
         expect(page).not.toBeNull();

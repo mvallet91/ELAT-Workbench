@@ -675,9 +675,7 @@ export function getForumSegmentation(weeklyPosters, weeklyViewers, connection) {
         'name': 'studentsForumBehavior',
         'object': resultMatrix
     }];
-
-    sqlInsert('webdata', studentsForumBehavior, connection);
-    return forumSegmentation;
+    sqlInsert('webdata', studentsForumBehavior, connection)
 }
 
 // /**

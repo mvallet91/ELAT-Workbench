@@ -169,7 +169,7 @@ export function processGeneralSessions(courseMetadataMap, logFiles, fileIndex, t
                         'end_time': end_time, 'duration':duration};
                     data.push(values);
                 }
-                // console.log('Send to storage at ' + new Date());
+                if (connection === null) {return data}
                 sqlLogInsert('sessions', data, connection);
                 clearStoredWebdata(connection);
                 progressDisplay(data.length + ' sessions', fileIndex);
@@ -290,10 +290,8 @@ export function processForumSessions(courseMetadataMap, logFiles, index, total, 
                     times_search = 0,
                     sessionRelatedElementPrevious = '',
                     sessionRelatedElementCurrent = '';
-
                 for (let i in event_logs) {
                     let relatedElementCurrent = courseElementsFinder(event_logs[i], course_id);
-
                     if (session_id === '') {
                         if (['forum_activity', 'edx.forum.searched'].includes(event_logs[i]['event_type'])) {
                             session_id = 'forum_session_' + course_learner_id;
@@ -408,7 +406,7 @@ export function processForumSessions(courseMetadataMap, logFiles, index, total, 
             };
             data.push(values);
         }
-        // console.log('Sending to storage at ' + new Date());
+        if (connection === null) {return data}
         sqlLogInsert('forum_sessions', data, connection);
         progressDisplay(data.length + ' forum interaction sessions', index);
     }
@@ -772,6 +770,7 @@ export function processVideoInteractionSessions(courseMetadataMap, logFiles, ind
             data.push(values);
         }
         // console.log('Sending', data.length, ' values to storage at ' + new Date());
+        if (connection === null) {return data}
         sqlLogInsert('video_interactions', data, connection);
         progressDisplay(data.length + ' video interaction sessions', index);
     } else {
@@ -845,6 +844,7 @@ export function processAssessmentsSubmissions(courseMetadataMap, logFiles, index
                 }
             }
         }
+        if (connection === null) {return assessment_data}
         if (assessment_data.length === 0) {
             console.log('No assessment data', index, total)
         } else {
@@ -1112,6 +1112,7 @@ export function processQuizSessions(courseMetadataMap, logFiles, index, total, c
             };
             data.push(values)
         }
+        if (connection === null){return data}
         sqlLogInsert('quiz_sessions', data, connection);
         progressDisplay(data.length + ' quiz interaction sessions', index);
     }
@@ -1216,7 +1217,6 @@ export function processORASessions(courseMetadataMap, logFiles, index, total, ch
 
                 let learnerOraEvents = [];
                 for (const i in eventLogs) {
-
                     if (sessionId === '') {
                         if (eventLogs[i]['event_type'].includes('openassessment')) {
                             startTime = new Date(eventLogs[i]['event_time']);
@@ -1339,7 +1339,6 @@ export function processORASessions(courseMetadataMap, logFiles, index, total, ch
             }
         }
     }
-
     if (oraSessionsRecord.length === 0) {
         console.log('no ORA session info', index, total);
     } else {
@@ -1368,11 +1367,11 @@ export function processORASessions(courseMetadataMap, logFiles, index, total, ch
             };
             data.push(values);
         }
+        if (connection === null) {return data}
         console.log('Sending ORA sessions to storage at ' + new Date());
         sqlLogInsert('ora_sessions', data, connection);
         progressDisplay(data.length + ' ORA interaction sessions', index);
     }
-
     chunk++;
     callback(index, chunk, totalChunks);
 }

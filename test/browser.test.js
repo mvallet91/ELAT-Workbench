@@ -22,9 +22,7 @@ describe('Full End-to-end testing with multiple log files', () => {
         await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/71.0.3578.98');
         await page.setViewport({ width, height });
 
-        // await page.goto('https://mvallet91.github.io/hidden_workbench/', {waitUntil: 'domcontentloaded'});
-        // await page.goto('http://localhost:63342/untitled/index.html?_ijt=tukl913ue6lo8rkkrp7t1r7huu', {waitUntil: 'domcontentloaded'});
-        await page.goto('http://localhost:63342/untitled/index.html?_ijt=d35fu1dqfq7a5l1ttr9g2cc3fk', {waitUntil: 'domcontentloaded'});
+        await page.goto('https://mvallet91.github.io/ELAT-Workbench/', {waitUntil: 'domcontentloaded'});
         await page.screenshot({path: 'img/screenshot.png'});
 
         expect(page).not.toBeNull();

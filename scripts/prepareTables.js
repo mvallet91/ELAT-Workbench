@@ -194,7 +194,7 @@ function showDetailsTable(connection) {
                                 }
                             });
                         });
-                        query = "SELECT * FROM video_interaction";
+                        query = "SELECT * FROM video_interactions";
                         await connection.runSql(query).then(function (sessions) {
                             sessions.forEach(function (session) {
                                 totalVideoInteractionCounter++;
@@ -336,7 +336,7 @@ function showMainIndicatorsTable(connection) {
                                 avgGrades[result.enrollment_mode] = (result['avg(final_grade)'] * 100).toFixed(1);
                             });
                         });
-                        query = "SELECT [sum(duration)] from video_interaction GROUP BY course_learner_id";
+                        query = "SELECT [sum(duration)] from video_interactions GROUP BY course_learner_id";
                         await connection.runSql(query).then(function (watchers) {
                             videoDuration = 0;
                             videoWatchers = 0;

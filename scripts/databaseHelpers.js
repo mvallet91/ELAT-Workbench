@@ -237,8 +237,8 @@ export async function deleteEverything(connection) {
             console.log(err);
             alert('The deletion process started but did not finish,\n please refresh and try again');
         });
-        await connection.clear('video_interaction').then(function () {
-            console.log('Cleared video_interaction table');
+        await connection.clear('video_interactions').then(function () {
+            console.log('Cleared video_interactions table');
         }).catch(function (err) {
             console.log(err);
             alert('The deletion process started but did not finish,\n please refresh and try again');
@@ -305,15 +305,20 @@ export function processTablesForDownload(tablename, connection) {
         'sessions': ['session_id', 'course_learner_id', 'start_time', 'end_time', 'duration'],
         'forum_sessions': ['session_id', 'course_learner_id', 'times_search', 'start_time',
             'end_time', 'duration', 'relevent_element_id'],
-        'video_interaction': ['interaction_id', 'course_learner_id', 'video_id', 'duration',
+        'video_interactions': ['interaction_id', 'course_learner_id', 'video_id', 'duration',
             'times_forward_seek', 'duration_forward_seek', 'times_backward_seek', 'duration_backward_seek',
             'times_speed_up', 'times_speed_down', 'times_pause', 'duration_pause', 'start_time', 'end_time'],
         'submissions': ['submission_id', 'course_learner_id', 'question_id', 'submission_timestamp'],
         'assessments': ['assessment_id', 'course_learner_id', 'max_grade', 'grade'],
         'quiz_sessions': ['session_id', 'course_learner_id', 'start_time', 'end_time', 'duration'],
         'forum_interaction': ['post_id', 'course_learner_id', 'post_type', 'post_title', 'post_content',
-            'post_timestamp', 'post_parent_id', 'post_thread_id']
+            'post_timestamp', 'post_parent_id', 'post_thread_id'],
+        'course_learner': ['course_learner_id', 'final_grade', 'enrollment_mode', 'certificate_status',
+            'register_time', 'group_type', 'group_name', 'segment'],
+        'learner_demographic': ['course_learner_id', 'gender', 'year_of_birth', 'level_of_education',
+            'country', 'email','segment']
     };
+
     let headers = schemaMap[tablename];
 
     connection.runSql('select * from courses').then(function (courses) {
@@ -323,6 +328,10 @@ export function processTablesForDownload(tablename, connection) {
                 counter = 0;
             if (tablename === 'all') {
                 for (let table in schemaMap) {
+                    processTablesForDownload(table, connection);
+                }
+            } else if (tablename === 'metadata') {
+                for (let table of ['course_learner', 'learner_demographic']) {
                     processTablesForDownload(table, connection);
                 }
             } else {
@@ -341,7 +350,7 @@ export function processTablesForDownload(tablename, connection) {
                             data.push(array)
                         }
                         if (counter === total_count) {
-                            downloadCsv(tablename + course_id + '.csv', data);
+                            downloadCsv(tablename + '_' + course_id + '.csv', data);
                         }
                     });
                 });
@@ -457,7 +466,7 @@ export function getEdxDbQuery() {
         )
     `;
 
-    let video_interaction = `DEFINE TABLE video_interaction (
+    let video_interaction = `DEFINE TABLE video_interactions (
         interaction_id PRIMARYKEY STRING,
         course_learner_id NOTNULL STRING,
         video_id NOTNULL STRING,
@@ -530,6 +539,6 @@ export function getEdxDbQuery() {
 
     return (db + metadata + courses + demographic + elements + learners + learner_index +
         sessions + quiz_questions + submissions + assessments + quiz_sessions + video_interaction +
-        forum_interaction + forum_sessions + survey_descriptions + survey_responses + webdata +ora_sessions )
+        forum_interaction + forum_sessions + survey_descriptions + survey_responses + webdata + ora_sessions)
         ;
 }

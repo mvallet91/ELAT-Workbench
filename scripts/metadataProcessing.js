@@ -1,6 +1,13 @@
-import {cleanUnicode, cmpDatetime, getDayDiff, loader, processNull,
-    escapeString, learnerSegmentation} from "./helpers.js";
-import {sqlInsert, clearDashboardTablesWebdata} from "./databaseHelpers.js";
+import {
+    cleanUnicode,
+    compareDatetime,
+    escapeString,
+    getDayDiff,
+    learnerSegmentation,
+    loader,
+    processNull
+} from "./helpers.js";
+import {clearDashboardTablesWebdata, sqlInsert} from "./databaseHelpers.js";
 
 
 /**
@@ -355,7 +362,7 @@ function ExtractCourseInformation(files) {
  * @param {object} courseMetadataMap Object with the course metadata information
  * @returns {{enrolledLearnerSet: *, learnerIndexRecord: *, learnerModeMap: *, learnerEnrollmentTimeMap: *, courseLearnerMap: *}}
  */
-function processEnrollment(courseId, inputFile, courseMetadataMap){
+export function processEnrollment(courseId, inputFile, courseMetadataMap){
     let courseLearnerMap = {};
     let learnerEnrollmentTimeMap = {};
     let enrolledLearnerSet = new Set();
@@ -373,7 +380,7 @@ function processEnrollment(courseId, inputFile, courseMetadataMap){
             time = new Date(record[3]),
             courseLearnerId = courseId + '_' + globalLearnerId,
             mode = record[5];
-        if (cmpDatetime(courseMetadataMap['end_time'], new Date(time)) === 1) {
+        if (compareDatetime(courseMetadataMap['end_time'], time) === 1) {
             enrolledLearnerSet.add(globalLearnerId);
             let array = [globalLearnerId, courseId, courseLearnerId];
             learnerIndexRecord.push(array);
@@ -383,7 +390,8 @@ function processEnrollment(courseId, inputFile, courseMetadataMap){
             learnerSegmentMap[globalLearnerId] = learnerSegmentation(globalLearnerId);
         }
     }
-    return {'courseLearnerMap': courseLearnerMap,
+    return {
+        'courseLearnerMap': courseLearnerMap,
         'learnerEnrollmentTimeMap': learnerEnrollmentTimeMap,
         'enrolledLearnerSet': enrolledLearnerSet,
         'learnerIndexRecord': learnerIndexRecord,
@@ -399,12 +407,13 @@ function processEnrollment(courseId, inputFile, courseMetadataMap){
  * @param {object} courseMetadataMap Object with the course metadata information
  * @returns {{certifiedLearners: *, courseLearnerRecord: *, uncertifiedLearners: *}}
  */
-function processCertificates(inputFile, enrollmentValues, courseMetadataMap) {
+export function processCertificates(inputFile, enrollmentValues, courseMetadataMap) {
     let uncertifiedLearners = 0,
         certifiedLearners = 0,
         courseLearnerRecord = [];
 
     let radioValue = $("input[name='metaOptions']:checked").val();
+    if (radioValue === undefined){radioValue = 'allStudents'};
 
     let certificateMap = {};
 
@@ -448,22 +457,18 @@ function processCertificates(inputFile, enrollmentValues, courseMetadataMap) {
                     final_grade = certificateMap[global_learner_id]['final_grade'];
                     certificate_status = certificateMap[global_learner_id]['certificate_status'];
                 }
-                if (certificate_status === 'downloadable'){ certifiedLearners++ }
                 let array = [course_learner_id, final_grade, enrollment_mode, certificate_status, register_time, segment];
                 if (radioValue === 'allStudents') {
-                    uncertifiedLearners++;
+                    if (certificate_status === 'downloadable'){ certifiedLearners++ } else {uncertifiedLearners++;}
                     courseLearnerRecord.push(array)
                 } else if (radioValue === 'inCourseDates') {
                     if (new Date(register_time) <= new Date(courseMetadataMap.end_date)){
-                        uncertifiedLearners++;
+                        if (certificate_status === 'downloadable'){ certifiedLearners++ } else {uncertifiedLearners++;}
                         courseLearnerRecord.push(array)
-                    } else {
-                        console.log(array)
                     }
                 }
             }
         }
-        console.log(certifiedLearners, uncertifiedLearners);
         return {
             'certifiedLearners': certifiedLearners,
             'uncertifiedLearners': uncertifiedLearners,
@@ -477,7 +482,7 @@ function processCertificates(inputFile, enrollmentValues, courseMetadataMap) {
  * @param {string} inputFile String with contents of the auth file
  * @param {object} enrollmentValues Object with the enrollment values returned by the processEnrollment function
  */
-function processAuthMap(inputFile, enrollmentValues) {
+export function processAuthMap(inputFile, enrollmentValues) {
     let learnerAuthMap = {};
     for (let line of inputFile.split('\n')) {
         let record = line.split('\t');
@@ -497,7 +502,7 @@ function processAuthMap(inputFile, enrollmentValues) {
  * @param {string} inputFile String with contents of the group file
  * @param {object} enrollmentValues Object with the enrollment values returned by the processEnrollment function
  */
-function processGroups(courseId, inputFile, enrollmentValues){
+export function processGroups(courseId, inputFile, enrollmentValues){
     let groupMap = {};
     for (let line of inputFile.split('\n')){
         let record = line.split('\t');
@@ -521,7 +526,7 @@ function processGroups(courseId, inputFile, enrollmentValues){
  * @param learnerAuthMap
  * @returns {{learnerDemographicRecord: *}}
  */
-function processDemographics(courseId, inputFile, enrollmentValues, learnerAuthMap) {
+export function processDemographics(courseId, inputFile, enrollmentValues, learnerAuthMap) {
     let learnerDemographicRecord = [];
     for (let line of inputFile.split('\n')) {
         let record = line.split('\t');
@@ -548,13 +553,12 @@ function processDemographics(courseId, inputFile, enrollmentValues, learnerAuthM
  * @param {object} courseMetadataMap Object with the course metadata information
  * @returns {array} forumInteractionRecords Array with arrays of interaction records
  */
-function processForumPostingInteraction(forum_file, courseMetadataMap){
+export function processForumPostingInteraction(forum_file, courseMetadataMap){
     let forum_interaction_records = [];
     let lines = forum_file.split("\n");
     for (let line of lines) {
         if (line.length < 9) {continue;}
         let jsonObject = JSON.parse(line);
-
         let post_id = jsonObject["_id"]["$oid"];
         let course_learner_id = jsonObject["course_id"] + "_" + jsonObject["author_id"];
 
@@ -583,9 +587,9 @@ function processForumPostingInteraction(forum_file, courseMetadataMap){
         if (jsonObject.hasOwnProperty("comment_thread_id" )) {
             post_thread_id = jsonObject["comment_thread_id"]["$oid"]
         }
-        if (post_timestamp < new Date(courseMetadataMap["end_time"])) {
-            let array = [post_id, course_learner_id, post_type, post_title, escapeString(post_content),
-                post_timestamp, post_parent_id, post_thread_id];
+        let array = [post_id, course_learner_id, post_type, post_title, escapeString(post_content),
+            post_timestamp, post_parent_id, post_thread_id];
+        if (new Date(post_timestamp) < new Date(courseMetadataMap["end_time"])) {
             forum_interaction_records.push(array)
         }
     }

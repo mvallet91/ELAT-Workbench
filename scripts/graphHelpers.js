@@ -147,7 +147,7 @@ export async function getGraphElementMap(connection, segment) {
                                         });
                                     });
                                     toastr.info('Crunching quiz data');
-                                    query = "SELECT * FROM video_interaction";
+                                    query = "SELECT * FROM video_interactions";
                                     await connection.runSql(query).then(function (v_sessions) {
                                         v_sessions.forEach(function (session) {
                                             if (segment === 'none' || learnerSegmentation(session['course_learner_id'], segmentation) === segment) {

@@ -127,7 +127,9 @@ export function progressDisplay(content, index){
  * @param {Date} b_datetime Second datetime element
  * @returns {number} the result of the comparison
  */
-export function cmpDatetime(a_datetime, b_datetime){
+export function compareDatetime(a_datetime, b_datetime){
+    a_datetime = new Date(a_datetime);
+    b_datetime = new Date(b_datetime);
     if (a_datetime < b_datetime) {
         return -1;
     } else if (a_datetime > b_datetime){

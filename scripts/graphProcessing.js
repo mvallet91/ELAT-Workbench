@@ -1292,7 +1292,7 @@ function calculateVideoTransitions(connection) {
                 for (let learner of learnerIds) {
                     if (segment === 'none' || learnerSegmentation(learner, segmentation) === segment) {
                         let learnerSessions = [];
-                        let query = "SELECT * FROM video_interaction WHERE course_learner_id = '" + learner + "'";
+                        let query = "SELECT * FROM video_interactions WHERE course_learner_id = '" + learner + "'";
                         await connection.runSql(query).then(function (sessions) {
                             learnerSessions = sessions;
                             learnerSessions.sort(function (a, b) {
@@ -1964,7 +1964,7 @@ function calculateModuleCycles(connection) {
                             allSessions[learnerId].push(session)
                         })
                     });
-                    await connection.runSql("SELECT * FROM video_interaction WHERE course_learner_id = '" + learnerId + "' ").then(function (sessions) {
+                    await connection.runSql("SELECT * FROM video_interactions WHERE course_learner_id = '" + learnerId + "' ").then(function (sessions) {
                         sessions.forEach(function (session) {
                             session['type'] = 'video';
                             session['time'] = session.start_time;

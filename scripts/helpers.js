@@ -26,6 +26,19 @@ export function loader(on){
     }
 }
 
+
+/**
+ * Function to verify if the edx database exists and start the dashboard, or generate it otherwise
+ * @param connection Main JsStore worker that handles the connection to SqlWeb
+ */
+export function verifyBrowser() {
+    let userBrowser = bowser.getParser(navigator.userAgent).getResult();
+    console.log(userBrowser.browser.name);
+    if (! (['Chrome', 'Firefox'].includes(userBrowser.browser.name)) ) {
+        toastr.error('ELAT is developed mainly for Chrome and supports Firefox, please try one of those browsers',  {positionClass: "toast-top-center", timeOut: "0", extendedTimeOut: "0"})
+    }
+}
+
 /**
  * Process the text contents of a table into a csv-formatted file and download it
  * @param {string} filename String with the name of the file

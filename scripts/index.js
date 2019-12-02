@@ -7,7 +7,7 @@
 import {processMetadataFiles} from './metadataProcessing.js'
 import {populateSamples, initiateEdxDb, clearWebdataForUpdate,
     deleteEverything, processTablesForDownload} from "./databaseHelpers.js";
-import {loader, downloadForumSegmentation, progressDisplay, webdataJSON} from './helpers.js'
+import {loader, downloadForumSegmentation, progressDisplay, webdataJSON, verifyBrowser} from './helpers.js'
 import {processGeneralSessions, processForumSessions, processVideoInteractionSessions,
     processAssessmentsSubmissions, processQuizSessions, processORASessions} from "./logProcessing.js";
 import {exportChartPNG} from './graphHelpers.js'
@@ -16,6 +16,7 @@ var connection = new JsStore.Instance();
 
 window.onload = function () {
     //// PAGE INITIALIZATION  //////////////////////////////////////////////////////////////////////////////
+    verifyBrowser();
     initiateEdxDb(connection);
     prepareDashboard();
     drawCharts(connection).then(function () {console.log('Charts Ready')}).catch(function (error) {

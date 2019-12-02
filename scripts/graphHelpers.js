@@ -271,7 +271,7 @@ export async function getGraphElementMap(connection, segment) {
                                     // FORUM SEGMENTATION /////////////////////////////////////////
                                     let weeklyPosters = groupWeekly(forumPosters);
                                     let weeklyFViewers = groupWeekly(forumSessions);
-                                    let forumSegmentation = getForumSegmentation(weeklyPosters, weeklyFViewers, connection);
+                                    const forumSegmentation = await getForumSegmentation(weeklyPosters, weeklyFViewers, connection);
 
                                     let regularPosters = forumSegmentation.regularPosters,
                                         regularViewers = forumSegmentation.regularViewers,
@@ -306,6 +306,7 @@ export async function getGraphElementMap(connection, segment) {
                                         'nonPostersOccViewers': nonPostersOccViewers,
                                         'nonPostersNonViewers': nonPostersNonViewers,
                                     };
+
 
                                     let gradeLists = {};
                                     let counterLists = {};
@@ -613,7 +614,7 @@ export function trimByDates(values, start, end){
  * @param {Object} weeklyViewers Object with array of ids of learners that visited forums by week
  * @param {JsStoreWorker} connection Main JsStore worker that handles the connection to SqlWeb
  */
-export function getForumSegmentation(weeklyPosters, weeklyViewers, connection) {
+export async function getForumSegmentation(weeklyPosters, weeklyViewers, connection) {
     let posters = {};
     let regularPosters = [];
     let occasionalPosters = [];
@@ -655,14 +656,14 @@ export function getForumSegmentation(weeklyPosters, weeklyViewers, connection) {
         }
     }
 
-    let forumSegmentation =  {
+    let forumSegmentation = {
         'regularPosters': regularPosters,
         'regularViewers': regularViewers,
         'occasionalPosters': occasionalPosters,
         'occasionalViewers': occasionalFViewers
     };
     let resultMatrix = {};
-    for (let group in forumSegmentation){
+    for (let group in forumSegmentation) {
         for (let studentId of forumSegmentation[group]) {
             if (studentId in resultMatrix) {
                 resultMatrix[studentId].push(group)
@@ -675,7 +676,8 @@ export function getForumSegmentation(weeklyPosters, weeklyViewers, connection) {
         'name': 'studentsForumBehavior',
         'object': resultMatrix
     }];
-    sqlInsert('webdata', studentsForumBehavior, connection)
+    sqlInsert('webdata', studentsForumBehavior, connection);
+    return forumSegmentation;
 }
 
 // /**

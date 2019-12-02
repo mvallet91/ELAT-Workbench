@@ -168,7 +168,7 @@ export function clearStoredWebdata(connection) {
 export function clearDashboardTablesWebdata(connection){
     loader(true);
     let query = "SELECT * FROM webdata WHERE name = 'segmentation' ";
-    let segmentation = '';
+    let segmentation = 'none';
     let segmentMap = {
         'none': ['none'],
         'ab': ['none', 'A', 'B'],
@@ -176,14 +176,16 @@ export function clearDashboardTablesWebdata(connection){
     };
     connection.runSql("DELETE FROM webdata WHERE name = 'segmentation'");
     connection.runSql(query).then(function (result) {
-        segmentation = result[0]['object']['type'];
-        for (let segment of segmentMap[segmentation]) {
-            connection.runSql("DELETE FROM webdata WHERE name = 'courseDetails_" + segment + "'");
-            connection.runSql("DELETE FROM webdata WHERE name = 'mainIndicators_" + segment + "'");
-            connection.runSql("DELETE FROM webdata WHERE name = 'databaseDetails_" + segment + "'").then(function () {
-                loader(false);
-                toastr.success('Please reload the page now', 'Updating Indicators and Charts', {timeOut: 0})
-            });
+        if (result.length === 1) {
+            segmentation = result[0]['object']['type'];
+            for (let segment of segmentMap[segmentation]) {
+                connection.runSql("DELETE FROM webdata WHERE name = 'courseDetails_" + segment + "'");
+                connection.runSql("DELETE FROM webdata WHERE name = 'mainIndicators_" + segment + "'");
+                connection.runSql("DELETE FROM webdata WHERE name = 'databaseDetails_" + segment + "'").then(function () {
+                    loader(false);
+                    toastr.success('Please reload the page now', 'Updating Indicators and Charts', {timeOut: 0})
+                });
+            }
         }
     });
 }

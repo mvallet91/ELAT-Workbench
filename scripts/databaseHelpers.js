@@ -17,7 +17,7 @@ export function initiateEdxDb(connection) {
                 prepareTables(connection);
             });
         } else {
-            toastr.info('Welcome! If this is your first time here, visit ELAT Home for more info', 'ELAT',  {timeOut: 7000});
+            toastr.info("Welcome! If this is your first time here, visit <a href='https://mvallet91.github.io/ELAT'>ELAT Home</a> to learn more", "ELAT",  {timeOut: 7000});
             let dbQuery = getEdxDbQuery();
             connection.runSql(dbQuery).then(function (tables) {
                 toastr.success('Database generated, please reload the page', 'ELAT',  {timeOut: 5000});

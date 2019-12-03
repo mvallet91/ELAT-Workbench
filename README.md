@@ -49,4 +49,15 @@ and metrics, insight graphs.
 - Database Tools
 
     - [JsStore](https://github.com/ujjwalguptaofficial/JsStore) + [SQLWeb](https://github.com/ujjwalguptaofficial/sqlweb) + [IndexedDB](https://developer.mozilla.org/en-US/docs/Web/API/IndexedDB_API) SQLWeb parses regular SQL queries into api calls for JsStore, which is an SQL-focused wrapper for IndexedDB, a local key-value store in most modern browsers. Might be problematic when adding new rows from logs, and for the metrics queries (especially JOINS) already created in SQL.  
- 
+    
+# Citing
+If you use ELAT, or adapt it for your work, please cite our (preprint) publication [edX Log Data Analysis Made Easy](https://chauff.github.io/documents/publications/LAK2020-Torre.pdf) 
+<pre><code>@inproceedings{Valle2020ELAT,
+ author = {Valle Torre, Manuel and Tan, Esther and Hauff, Claudia},
+ title = {edX Log Data Analysis Made Easy},
+ booktitle = {Proceedings of the 10th International Conference on Learning Analytics \& Knowledge},
+ series = {LAK20},
+ year = {2020},
+ location = {Frankfurt, Germany}
+} 
+</code></pre>

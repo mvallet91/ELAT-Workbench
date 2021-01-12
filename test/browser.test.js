@@ -7,8 +7,8 @@ function PromiseTimeout(delay) {
     });
 }
 
-let metadataPath = "C:/Users/manuelvalletor/ELAT-Metadata/FP101x-3T2015/";
-let logPath = "C:/Users/manuelvalletor/surfdrive/Shared/WIS-EdX/logs/";
+let metadataPath = "C:/Users/FP101x-3T2015/";
+let logPath = "C:/Users/logs/";
 
 describe('Full End-to-end testing with multiple log files', () => {
     test('Verify the summarized info in dashboard tables', async () => {

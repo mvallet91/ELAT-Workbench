@@ -37,7 +37,7 @@ window.onload = function () {
     multiFileInputLogs.value = '';
     multiFileInputLogs.addEventListener('change', function () {
         loader(true);
-        prepareLogFiles(0, 0, 1);
+        prepareLogFiles(0);
     });
 
     //// BUTTONS INITIALIZATION /////////////////////////////////////////////////////////////////////////////
@@ -124,55 +124,36 @@ function readMetadataFiles(files, callback){
  * @param {number} chunkIndex Current chunk to process
  * @param {number} totalChunks Total chunks to process in current file
  */
-function prepareLogFiles(fileIndex, chunkIndex, totalChunks){
+function prepareLogFiles(fileIndex){
     const multiFileInputLogs = document.getElementById('logFilesInput'),
         files = multiFileInputLogs.files,
         totalFiles = files.length;
 
-    if (chunkIndex < totalChunks && fileIndex < totalFiles) {
-        console.log('File', fileIndex, 'out of', totalFiles, '-----------------------------');
-        console.log('Chunk', chunkIndex, 'out of', totalChunks, '-----------------------------');
-        progressDisplay(('Chunk ' + chunkIndex + ' of file'), (fileIndex));
-        toastr.info('Processing a new chunk of file number ' + (fileIndex + 1));
+    if (fileIndex < totalFiles) {
+        toastr.info('Starting with file number ' + (fileIndex + 1));
+        console.log('File', fileIndex + 1, 'out of', totalFiles, '-----------------------------');
         let counter = 0;
         for (const f of files) {
             if (counter === fileIndex) {
                 const today = new Date();
                 console.log('Starting at', today);
-                unzipAndChunkLogfile(f, reader, fileIndex, totalFiles, chunkIndex, totalChunks, processUnzippedChunk)
+                unzipAndChunkLogfile(f, reader, fileIndex, totalFiles, processUnzippedChunk)
             }
             counter += 1;
         }
     } else {
-        fileIndex++;
-        if (fileIndex < totalFiles) {
-            toastr.info('Starting with file number ' + (fileIndex + 1));
-            chunkIndex = 0;
-            console.log('File', fileIndex, 'out of', totalFiles, '-----------------------------');
-            console.log('Chunk', chunkIndex, 'out of', totalChunks, '-----------------------------');
-            let counter = 0;
-            for (const f of files) {
-                if (counter === fileIndex) {
-                    const today = new Date();
-                    console.log('Starting at', today);
-                    unzipAndChunkLogfile(f, reader, fileIndex, totalFiles, chunkIndex, totalChunks, processUnzippedChunk)
-                }
-                counter += 1;
-            }
-        } else {
-            let table = document.getElementById("progress_tab"),
-                row = table.insertRow(),
-                cell1 = row.insertCell();
-            setTimeout(function () {
-                toastr.success('Please reload the page now', 'LogFiles Processed!', {timeOut: 0});
-                cell1.innerHTML = ('Done! at ' + new Date().toLocaleString('en-GB'));
-                loader(false)
-            }, 1000);
-        }
+        let table = document.getElementById("progress_tab"),
+            row = table.insertRow(),
+            cell1 = row.insertCell();
+        setTimeout(function () {
+            toastr.success('Please reload the page now', 'LogFiles Processed!', {timeOut: 0});
+            cell1.innerHTML = ('Done! at ' + new Date().toLocaleString('en-GB'));
+            loader(false)
+        }, 1000);
     }
 }
 
-let chunkSize = 500 * 1024 * 1024;
+let chunkSize = 30 * 1024 * 1024;
 
 /**
  * This function is always called by the prepareLogFiles function, and it will inflate the gzipped file between
@@ -186,9 +167,8 @@ let chunkSize = 500 * 1024 * 1024;
  * @param {number} totalChunks Total chunks to process in current file
  * @param {function} callback Function to process the records of the unzipped chunk
  */
-function unzipAndChunkLogfile(file, reader, fileIndex, totalFiles, chunkIndex, totalChunks, callback){
+function unzipAndChunkLogfile(file, reader, fileIndex, totalFiles, callback){
     let output = [];
-    let processedFiles = [];
     let gzipType = /gzip/;
     output.push('<li><strong>', file.name, '</strong> (', file.type || 'n/a', ') - ',
                 file.size, ' bytes', '</li>');
@@ -198,24 +178,29 @@ function unzipAndChunkLogfile(file, reader, fileIndex, totalFiles, chunkIndex, t
     } else {
         reader.onload = function (event) {
             try {
-                let content = pako.inflate(event.target.result, {to: 'array'});
-                let stringContent = new TextDecoder("utf-8").decode(content.slice(chunkIndex * chunkSize, (chunkIndex + 1) * chunkSize));
-                processedFiles.push({
-                    key: file.name,
-                    value: stringContent.slice(stringContent.indexOf('{"username":'),
-                        stringContent.lastIndexOf('\n{'))
+                console.log('Starting chunks', new Date());
+                const buffer = new Uint8Array(event.target.result);
+                let chunkIndex = 1,
+                    totalChunks = Math.ceil(buffer.length / chunkSize);
+
+                const stream = new fflate.AsyncDecompress((err, dat) => {
+                    const stringContent = fflate.strFromU8(dat);
+                    let processedFiles = [];
+                    processedFiles.push({
+                        key: file.name,
+                        value: stringContent.slice(stringContent.indexOf('{"username":'),
+                            stringContent.lastIndexOf('\n{'))
+                    });
+                    if (stringContent.split('\n').length > 10) {
+                        callback(processedFiles, fileIndex, totalFiles, chunkIndex, totalChunks);
+                        chunkIndex++;
+                    }
                 });
-                reader.abort();
-                if (stringContent.split('\n').length > 10) {
-                    totalChunks++;
-                    callback(processedFiles, fileIndex, totalFiles, chunkIndex, totalChunks);
-                } else {
-                    fileIndex++;
-                    chunkIndex = 0;
-                    totalChunks = 1;
-                    console.log('End of file');
-                    prepareLogFiles(fileIndex, chunkIndex, totalChunks);
+                let i = 0;
+                for (; i < buffer.length - chunkSize; i += chunkSize) {
+                    stream.push(buffer.slice(i, i + chunkSize));
                 }
+                stream.push(buffer.slice(i), true);
             } catch (error) {
                 if (error instanceof RangeError) {
                     console.log(error);
@@ -248,20 +233,28 @@ function processUnzippedChunk(processedFiles, fileIndex, totalFiles, chunkIndex,
             toastr.error('Metadata has not been processed! Please upload all metadata files first');
         } else {
             let courseMetadataMap = result[0]['object'];
-            if (chunkIndex === 0) {
-                let table = document.getElementById("progress_tab"),
-                    row = table.insertRow(),
-                    cell1 = row.insertCell();
-                cell1.innerHTML = ('Processing file ' + (fileIndex + 1) + '/' + totalFiles +
-                    '\n at ' + new Date().toLocaleString('en-GB'));
-            }
+            let table = document.getElementById("progress_tab"),
+                row = table.insertRow(),
+                cell1 = row.insertCell();
+            cell1.innerHTML = ('Processing file ' + (fileIndex + 1) + '/' + totalFiles +
+                '\n at ' + new Date().toLocaleString('en-GB'));
+
+            // for (let f of processedFiles) {
+            //     console.log(f.key);
+            //     let lines = f.value.split('\n');
+            //     console.log('Lines in file:', lines.length);
+            //     if (chunkIndex === totalChunks) {
+            //         fileIndex++;
+            //         prepareLogFiles(fileIndex);
+            //     }
+            // }
+
             processGeneralSessions(courseMetadataMap, processedFiles, fileIndex, totalFiles, chunkIndex, connection);
             processForumSessions(courseMetadataMap, processedFiles, fileIndex, totalFiles, chunkIndex, connection);
             processVideoInteractionSessions(courseMetadataMap, processedFiles, fileIndex, totalFiles, chunkIndex, connection);
             processAssessmentsSubmissions(courseMetadataMap, processedFiles, fileIndex, totalFiles, chunkIndex, connection);
             processQuizSessions(courseMetadataMap, processedFiles, fileIndex, totalFiles, chunkIndex, connection);
             processORASessions(courseMetadataMap, processedFiles, fileIndex, totalFiles, chunkIndex, totalChunks, connection, prepareLogFiles);
-            // findORASessions(courseMetadataMap, processedFiles, fileIndex, totalFiles, chunkIndex, totalChunks, connection, prepareLogFiles);
         }
     });
 }

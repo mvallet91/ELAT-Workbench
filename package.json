@@ -7,9 +7,7 @@
     "lib": "lib"
   },
   "dependencies": {
-    "gzip-js": "^0.3.2",
     "node-gzip": "^1.1.2",
-    "pako": "^1.0.10",
     "require": "^2.4.20",
     "serialize-javascript": "^3.1.0",
     "uglify-js": "^3.7.1"

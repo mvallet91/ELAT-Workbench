@@ -172,7 +172,7 @@ export function processGeneralSessions(courseMetadataMap, logFiles, fileIndex, t
                 if (connection === null) {return data}
                 sqlLogInsert('sessions', data, connection);
                 clearStoredWebdata(connection);
-                progressDisplay(data.length + ' sessions', fileIndex);
+                progressDisplay(data.length + ' sessions', fileIndex + chunkIndex-1);
             } else {
                 console.log('no session info', fileIndex, totalFiles);
             }
@@ -408,7 +408,7 @@ export function processForumSessions(courseMetadataMap, logFiles, index, total, 
         }
         if (connection === null) {return data}
         sqlLogInsert('forum_sessions', data, connection);
-        progressDisplay(data.length + ' forum interaction sessions', index);
+        progressDisplay(data.length + ' forum interaction sessions', index + chunk-1);
     }
 }
 
@@ -772,7 +772,7 @@ export function processVideoInteractionSessions(courseMetadataMap, logFiles, ind
         // console.log('Sending', data.length, ' values to storage at ' + new Date());
         if (connection === null) {return data}
         sqlLogInsert('video_interactions', data, connection);
-        progressDisplay(data.length + ' video interaction sessions', index);
+        progressDisplay(data.length + ' video interaction sessions', index + chunk-1);
     } else {
         console.log('No forum session info for ', index, total);
     }
@@ -1114,7 +1114,7 @@ export function processQuizSessions(courseMetadataMap, logFiles, index, total, c
         }
         if (connection === null){return data}
         sqlLogInsert('quiz_sessions', data, connection);
-        progressDisplay(data.length + ' quiz interaction sessions', index);
+        progressDisplay(data.length + ' quiz interaction sessions', index + chunk - 1);
     }
 }
 
@@ -1146,10 +1146,6 @@ export function processORASessions(courseMetadataMap, logFiles, index, total, ch
         oraEvents = {},
         oraSessionsRecord = [];
 
-    // while (true) {
-    //     if (current_date == end_next_date) {
-    //         break;
-    //     }
     console.log('Starting ORA sessions');
     for (const logFile of logFiles) {
         const fileName = logFile['key'],
@@ -1370,10 +1366,16 @@ export function processORASessions(courseMetadataMap, logFiles, index, total, ch
         if (connection === null) {return data}
         console.log('Sending ORA sessions to storage at ' + new Date());
         sqlLogInsert('ora_sessions', data, connection);
-        progressDisplay(data.length + ' ORA interaction sessions', index);
+        progressDisplay(data.length + ' ORA interaction sessions', index + chunk - 1);
     }
-    chunk++;
-    callback(index, chunk, totalChunks);
+
+    if (chunk === totalChunks) {
+        index++;
+        callback(index);
+    }
+
+    // chunk++;
+    // callback(index, chunk, totalChunks);
 }
 
 
